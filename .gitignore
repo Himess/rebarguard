@@ -59,6 +59,9 @@ output/
 test-output/
 demo-artifacts/
 
+# Temp probe / OAuth helper scripts — not for git
+scripts/_*.sh
+
 # Secrets
 *.pem
 credentials.json
