@@ -32,7 +32,7 @@ async def test_happy_path() -> None:
         estimated_diameter_mm=20,
         estimated_stirrup_spacing_mm=200,
     )
-    diff = await agent.run(GeometryInput(column=_col(), detection=det))
+    diff = await agent.run(GeometryInput(element=_col(), detection=det))
     assert diff.rebar_count_ok is True
     assert diff.missing_rebar == 0
     assert diff.severity == "low"
@@ -42,7 +42,7 @@ async def test_happy_path() -> None:
 async def test_missing_rebar_critical() -> None:
     agent = GeometryAgent()
     det = RebarDetection(photo_path="/tmp/s1.jpg", detected_rebar_count=4)
-    diff = await agent.run(GeometryInput(column=_col(count=8), detection=det))
+    diff = await agent.run(GeometryInput(element=_col(count=8), detection=det))
     assert diff.missing_rebar == 4
     assert diff.severity == "critical"
 
@@ -53,6 +53,6 @@ async def test_diameter_mismatch() -> None:
     det = RebarDetection(
         photo_path="/tmp/s1.jpg", detected_rebar_count=8, estimated_diameter_mm=14
     )
-    diff = await agent.run(GeometryInput(column=_col(diameter=20), detection=det))
+    diff = await agent.run(GeometryInput(element=_col(diameter=20), detection=det))
     assert diff.diameter_ok is False
     assert diff.severity in {"critical", "high"}

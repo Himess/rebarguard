@@ -1,4 +1,4 @@
-"""Inspections API — receive site photos, stream the 7-agent debate over SSE."""
+"""Inspections API — site photos in, 7-agent debate streamed over SSE."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from sse_starlette.sse import EventSourceResponse
 
 from rebarguard.routers.projects import _STORE
-from rebarguard.schemas import AgentMessage
+from rebarguard.schemas import AgentMessage, ElementType
 from rebarguard.services.inspection import InspectionJob, InspectionOrchestrator
 
 router = APIRouter()
@@ -31,10 +31,8 @@ def _serialize(m: AgentMessage) -> str:
 @router.post("/stream")
 async def inspect_stream(
     project_id: Annotated[str, Form()],
-    column_id: Annotated[str, Form()],
-    city: Annotated[str | None, Form()] = None,
-    soil_class: Annotated[str | None, Form()] = None,
-    floors: Annotated[int, Form()] = 5,
+    element_id: Annotated[str, Form()],
+    element_type: Annotated[str, Form()] = "column",
     photos: list[UploadFile] = File(...),
     closeup: UploadFile | None = File(None),
     cover: UploadFile | None = File(None),
@@ -42,6 +40,15 @@ async def inspect_stream(
     project = _STORE.get(project_id)
     if not project:
         raise HTTPException(404, "project not found")
+
+    try:
+        et = ElementType(element_type)
+    except ValueError as e:
+        raise HTTPException(400, f"invalid element_type: {element_type}") from e
+
+    element = project.plan.find_element(element_id)
+    if element is None:
+        raise HTTPException(404, f"element {element_id} not in project")
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="rebarguard-insp-"))
     photo_paths: list[Path] = []
@@ -65,12 +72,10 @@ async def inspect_stream(
 
     job = InspectionJob(
         plan=project.plan,
-        column_id=column_id,
+        element_id=element_id,
+        element_type=et,
         site_photos=photo_paths,
         closeup_photo=closeup_path,
         cover_photo=cover_path,
-        city=city,
-        soil_class=soil_class,
-        floors=floors,
     )
     return EventSourceResponse(_stream(job))

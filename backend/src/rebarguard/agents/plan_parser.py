@@ -1,21 +1,25 @@
-"""PlanParserAgent — Phase 1. Converts an approved PDF structural drawing into StructuralPlan JSON.
+"""PlanParserAgent — Phase 1. PDF structural drawing → StructuralPlan JSON.
 
 Pipeline:
-1. Split PDF into page images (pypdf + PIL).
-2. For each page, ask Kimi-VL to read the column schedule.
-3. Merge and validate with Pydantic.
+1. Rasterize each PDF page to PNG via pdf2image (needs poppler-utils).
+2. Kimi K2.5 (via Hermes Agent CLI) reads each page with PLAN_PARSE_PROMPT.
+3. Merge per-page outputs into a single StructuralPlan with metadata + all elements.
 """
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 from typing import Any
 
 from pypdf import PdfReader
 
 from rebarguard.agents.base import BaseAgent
-from rebarguard.schemas import AgentRole, PlanParseResult, StructuralPlan
+from rebarguard.schemas import (
+    AgentRole,
+    PlanParseResult,
+    ProjectMetadata,
+    StructuralPlan,
+)
 from rebarguard.vision.prompts import PLAN_PARSE_PROMPT
 
 
@@ -29,15 +33,7 @@ class PlanParserAgent(BaseAgent[Path, PlanParseResult]):
 
         image_paths = self._pdf_to_images(pdf_path)
         warnings: list[str] = []
-        merged: dict[str, Any] = {
-            "project_name": pdf_path.stem,
-            "address": None,
-            "earthquake_zone": None,
-            "soil_class": None,
-            "columns": [],
-            "notes": [],
-            "confidence": 0.0,
-        }
+        merged = self._empty_plan_dict(pdf_path.stem)
 
         for i, img_path in enumerate(image_paths):
             try:
@@ -45,7 +41,7 @@ class PlanParserAgent(BaseAgent[Path, PlanParseResult]):
             except Exception as e:  # noqa: BLE001
                 warnings.append(f"page {i + 1} failed: {e}")
                 continue
-            if "error" in parsed:
+            if isinstance(parsed, dict) and "error" in parsed and "raw" not in parsed:
                 warnings.append(f"page {i + 1}: {parsed.get('error')}")
                 continue
             self._merge(merged, parsed)
@@ -59,13 +55,20 @@ class PlanParserAgent(BaseAgent[Path, PlanParseResult]):
         )
 
     @staticmethod
-    def _pdf_to_images(pdf_path: Path) -> list[Path]:
-        """Rasterize each PDF page into a PNG in sibling `.cache/` folder.
+    def _empty_plan_dict(stem: str) -> dict[str, Any]:
+        return {
+            "metadata": {"project_name": stem, "country": "Türkiye"},
+            "columns": [],
+            "beams": [],
+            "slabs": [],
+            "shear_walls": [],
+            "stairs": [],
+            "notes": [],
+            "confidence": 0.0,
+        }
 
-        Uses pypdf for metadata + Pillow via pdf2image if available; falls back to
-        sending raw page text-extraction isn't ideal for drawings so we rely on
-        a caller who installs pdf2image (poppler) separately.
-        """
+    @staticmethod
+    def _pdf_to_images(pdf_path: Path) -> list[Path]:
         cache = pdf_path.parent / ".cache" / pdf_path.stem
         cache.mkdir(parents=True, exist_ok=True)
         existing = sorted(cache.glob("page_*.png"))
@@ -76,7 +79,7 @@ class PlanParserAgent(BaseAgent[Path, PlanParseResult]):
             from pdf2image import convert_from_path  # type: ignore
         except ImportError as exc:
             raise RuntimeError(
-                "pdf2image + poppler required. Install: `pip install pdf2image` and poppler."
+                "pdf2image required. Run: `apt-get install -y poppler-utils` in WSL."
             ) from exc
 
         reader = PdfReader(str(pdf_path))
@@ -91,15 +94,38 @@ class PlanParserAgent(BaseAgent[Path, PlanParseResult]):
 
     @staticmethod
     def _merge(acc: dict[str, Any], parsed: dict[str, Any]) -> None:
-        for key in ("project_name", "address", "earthquake_zone", "soil_class"):
-            if acc.get(key) is None and parsed.get(key):
-                acc[key] = parsed[key]
-        cols = parsed.get("columns") or []
-        if isinstance(cols, list):
-            acc["columns"].extend(cols)
+        # metadata — prefer first non-null value seen
+        pmeta = parsed.get("metadata") or {}
+        ameta = acc["metadata"]
+        for key, value in pmeta.items():
+            if value in (None, "", [], {}):
+                continue
+            if ameta.get(key) in (None, "", [], {}):
+                ameta[key] = value
+
+        # element lists — concatenate, dedupe by id
+        for list_key in ("columns", "beams", "slabs", "shear_walls", "stairs"):
+            items = parsed.get(list_key) or []
+            if not isinstance(items, list):
+                continue
+            seen_ids = {e.get("id") for e in acc[list_key] if isinstance(e, dict)}
+            for el in items:
+                if isinstance(el, dict) and el.get("id") and el["id"] not in seen_ids:
+                    acc[list_key].append(el)
+                    seen_ids.add(el["id"])
+                elif isinstance(el, dict) and not el.get("id"):
+                    acc[list_key].append(el)
+
+        # notes
         notes = parsed.get("notes") or []
         if isinstance(notes, list):
-            acc["notes"].extend(notes)
+            acc["notes"].extend(n for n in notes if n and n not in acc["notes"])
+
+        # confidence — max across pages
         conf = parsed.get("confidence")
         if isinstance(conf, (int, float)):
             acc["confidence"] = max(acc["confidence"], float(conf))
+
+    @staticmethod
+    def _fallback_metadata(stem: str) -> ProjectMetadata:
+        return ProjectMetadata(project_name=stem)

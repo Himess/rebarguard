@@ -1,60 +1,110 @@
-"""Prompt templates for the vision model. Centralized so we can iterate."""
+"""Prompt templates for Kimi K2.5 vision calls."""
 
-PLAN_PARSE_PROMPT = """You are a senior structural engineer analyzing an approved reinforced-concrete \
-structural drawing. Extract the column (kolon) schedule exactly.
+PLAN_PARSE_PROMPT = """You are a senior structural engineer analyzing an approved \
+reinforced-concrete (RC) structural drawing page. Extract the project metadata and ALL \
+structural elements on this page into strict JSON.
 
-For EACH column in the drawing, output:
-- id: column label (e.g. "S1", "S2", "C-A3")
-- floor: which level (e.g. "foundation", "1", "2", "roof")
-- width_mm and depth_mm: cross-section dimensions in millimeters
-- longitudinal: list of rebar groups with {count, diameter_mm, steel_class, position}
+Look for these items:
+
+METADATA (title block + first sheet):
+- project_name
+- owner_name, contractor_name, engineer_name, engineer_license
+- address / district / city / country
+- coordinates (latitude/longitude if printed; else null)
+- parcel_no
+- earthquake_zone ("Zone 1 (highest)" / "Zone 2" / "Zone 3" / "Zone 4 (lowest)")
+- peak_ground_acceleration_g (from TBDY map if shown)
+- soil_class (ZA | ZB | ZC | ZD | ZE)
+- seismic_design_class (TBDY DTS: 1, 2, 3, 4)
+- floor_count, basement_count
+- default_floor_height_m (usually 2.8-3.2), total_height_m
+- footprint_width_m, footprint_depth_m (from plan dimensions)
+
+ELEMENTS (columns, beams, slabs, shear walls, stairs):
+
+COLUMNS:
+- id, floor, position (x_m, y_m) if axis grid is visible
+- width_mm × depth_mm
+- longitudinal rebars: [{count, diameter_mm, steel_class, position}]
 - stirrup: {diameter_mm, spacing_mm, spacing_confinement_mm, hook_angle_deg, leg_count, crossties}
-- concrete_cover_mm: typical 25-40 mm
-- concrete_class: e.g. "C25/30", "C30/37"
+- concrete_cover_mm, concrete_class
 
-Also extract if visible:
-- project_name, address, earthquake_zone, soil_class, general notes
+BEAMS (kirişler):
+- id, floor, start/end positions in meters
+- width_mm × depth_mm
+- top_rebar, bottom_rebar: [{count, diameter_mm, steel_class}]
+- stirrup: like columns
+- concrete_cover_mm, concrete_class
 
-Respond ONLY as a JSON object matching this schema:
+SLABS (döşemeler):
+- id, floor, corners_m (list of {x_m, y_m} polygon vertices)
+- thickness_mm
+- mesh_top / mesh_bottom: {diameter_mm, spacing_mm, direction}
+- concrete_cover_mm, concrete_class
+
+SHEAR WALLS (perde duvarlar):
+- id, floor_from, floor_to, start/end positions, thickness_mm, length_m
+- vertical_rebar, horizontal_rebar, boundary_element_rebar
+- stirrup (if detailed), concrete_cover_mm, concrete_class
+
+STAIRS (merdivenler):
+- id, floor_from, floor_to, position, width_m, length_m
+- rebar (simplified), concrete_class
+
+OUTPUT FORMAT — respond with this JSON object only (no markdown fences, no prose):
+
 {
-  "project_name": "string",
-  "address": "string | null",
-  "earthquake_zone": "string | null",
-  "soil_class": "string | null",
-  "columns": [
-    {
-      "id": "S1",
-      "floor": "1",
-      "width_mm": 400,
-      "depth_mm": 400,
-      "longitudinal": [{"count": 8, "diameter_mm": 20, "steel_class": "S420", "position": "side"}],
-      "stirrup": {
-        "diameter_mm": 10, "spacing_mm": 200, "spacing_confinement_mm": 100,
-        "hook_angle_deg": 135, "leg_count": 4, "crossties": 2
-      },
-      "concrete_cover_mm": 30,
-      "concrete_class": "C30/37"
-    }
-  ],
-  "notes": ["string"],
+  "metadata": {
+    "project_name": "string",
+    "owner_name": null,
+    "contractor_name": null,
+    "engineer_name": null,
+    "engineer_license": null,
+    "address": null,
+    "district": null,
+    "city": null,
+    "country": "Türkiye",
+    "coordinates": null,
+    "parcel_no": null,
+    "earthquake_zone": null,
+    "peak_ground_acceleration_g": null,
+    "soil_class": null,
+    "seismic_design_class": null,
+    "floor_count": null,
+    "basement_count": 0,
+    "default_floor_height_m": 3.0,
+    "total_height_m": null,
+    "footprint_width_m": null,
+    "footprint_depth_m": null
+  },
+  "columns": [],
+  "beams": [],
+  "slabs": [],
+  "shear_walls": [],
+  "stairs": [],
+  "notes": [],
   "confidence": 0.85
 }
 
-If a field is not visible, set it to null. Do not hallucinate. Do not wrap the JSON in markdown.
+RULES:
+- Set unseen fields to null. NEVER invent values.
+- Only include an element if you can read at least its id and section.
+- Merge your findings with any previous page's data (you'll see page context separately).
+- Do NOT wrap in markdown fences. Output raw JSON only.
 """
 
-REBAR_DETECT_PROMPT = """You are analyzing a construction site photograph of a reinforced-concrete \
-column BEFORE concrete is poured. Count and measure the rebar precisely.
+REBAR_DETECT_PROMPT = """You are analyzing a construction-site photo of an RC element \
+BEFORE concrete is poured. Count and measure the rebar precisely.
 
 Observe:
-- detected_rebar_count: total number of longitudinal (vertical) rebars visible
-- estimated_diameter_mm: estimated diameter class (12, 14, 16, 18, 20, 22, 25, 28, 32)
-- estimated_spacing_mm: average center-to-center spacing of longitudinal rebars
-- stirrup_visible: boolean — are transverse ties visible
-- estimated_stirrup_spacing_mm: vertical spacing between stirrups
-- crossties_visible: number of crossties visible per stirrup
-- reference_marker_found: boolean — is a calibration marker/ruler/known-size object present
-- notes: anything relevant (rust, deformation, missing ties, alignment issues)
+- detected_rebar_count: number of longitudinal (main direction) rebars visible
+- estimated_diameter_mm: one of {12, 14, 16, 18, 20, 22, 25, 28, 32}
+- estimated_spacing_mm: center-to-center for longitudinal rebars if applicable
+- stirrup_visible: are transverse ties visible?
+- estimated_stirrup_spacing_mm: vertical distance between consecutive stirrups
+- crossties_visible: count of crossties per stirrup
+- reference_marker_found: any tape, ruler, person, or known-size object in frame
+- notes: rust, deformation, misalignment, cold joint, etc.
 
 Respond ONLY as JSON:
 {
@@ -65,35 +115,33 @@ Respond ONLY as JSON:
   "estimated_stirrup_spacing_mm": 200,
   "crossties_visible": 2,
   "reference_marker_found": false,
-  "notes": ["string"]
+  "notes": []
 }
 
-Be conservative. If you cannot count precisely, pick a tight range and note the uncertainty.
-Do not wrap in markdown.
+Be conservative. If unsure, pick a tight range and note the uncertainty. Do not count stirrups \
+as longitudinal rebars. No markdown.
 """
 
-MATERIAL_PROMPT = """Analyze this rebar close-up photo for:
-- detected_steel_class: read any text on the rebar (S420, B500C, BST500, etc.), else null
-- corrosion_level: integer 0 (clean) to 3 (severe pitting)
-- surface_condition: one of "clean", "light_rust", "flaking", "pitting"
-- summary: one-sentence verdict in English
+MATERIAL_PROMPT = """Analyze this rebar close-up photo:
+- detected_steel_class: read any text on the rebar (S420, B500C, BST500, etc.) else null
+- corrosion_level: 0 (clean) → 3 (severe pitting)
+- surface_condition: "clean" | "light_rust" | "flaking" | "pitting"
+- summary: one sentence in English
 
 Respond ONLY as JSON:
-{"detected_steel_class": "S420", "corrosion_level": 1, "surface_condition": "light_rust", "summary": "string"}
+{"detected_steel_class": null, "corrosion_level": 0, "surface_condition": "clean", "summary": ""}
 """
 
-COVER_PROMPT = """Estimate the concrete cover (distance from the outermost rebar to the form \
-surface) in this photo in millimeters.
-
-A reference marker in the photo is required for accurate estimation.
+COVER_PROMPT = """Estimate concrete cover (mm) from outermost rebar to form surface.
+A reference marker in the frame is required for accurate measurement.
 
 Respond ONLY as JSON:
 {
-  "estimated_cover_mm": 30,
-  "within_tolerance": true,
-  "reference_used": "tape_measure" | "standard_spacer" | "ruler" | null,
-  "summary": "string in English"
+  "estimated_cover_mm": null,
+  "within_tolerance": false,
+  "reference_used": null,
+  "summary": ""
 }
 
-If no reference is visible, set estimated_cover_mm to null and explain in summary.
+If no reference visible, set estimated_cover_mm to null and explain in summary.
 """

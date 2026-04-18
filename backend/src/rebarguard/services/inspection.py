@@ -1,9 +1,7 @@
-"""InspectionOrchestrator — runs the 7-agent debate, yields AgentMessages for streaming.
+"""InspectionOrchestrator — runs the 7-agent debate for ANY structural element.
 
-Model attribution per message:
-- Kimi K2.5 (`moonshotai/kimi-k2.5`) powers PlanParser vision, rebar detection, Material, Cover.
-- Hermes 4 70B powers ModeratorAgent verdict + CodeAgent narrative.
-- Deterministic agents (Geometry, Fraud, Risk) report `model=None` (rule-engine only).
+Metadata (city, soil_class, floors) is pulled from the Project's plan metadata so the
+user doesn't have to re-enter it during site inspection.
 """
 
 from __future__ import annotations
@@ -22,6 +20,7 @@ from rebarguard.agents import (
     ModeratorAgent,
     RiskAgent,
 )
+from rebarguard.agents._element_utils import element_label
 from rebarguard.agents.code_compliance import CodeInput
 from rebarguard.agents.cover import CoverInput
 from rebarguard.agents.fraud import FraudInput
@@ -33,8 +32,9 @@ from rebarguard.config import get_settings
 from rebarguard.schemas import (
     AgentMessage,
     AgentRole,
-    ColumnSchema,
+    ElementType,
     RebarDetection,
+    StructuralElement,
     StructuralPlan,
 )
 from rebarguard.vision import get_kimi_client
@@ -46,13 +46,11 @@ _KIMI_MODEL_TAG = "moonshotai/kimi-k2.5"
 @dataclass
 class InspectionJob:
     plan: StructuralPlan
-    column_id: str
-    site_photos: list[Path]
-    closeup_photo: Path | None
-    cover_photo: Path | None
-    city: str | None = None
-    soil_class: str | None = None
-    floors: int = 5
+    element_id: str
+    element_type: ElementType | None = None
+    site_photos: list[Path] = None  # type: ignore[assignment]
+    closeup_photo: Path | None = None
+    cover_photo: Path | None = None
 
 
 class InspectionOrchestrator:
@@ -68,25 +66,37 @@ class InspectionOrchestrator:
         self.moderator = ModeratorAgent()
 
     async def run(self, job: InspectionJob) -> AsyncIterator[AgentMessage]:
-        column = self._find_column(job.plan, job.column_id)
-        if column is None:
+        element = job.plan.find_element(job.element_id)
+        if element is None:
             yield AgentMessage(
                 agent=AgentRole.MODERATOR,
                 kind="verdict",
-                content=f"Column {job.column_id} not found in the project plan.",
+                content=f"Element {job.element_id} not found in the project plan.",
             )
             return
+
+        label = element_label(element)
+        metadata = job.plan.metadata
 
         yield AgentMessage(
             agent=AgentRole.MODERATOR,
             kind="observation",
             content=(
-                f"Inspection started for column {job.column_id}. 7 agents activating — "
+                f"Inspection started for {label}. 7 agents activating — "
                 f"Kimi K2.5 handles vision, Hermes 4 70B handles reasoning."
             ),
         )
+        yield AgentMessage(
+            agent=AgentRole.RISK,
+            kind="observation",
+            content=(
+                f"Project metadata: {metadata.city or '—'}, soil {metadata.soil_class or '—'}, "
+                f"{metadata.floor_count or '?'} floor(s), earthquake zone {metadata.earthquake_zone or '—'}."
+            ),
+        )
 
-        detections = await self._detect_all(job.site_photos)
+        site_photos = job.site_photos or []
+        detections = await self._detect_all(site_photos, element.element_type)
         for det in detections:
             yield AgentMessage(
                 agent=AgentRole.PLAN_PARSER,
@@ -100,15 +110,21 @@ class InspectionOrchestrator:
             )
 
         primary_det = detections[0] if detections else RebarDetection(
-            photo_path="", detected_rebar_count=0
+            photo_path="", detected_rebar_count=0, element_type=element.element_type
         )
 
         geom, comp, fraud, risk = await asyncio.gather(
-            self.geometry.run(GeometryInput(column=column, detection=primary_det)),
-            self.code.run(CodeInput(column=column, detection=primary_det)),
-            self.fraud.run(FraudInput(photo_paths=job.site_photos, detections=detections)),
+            self.geometry.run(GeometryInput(element=element, detection=primary_det)),
+            self.code.run(CodeInput(element=element, detection=primary_det)),
+            self.fraud.run(FraudInput(photo_paths=site_photos, detections=detections)),
             self.risk.run(
-                RiskInput(city=job.city, soil_class=job.soil_class, floors=job.floors)
+                RiskInput(
+                    city=metadata.city,
+                    soil_class=metadata.soil_class,
+                    floors=metadata.floor_count or 5,
+                    latitude=metadata.coordinates.latitude if metadata.coordinates else None,
+                    longitude=metadata.coordinates.longitude if metadata.coordinates else None,
+                )
             ),
         )
 
@@ -118,7 +134,6 @@ class InspectionOrchestrator:
             content=geom.summary,
             evidence=geom.model_dump(mode="json"),
         )
-        # CodeAgent narrative comes from Hermes 4 70B when violations exist
         code_model = self.settings.hermes_reasoning_model if comp.violations else None
         yield AgentMessage(
             agent=AgentRole.CODE,
@@ -141,19 +156,16 @@ class InspectionOrchestrator:
         )
 
         material_task = (
-            self.material.run(MaterialInput(column=column, closeup_photo=job.closeup_photo))
+            self.material.run(MaterialInput(element=element, closeup_photo=job.closeup_photo))
             if job.closeup_photo
-            else None
+            else _noop_material(element.id)
         )
         cover_task = (
-            self.cover.run(CoverInput(column=column, photo=job.cover_photo))
+            self.cover.run(CoverInput(element=element, photo=job.cover_photo))
             if job.cover_photo
-            else None
+            else _noop_cover(element)
         )
-        material, cover = await asyncio.gather(
-            material_task if material_task else _noop_material(column.id),
-            cover_task if cover_task else _noop_cover(column),
-        )
+        material, cover = await asyncio.gather(material_task, cover_task)
         yield AgentMessage(
             agent=AgentRole.MATERIAL,
             kind="verdict",
@@ -187,11 +199,14 @@ class InspectionOrchestrator:
             evidence=moderator_report.model_dump(mode="json"),
         )
 
-    async def _detect_all(self, photos: list[Path]) -> list[RebarDetection]:
+    async def _detect_all(
+        self, photos: list[Path], element_type: ElementType
+    ) -> list[RebarDetection]:
         async def one(p: Path) -> RebarDetection:
             parsed = await self.kimi.analyze_image(p, REBAR_DETECT_PROMPT)
             return RebarDetection(
                 photo_path=str(p),
+                element_type=element_type,
                 detected_rebar_count=int(parsed.get("detected_rebar_count", 0) or 0),
                 estimated_diameter_mm=_as_int(parsed.get("estimated_diameter_mm")),
                 estimated_spacing_mm=_as_int(parsed.get("estimated_spacing_mm")),
@@ -204,13 +219,6 @@ class InspectionOrchestrator:
             )
 
         return await asyncio.gather(*[one(p) for p in photos])
-
-    @staticmethod
-    def _find_column(plan: StructuralPlan, column_id: str) -> ColumnSchema | None:
-        for c in plan.columns:
-            if c.id == column_id:
-                return c
-        return None
 
 
 def _as_int(v) -> int | None:
@@ -233,12 +241,13 @@ async def _noop_material(element_id: str):
     )
 
 
-async def _noop_cover(column: ColumnSchema):
+async def _noop_cover(element: StructuralElement):
+    from rebarguard.agents._element_utils import concrete_cover_mm
     from rebarguard.schemas import ConcreteCoverReport
 
     return ConcreteCoverReport(
-        element_id=column.id,
-        expected_cover_mm=column.concrete_cover_mm,
+        element_id=element.id,
+        expected_cover_mm=concrete_cover_mm(element),
         estimated_cover_mm=None,
         within_tolerance=False,
         severity="medium",

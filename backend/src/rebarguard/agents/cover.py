@@ -5,14 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from rebarguard.agents._element_utils import concrete_cover_mm as expected_cover
 from rebarguard.agents.base import BaseAgent
-from rebarguard.schemas import AgentRole, ColumnSchema, ConcreteCoverReport
+from rebarguard.schemas import AgentRole, ConcreteCoverReport, StructuralElement
 from rebarguard.vision.prompts import COVER_PROMPT
 
 
 @dataclass
 class CoverInput:
-    column: ColumnSchema
+    element: StructuralElement
     photo: Path
 
 
@@ -23,7 +24,7 @@ class CoverAgent(BaseAgent[CoverInput, ConcreteCoverReport]):
         parsed = await self.kimi.analyze_image(payload.photo, COVER_PROMPT)
         estimated = parsed.get("estimated_cover_mm")
         estimated_int = int(estimated) if isinstance(estimated, (int, float)) else None
-        expected = payload.column.concrete_cover_mm
+        expected = expected_cover(payload.element)
         within = False
         if estimated_int is not None:
             within = abs(estimated_int - expected) <= 10
@@ -35,7 +36,7 @@ class CoverAgent(BaseAgent[CoverInput, ConcreteCoverReport]):
             else "Concrete cover could not be estimated (no reference marker)."
         )
         return ConcreteCoverReport(
-            element_id=payload.column.id,
+            element_id=payload.element.id,
             expected_cover_mm=expected,
             estimated_cover_mm=estimated_int,
             within_tolerance=within,

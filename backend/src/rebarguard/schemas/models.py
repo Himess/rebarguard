@@ -8,12 +8,28 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 
+# ============================================================================
+# Enums
+# ============================================================================
+
+
 class InspectionPhase(str, Enum):
     FOUNDATION = "foundation"
     GROUND_FLOOR = "ground_floor"
     MID_FLOOR = "mid_floor"
     ROOF = "roof"
     OTHER = "other"
+
+
+class ElementType(str, Enum):
+    """Structural elements supported for inspection."""
+
+    COLUMN = "column"
+    BEAM = "beam"
+    SLAB = "slab"
+    SHEAR_WALL = "shear_wall"
+    STAIR = "stair"
+    FOUNDATION = "foundation"
 
 
 class AgentRole(str, Enum):
@@ -33,51 +49,188 @@ class AgentVerdict(str, Enum):
     REJECT = "reject"
 
 
+# ============================================================================
+# Common rebar specs
+# ============================================================================
+
+
 class RebarSchema(BaseModel):
-    """Longitudinal reinforcement specification for a structural element."""
+    """Longitudinal reinforcement specification."""
 
     count: int
-    diameter_mm: int = Field(description="Nominal diameter in millimeters, e.g. 16, 20, 22, 25")
+    diameter_mm: int = Field(description="Nominal diameter (12, 14, 16, 18, 20, 22, 25, 28, 32)")
     steel_class: str = Field(default="S420", description="e.g. S420, B500C")
-    position: Literal["corner", "side", "middle"] | None = None
+    position: Literal["corner", "side", "middle", "top", "bottom"] | None = None
 
 
 class StirrupSchema(BaseModel):
-    """Transverse reinforcement (etriye) specification."""
+    """Transverse reinforcement (etriye)."""
 
     diameter_mm: int = Field(description="Typically 8, 10, or 12 mm")
-    spacing_mm: int = Field(description="Center-to-center spacing")
+    spacing_mm: int
     spacing_confinement_mm: int | None = Field(
-        default=None, description="Tight spacing in confinement zones (TBDY 2018 Bölüm 7)"
+        default=None, description="Tighter spacing in confinement zones (TBDY §7.3.6)"
     )
     hook_angle_deg: int = Field(default=135, description="Seismic standard = 135°")
-    leg_count: int = Field(default=2, description="Number of stirrup legs")
+    leg_count: int = Field(default=2)
     crossties: int = Field(default=0, description="Çiroz count")
 
 
-class ColumnSchema(BaseModel):
-    """Single column definition from the approved structural plan."""
+class MeshRebarSchema(BaseModel):
+    """Slab mesh reinforcement."""
 
-    id: str = Field(description="e.g. S1, S2, K-A3")
+    diameter_mm: int
+    spacing_mm: int
+    direction: Literal["x", "y", "both"] = "both"
+    layer: Literal["top", "bottom"] = "bottom"
+
+
+# ============================================================================
+# Structural elements (each has geometry sufficient for 3D rendering)
+# ============================================================================
+
+
+class Position2D(BaseModel):
+    x_m: float
+    y_m: float
+
+
+class ColumnSchema(BaseModel):
+    id: str = Field(description="e.g. S1, K-A3, C-01")
+    element_type: ElementType = ElementType.COLUMN
     floor: str = Field(description="e.g. foundation, 1, 2, roof")
+    position: Position2D | None = None
     width_mm: int
     depth_mm: int
     longitudinal: list[RebarSchema]
     stirrup: StirrupSchema
-    concrete_cover_mm: int = Field(default=30, description="Paspayı, typically 25-40 mm")
-    concrete_class: str = Field(default="C30/37", description="e.g. C25/30, C30/37, C35/45")
+    concrete_cover_mm: int = Field(default=30)
+    concrete_class: str = Field(default="C30/37")
+
+
+class BeamSchema(BaseModel):
+    id: str = Field(description="e.g. K101, B-A1")
+    element_type: ElementType = ElementType.BEAM
+    floor: str
+    start: Position2D | None = None
+    end: Position2D | None = None
+    width_mm: int
+    depth_mm: int
+    top_rebar: list[RebarSchema] = Field(default_factory=list)
+    bottom_rebar: list[RebarSchema] = Field(default_factory=list)
+    stirrup: StirrupSchema
+    concrete_cover_mm: int = Field(default=30)
+    concrete_class: str = Field(default="C30/37")
+
+
+class SlabSchema(BaseModel):
+    id: str
+    element_type: ElementType = ElementType.SLAB
+    floor: str
+    corners_m: list[Position2D] = Field(
+        default_factory=list, description="Polygon corners in plan view"
+    )
+    thickness_mm: int
+    mesh_top: MeshRebarSchema | None = None
+    mesh_bottom: MeshRebarSchema | None = None
+    concrete_cover_mm: int = Field(default=25)
+    concrete_class: str = Field(default="C25/30")
+
+
+class ShearWallSchema(BaseModel):
+    id: str = Field(description="e.g. P1, W-01")
+    element_type: ElementType = ElementType.SHEAR_WALL
+    floor_from: str
+    floor_to: str
+    start: Position2D | None = None
+    end: Position2D | None = None
+    thickness_mm: int
+    length_m: float | None = None
+    vertical_rebar: list[RebarSchema] = Field(default_factory=list)
+    horizontal_rebar: list[RebarSchema] = Field(default_factory=list)
+    boundary_element_rebar: list[RebarSchema] = Field(default_factory=list)
+    stirrup: StirrupSchema | None = None
+    concrete_cover_mm: int = Field(default=25)
+    concrete_class: str = Field(default="C30/37")
+
+
+class StairSchema(BaseModel):
+    id: str
+    element_type: ElementType = ElementType.STAIR
+    floor_from: str
+    floor_to: str
+    position: Position2D | None = None
+    width_m: float | None = None
+    length_m: float | None = None
+    rebar: list[RebarSchema] = Field(default_factory=list)
+    concrete_class: str = Field(default="C25/30")
+
+
+StructuralElement = ColumnSchema | BeamSchema | SlabSchema | ShearWallSchema | StairSchema
+
+
+# ============================================================================
+# Project metadata (auto-extracted by Kimi from the drawing)
+# ============================================================================
+
+
+class Coordinates(BaseModel):
+    latitude: float
+    longitude: float
+
+
+class ProjectMetadata(BaseModel):
+    project_name: str
+    owner_name: str | None = None
+    contractor_name: str | None = None
+    engineer_name: str | None = None
+    engineer_license: str | None = None
+    address: str | None = None
+    district: str | None = None
+    city: str | None = None
+    country: str = Field(default="Türkiye")
+    coordinates: Coordinates | None = None
+    parcel_no: str | None = None
+    earthquake_zone: str | None = Field(
+        default=None, description="e.g. Zone 1 (highest) ... Zone 4"
+    )
+    peak_ground_acceleration_g: float | None = None
+    soil_class: Literal["ZA", "ZB", "ZC", "ZD", "ZE"] | None = None
+    seismic_design_class: str | None = Field(default=None, description="TBDY DTS")
+    floor_count: int | None = None
+    basement_count: int = 0
+    default_floor_height_m: float = 3.0
+    total_height_m: float | None = None
+    footprint_width_m: float | None = None
+    footprint_depth_m: float | None = None
+
+
+# ============================================================================
+# StructuralPlan — root of Phase-1 PlanParser output
+# ============================================================================
 
 
 class StructuralPlan(BaseModel):
-    """Structured output from parsing an approved project PDF."""
+    """Complete structural plan extracted from an approved PDF drawing."""
 
-    project_name: str
-    address: str | None = None
+    metadata: ProjectMetadata
     columns: list[ColumnSchema] = Field(default_factory=list)
-    earthquake_zone: str | None = None
-    soil_class: str | None = None
+    beams: list[BeamSchema] = Field(default_factory=list)
+    slabs: list[SlabSchema] = Field(default_factory=list)
+    shear_walls: list[ShearWallSchema] = Field(default_factory=list)
+    stairs: list[StairSchema] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+
+    @property
+    def all_elements(self) -> list[StructuralElement]:
+        return [*self.columns, *self.beams, *self.slabs, *self.shear_walls, *self.stairs]
+
+    def find_element(self, element_id: str) -> StructuralElement | None:
+        for el in self.all_elements:
+            if el.id == element_id:
+                return el
+        return None
 
 
 class PlanParseResult(BaseModel):
@@ -87,12 +240,18 @@ class PlanParseResult(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+# ============================================================================
+# Site inspection detections + agent reports
+# ============================================================================
+
+
 class RebarDetection(BaseModel):
-    """Kimi-VL output for a single site photo."""
+    """Kimi output for a single site photo of an RC element."""
 
     photo_path: str
-    element_id: str | None = Field(default=None, description="User-supplied e.g. 'S1 foundation'")
-    detected_rebar_count: int
+    element_id: str | None = None
+    element_type: ElementType | None = None
+    detected_rebar_count: int = 0
     estimated_diameter_mm: int | None = None
     estimated_spacing_mm: int | None = None
     stirrup_visible: bool = False
@@ -106,6 +265,7 @@ class RebarDetection(BaseModel):
 class GeometryDiff(BaseModel):
     agent: AgentRole = AgentRole.GEOMETRY
     element_id: str
+    element_type: ElementType
     rebar_count_expected: int
     rebar_count_actual: int
     rebar_count_ok: bool
@@ -120,6 +280,7 @@ class GeometryDiff(BaseModel):
 class ComplianceReport(BaseModel):
     agent: AgentRole = AgentRole.CODE
     element_id: str
+    element_type: ElementType
     applicable_articles: list[str] = Field(default_factory=list)
     violations: list[str] = Field(default_factory=list)
     passes: list[str] = Field(default_factory=list)
@@ -141,7 +302,7 @@ class FraudReport(BaseModel):
 class RiskReport(BaseModel):
     agent: AgentRole = AgentRole.RISK
     afad_zone: str | None = None
-    pga_g: float | None = Field(default=None, description="Peak Ground Acceleration in g")
+    pga_g: float | None = None
     soil_class: str | None = None
     risk_multiplier: float = 1.0
     summary: str
@@ -151,7 +312,7 @@ class MaterialReport(BaseModel):
     agent: AgentRole = AgentRole.MATERIAL
     element_id: str
     detected_steel_class: str | None = None
-    corrosion_level: int = Field(default=0, ge=0, le=3, description="0 none, 3 severe")
+    corrosion_level: int = Field(default=0, ge=0, le=3)
     surface_condition: Literal["clean", "light_rust", "flaking", "pitting"] = "clean"
     severity: Literal["low", "medium", "high", "critical"] = "low"
     summary: str
@@ -168,17 +329,12 @@ class ConcreteCoverReport(BaseModel):
 
 
 class AgentMessage(BaseModel):
-    """Single streamable message from an agent during debate."""
-
     id: UUID = Field(default_factory=uuid4)
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     agent: AgentRole
     kind: Literal["observation", "challenge", "rebuttal", "verdict"] = "observation"
     content: str
-    model: str | None = Field(
-        default=None,
-        description="LLM that produced this message, e.g. 'moonshotai/kimi-k2.5' or 'Hermes-4-70B'",
-    )
+    model: str | None = None
     evidence: dict[str, Any] | None = None
 
 
@@ -201,12 +357,23 @@ class ModeratorReport(BaseModel):
     recommendations: list[str] = Field(default_factory=list)
 
 
+# ============================================================================
+# Top-level entities (Project, Inspection)
+# ============================================================================
+
+
 class Project(BaseModel):
     id: UUID = Field(default_factory=uuid4)
-    name: str
-    address: str | None = None
     plan: StructuralPlan
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    @property
+    def name(self) -> str:
+        return self.plan.metadata.project_name
+
+    @property
+    def address(self) -> str | None:
+        return self.plan.metadata.address
 
 
 class Inspection(BaseModel):
@@ -214,6 +381,7 @@ class Inspection(BaseModel):
     project_id: UUID
     phase: InspectionPhase
     element_id: str
+    element_type: ElementType
     photo_paths: list[str]
     detections: list[RebarDetection] = Field(default_factory=list)
     geometry: GeometryDiff | None = None
