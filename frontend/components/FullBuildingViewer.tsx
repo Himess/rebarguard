@@ -36,39 +36,70 @@ function floorIndex(floor: string): number {
   return 4;
 }
 
+type MergedColumn = {
+  baseId: string;
+  x: number;
+  y: number;
+  width_mm: number;
+  depth_mm: number;
+  zMin: number;
+  zMax: number;
+};
+
+function mergeColumnsByPosition(columns: Column[], floorHeight: number, basementCount: number): MergedColumn[] {
+  const groups = new Map<string, MergedColumn>();
+  for (const c of columns) {
+    if (!c.position) continue;
+    const baseId = c.id.split('-')[0];
+    const fi = floorIndex(c.floor) - 4 - basementCount;
+    const zMin = fi * floorHeight;
+    const zMax = (fi + 1) * floorHeight;
+    const key = baseId;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.zMin = Math.min(existing.zMin, zMin);
+      existing.zMax = Math.max(existing.zMax, zMax);
+    } else {
+      groups.set(key, {
+        baseId,
+        x: c.position.x_m,
+        y: c.position.y_m,
+        width_mm: c.width_mm,
+        depth_mm: c.depth_mm,
+        zMin,
+        zMax,
+      });
+    }
+  }
+  return [...groups.values()];
+}
+
 function Columns({
-  columns,
+  merged,
   highlight,
-  floorHeight,
-  basementCount,
   onSelect,
 }: {
-  columns: Column[];
+  merged: MergedColumn[];
   highlight?: string | null;
-  floorHeight: number;
-  basementCount: number;
   onSelect?: (id: string, type: string) => void;
 }) {
   return (
     <>
-      {columns.map((c) => {
-        if (!c.position) return null;
+      {merged.map((c) => {
         const w = c.width_mm / 1000;
         const d = c.depth_mm / 1000;
-        const fi = floorIndex(c.floor);
-        const z = (fi - 4 - basementCount) * floorHeight + floorHeight / 2;
-        const baseId = c.id.split('-')[0];
-        const isHi = baseId === highlight || c.id === highlight;
+        const height = c.zMax - c.zMin;
+        const isHi = c.baseId === highlight;
         return (
           <mesh
-            key={c.id}
-            position={[c.position.x_m, z, c.position.y_m]}
+            key={c.baseId}
+            position={[c.x, c.zMin + height / 2, c.y]}
             onClick={(e) => {
               e.stopPropagation();
-              onSelect?.(baseId, 'column');
+              onSelect?.(c.baseId, 'column');
             }}
           >
-            <boxGeometry args={[w, floorHeight * 0.92, d]} />
+            <boxGeometry args={[w, height, d]} />
             <meshBasicMaterial color={isHi ? '#fbbf24' : '#f97316'} />
           </mesh>
         );
@@ -97,12 +128,12 @@ function Beams({
         const angle = Math.atan2(dy, dx);
         const cx = (b.start.x_m + b.end.x_m) / 2;
         const cy = (b.start.y_m + b.end.y_m) / 2;
-        const fi = floorIndex(b.floor);
-        const z = (fi - 4 - basementCount) * floorHeight + floorHeight;
+        const fi = floorIndex(b.floor) - 4 - basementCount;
+        const z = (fi + 1) * floorHeight;
         return (
           <mesh key={b.id} position={[cx, z - b.depth_mm / 2000, cy]} rotation={[0, -angle, 0]}>
             <boxGeometry args={[length, b.depth_mm / 1000, b.width_mm / 1000]} />
-            <meshBasicMaterial color="#7c3aed" transparent opacity={0.65} />
+            <meshBasicMaterial color="#7c3aed" />
           </mesh>
         );
       })}
@@ -150,11 +181,7 @@ function ShearWalls({
             }}
           >
             <boxGeometry args={[length, height, w.thickness_mm / 1000]} />
-            <meshBasicMaterial
-              color={isHi ? '#fbbf24' : '#0891b2'}
-              transparent
-              opacity={isHi ? 0.85 : 0.5}
-            />
+            <meshBasicMaterial color={isHi ? '#fbbf24' : '#0891b2'} />
           </mesh>
         );
       })}
@@ -180,10 +207,91 @@ function Slabs({
     <>
       {floors.map((fi) => (
         <mesh key={fi} position={[w / 2, fi * floorHeight, d / 2]}>
-          <boxGeometry args={[w, 0.1, d]} />
-          <meshBasicMaterial color="#475569" transparent opacity={0.15} />
+          <boxGeometry args={[w, 0.15, d]} />
+          <meshBasicMaterial color="#475569" transparent opacity={0.45} />
         </mesh>
       ))}
+    </>
+  );
+}
+
+/**
+ * Exterior-wall infill between perimeter columns. Makes the model read as a building,
+ * not a wireframe. These are visual-only — not part of the StructuralPlan.
+ */
+function ExteriorInfill({
+  merged,
+  floorHeight,
+  basementCount,
+  totalFloors,
+}: {
+  merged: MergedColumn[];
+  floorHeight: number;
+  basementCount: number;
+  totalFloors: number;
+}) {
+  // Find perimeter columns by convex hull approximation — for rectangular grids, sort by
+  // (x, y) extremes gives us the corners.
+  if (merged.length < 4) return null;
+  const byY = [...merged].sort((a, b) => a.y - b.y);
+  const front = byY.filter((c) => c.y === byY[0].y).sort((a, b) => a.x - b.x);
+  const back = byY.filter((c) => c.y === byY[byY.length - 1].y).sort((a, b) => a.x - b.x);
+  if (front.length < 2 || back.length < 2) return null;
+
+  const segments: Array<{ a: MergedColumn; b: MergedColumn }> = [];
+  for (let i = 0; i < front.length - 1; i++) segments.push({ a: front[i], b: front[i + 1] });
+  for (let i = 0; i < back.length - 1; i++) segments.push({ a: back[i], b: back[i + 1] });
+  // left + right connectors
+  segments.push({ a: front[0], b: back[0] });
+  segments.push({ a: front[front.length - 1], b: back[back.length - 1] });
+
+  const aboveGround = totalFloors * floorHeight;
+  const belowGround = -basementCount * floorHeight;
+  const height = aboveGround - belowGround;
+
+  return (
+    <>
+      {segments.map(({ a, b }, i) => {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const length = Math.hypot(dx, dy);
+        if (length < 0.1) return null;
+        const angle = Math.atan2(dy, dx);
+        const cx = (a.x + b.x) / 2;
+        const cy = (a.y + b.y) / 2;
+        return (
+          <mesh
+            key={i}
+            position={[cx, belowGround + height / 2, cy]}
+            rotation={[0, -angle, 0]}
+          >
+            <boxGeometry args={[length, height, 0.15]} />
+            <meshBasicMaterial color="#18181b" transparent opacity={0.35} />
+          </mesh>
+        );
+      })}
+    </>
+  );
+}
+
+function GroundMarkers({
+  plan,
+  basementCount,
+  floorHeight,
+}: {
+  plan: StructuralPlan;
+  basementCount: number;
+  floorHeight: number;
+}) {
+  const w = plan.metadata.footprint_width_m ?? 8;
+  const d = plan.metadata.footprint_depth_m ?? 15;
+  const z = -basementCount * floorHeight - 0.08;
+  return (
+    <>
+      <mesh position={[w / 2, z, d / 2]}>
+        <boxGeometry args={[w + 6, 0.05, d + 6]} />
+        <meshBasicMaterial color="#1f1f23" />
+      </mesh>
     </>
   );
 }
@@ -194,14 +302,18 @@ export default function FullBuildingViewer({ plan, highlightElementId, onSelectE
   const basementCount = meta.basement_count || 0;
   const totalFloors = meta.floor_count || 5;
 
-  const cameraPos = useMemo<[number, number, number]>(
-    () => [
-      (meta.footprint_width_m ?? 10) * 2,
-      totalFloors * floorHeight * 0.7,
-      (meta.footprint_depth_m ?? 10) * 2,
-    ],
-    [meta.footprint_width_m, meta.footprint_depth_m, totalFloors, floorHeight],
+  const merged = useMemo(
+    () => mergeColumnsByPosition(plan.columns, floorHeight, basementCount),
+    [plan.columns, floorHeight, basementCount],
   );
+
+  const cameraPos = useMemo<[number, number, number]>(() => {
+    const w = meta.footprint_width_m ?? 10;
+    const d = meta.footprint_depth_m ?? 10;
+    const h = totalFloors * floorHeight;
+    return [w * 2.5, h * 0.6, d * 2];
+  }, [meta.footprint_width_m, meta.footprint_depth_m, totalFloors, floorHeight]);
+
   const target = useMemo<[number, number, number]>(
     () => [
       (meta.footprint_width_m ?? 8) / 2,
@@ -213,22 +325,23 @@ export default function FullBuildingViewer({ plan, highlightElementId, onSelectE
 
   return (
     <div className="relative h-full w-full">
-      <Canvas camera={{ position: cameraPos, fov: 45 }} gl={{ antialias: true, powerPreference: 'default' }}>
+      <Canvas camera={{ position: cameraPos, fov: 40 }} gl={{ antialias: true, powerPreference: 'default' }}>
         <color attach="background" args={['#0a0a0b']} />
         <Suspense fallback={null}>
+          <GroundMarkers plan={plan} basementCount={basementCount} floorHeight={floorHeight} />
           <Slabs
             plan={plan}
             floorHeight={floorHeight}
             basementCount={basementCount}
             totalFloors={totalFloors}
           />
-          <Columns
-            columns={plan.columns}
-            highlight={highlightElementId}
+          <ExteriorInfill
+            merged={merged}
             floorHeight={floorHeight}
             basementCount={basementCount}
-            onSelect={onSelectElement}
+            totalFloors={totalFloors}
           />
+          <Columns merged={merged} highlight={highlightElementId} onSelect={onSelectElement} />
           <Beams beams={plan.beams} floorHeight={floorHeight} basementCount={basementCount} />
           <ShearWalls
             walls={plan.shear_walls}
@@ -247,7 +360,7 @@ export default function FullBuildingViewer({ plan, highlightElementId, onSelectE
           <span className="inline-block h-2 w-2 rounded-sm bg-[#0891b2] align-middle" /> walls &nbsp;
           <span className="inline-block h-2 w-2 rounded-sm bg-[#475569] align-middle" /> slabs
         </div>
-        <div className="text-[9px] text-white/60">drag to rotate • scroll to zoom • click to select</div>
+        <div className="text-[9px] text-white/60">{merged.length} columns · {plan.beams.length} beams · {plan.shear_walls.length} walls · drag to rotate · click to select</div>
       </div>
     </div>
   );
