@@ -203,6 +203,36 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
 - Hermes 4 70B (Moderator, CodeAgent narrative): subscription includes this too (subscription covers all `--provider nous` traffic)
 - **Worst case**: if subscription has a hidden rate limit we hit during stress testing, fall back to `VISION_BACKEND=moonshot` (~$5 direct) — not expected
 
+### Day 2 FINAL — backend live in WSL, end-to-end green
+
+- **Backend install:** `scripts/_setup-backend.sh` ran cleanly in WSL: Python 3.10 + `uv 0.11.7` + `uv sync` (all deps), `.env` auto-created with `HERMES_RUNTIME=cli HERMES_CLI_VIA_WSL=false`.
+- **Uvicorn:** `uv run uvicorn rebarguard.main:app --host 0.0.0.0 --port 8000` serves from WSL, reachable from Windows at `http://localhost:8000`.
+- **`/health`:** `{"status":"ok","service":"rebarguard","version":"0.1.0"}`.
+- **`/api/projects`:** `[]` (empty store, correct).
+- **E2E bridge test (`backend/tests/e2e_hermes_bridge.py`):** PASS.
+  - Text: `HermesClient.json_complete` → bridge → `hermes chat` → `{"ok": true, "where": "hermes-cli"}`
+  - Vision: `KimiVisionClient.analyze_image` on the 800×800 synthetic JPG → `{"count": 6}` (matches the 6 vertical rebars exactly — prompt engineering works).
+
+### How to run now (WSL shell, project root)
+
+```bash
+# One-time setup
+bash scripts/_setup-backend.sh
+
+# Run backend (foreground)
+cd backend && uv run uvicorn rebarguard.main:app --reload --host 0.0.0.0 --port 8000
+
+# Test
+curl http://localhost:8000/health
+uv run python tests/e2e_hermes_bridge.py
+```
+
+### Day 3 starts here
+
+- Feed a real Turkish structural-drawing PDF to `POST /api/projects` — verify `PlanParserAgent` extracts a `StructuralPlan` via Kimi K2.5. This requires `poppler-utils` in WSL (for `pdf2image`).
+- Install frontend: `cd frontend && pnpm install && pnpm dev`.
+- End-to-end: upload PDF → click through → see 7-agent debate stream live.
+
 ### Completed in Day 1
 
 - Folder structure created
