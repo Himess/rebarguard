@@ -16,67 +16,93 @@ Ship a working end-to-end demo where:
 
 ## Day-by-day
 
-### Day 1 (Apr 18) — TODAY — Setup & skeleton
+### Day 1 (Apr 18) — DONE — Setup & scaffold
 - [x] Create `Desktop/RebarGuard/` and subfolders
 - [x] Write `CLAUDE.md` + `plan.md`
 - [x] Download TBDY 2018 PDF
-- [ ] Download 1-2 rebar dataset samples from Roboflow Universe
-- [ ] `git init` + first commit
-- [ ] Create `backend/pyproject.toml` with `fastapi`, `uvicorn`, `pydantic`, `httpx`, `python-dotenv`, `openai` (for Kimi via OpenAI-compat), `pypdf`, `pgvector` client
-- [ ] Create `frontend/package.json` with Next.js 16, Tailwind v4, three, @react-three/fiber, @react-three/drei, motion
-- [ ] Create `backend/src/rebarguard/main.py` (FastAPI app + health route)
-- [ ] Create `backend/src/rebarguard/vision/kimi_client.py` (Kimi-VL wrapper)
-- [ ] Create `backend/src/rebarguard/schemas/` (Pydantic models for Project, Inspection, AgentMessage, Score)
-- [ ] Create stubs for all 7 agents + Moderator in `backend/src/rebarguard/agents/`
-- [ ] Create `.env.example`
-- [ ] Create `.gitignore`
+- [x] `git init` + 3 commits (`71148a5` init, `cfc2867` state, `7503286` hybrid models)
+- [x] Backend scaffold: FastAPI + 7 agents + Moderator + Kimi/Hermes clients + SSE orchestrator + tests
+- [x] Frontend scaffold: Next.js 16 + Tailwind v4 + landing/upload/dashboard/inspection pages + agent debate feed + score panel + Three.js overlay
+- [x] `.env.example`, `.gitignore`, `data/README.md`, `docs/ARCHITECTURE.md`
+- [x] **English localization** — all UI + agent summaries + prompts
+- [x] **Hybrid model architecture** — Kimi K2.5 agentic/vision + Hermes 4 70B reasoning + model badges in UI
 
-### Day 2 (Apr 19) — Hermes Agent wiring
-- [ ] Install Hermes Agent framework locally
-- [ ] Configure `hermes model` to point to Nous Portal with user's API key
-- [ ] Write first Hermes skill: `parse_structural_plan` (Phase 1 entry)
-  - Input: PDF path
-  - Steps: Kimi-VL OCR → structured JSON extraction → validate against schema
-  - Output: `StructuralPlan` Pydantic model
-- [ ] Kimi-VL smoke test on 2-3 real structural drawings (find samples online — academic courses, `yapi-proje.com` etc.)
-- [ ] First API endpoint `POST /api/projects` that invokes the skill
-- [ ] Log Kimi + Hermes calls (we need this in demo video)
+### Day 2 (Apr 19) — **PIVOT: full Hermes Agent framework adoption (Path B)**
 
-### Day 3-4 (Apr 20-21) — Phase 1 hardening
-- [ ] Iterate `parse_structural_plan` on 3-4 real Turkish drawings
-- [ ] Schema handling for: kolon (column) list with kesit, boyuna donatı, etriye, çiroz
-- [ ] Kirişler (beams) + perde duvarlar (shear walls) if time permits
+> **Decision (recorded):** Use Nous Portal subscription ($10/mo) by routing ALL LLM calls through the Hermes Agent framework, instead of direct API. This keeps cost at **$0** (Kimi K2.5 is free inside Hermes Agent) and aligns deeply with the hackathon's host tool. Risk: Hermes Agent's Python SDK + vision support aren't fully documented — verify first, then refactor.
+
+#### Day 2 — Morning (research spike — do not refactor yet)
+- [ ] Install Hermes Agent on Windows (likely via WSL2):
+  `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash`
+- [ ] `hermes setup` — sign in with user's Nous Portal subscription
+- [ ] `hermes model moonshotai/kimi-k2.5` — select the free agentic model
+- [ ] Locate Hermes Agent Python package / SDK — check if it's `pip install hermes-agent` or GitHub-only
+- [ ] Inspect `agentskills.io` standard — understand the skill manifest + runtime contract
+- [ ] **Vision smoke test** — send a single JPEG of a rebar photo through Hermes Agent CLI chat with Kimi K2.5 selected, confirm multimodal works via subscription
+- [ ] **Decision point:** document whether vision works, whether Python SDK is usable from FastAPI
+
+#### Day 2 — Afternoon (execute based on spike result)
+
+**If vision + Python SDK work:** (best case — pure Path B)
+- [ ] Introduce `backend/src/rebarguard/hermes_runtime/` module wrapping the Hermes Agent Python API
+- [ ] Replace `HermesClient.complete` internals with Hermes Agent skill execution
+- [ ] Replace `KimiVisionClient.analyze_image` internals with Hermes Agent multimodal skill call
+- [ ] Keep the current Python interfaces so agents (`GeometryAgent`, etc.) don't change
+- [ ] Run end-to-end smoke: upload a PDF → `POST /api/projects` still returns `StructuralPlan`
+
+**If vision works but Python SDK is immature:** (fallback — subprocess bridge)
+- [ ] Wrap `hermes run --skill <name> --input <json>` via `asyncio.create_subprocess_exec`
+- [ ] Stream stdout → parse structured JSON lines → yield to caller
+- [ ] Keep FastAPI SSE flow unchanged
+
+**If vision does NOT work via framework:** (partial fallback — $5 vision)
+- [ ] Keep Hermes 4 70B + Kimi K2.5 TEXT calls via Hermes Agent (subscription)
+- [ ] Vision-only calls route through Moonshot direct (`VISION_BACKEND=moonshot`) — requires $5-10 in Moonshot API credit
+- [ ] Document the mixed billing in CLAUDE.md
+
+### Day 3-4 (Apr 20-21) — Skills as Hermes Agent skills + PlanParser hardening
+- [ ] Convert each of our agents into a proper Hermes Agent skill:
+  - `skills/parse_structural_plan/skill.yaml` (manifest) + `main.py` (logic)
+  - `skills/inspect_rebar/...`
+  - `skills/check_compliance/...`
+  - `skills/detect_fraud/...`
+  - `skills/assess_risk/...`
+  - `skills/check_material/...`
+  - `skills/measure_cover/...`
+  - `skills/moderate_debate/...`
+- [ ] Each skill consumes structured input (JSON) + emits structured output (JSON)
+- [ ] Iterate `parse_structural_plan` on 3-4 real structural drawings
 - [ ] Confidence scoring per parsed element
-- [ ] Unit tests for schema validation
+- [ ] Keep our FastAPI as the HTTP adapter that invokes these skills
 
-### Day 5-6 (Apr 22-23) — GeometryAgent + site-photo pipeline
-- [ ] Build rebar-detection pipeline: Kimi-VL prompt-engineered to emit structured JSON (count, approximate spacings, diameter class)
-- [ ] Collect 10-15 curated site photos (Roboflow datasets + self-captured)
-- [ ] GeometryAgent skill: compare plan JSON vs. site detection JSON → diff report
-- [ ] Error cases: blurry photo, partial coverage, no reference marker
+### Day 5-6 (Apr 22-23) — Full site-photo pipeline via Hermes Agent
+- [ ] Multi-image prompt via Hermes Agent / Kimi K2.5 — batched rebar detection
+- [ ] Collect 10-15 curated site photos (Roboflow + self-captured)
+- [ ] End-to-end: upload photos → Hermes Agent invokes `inspect_rebar` skill → GeometryAgent diff → frontend renders
+- [ ] Edge cases: blurry photo, partial coverage, missing reference marker
 
-### Day 7 (Apr 24) — CodeAgent (RAG)
-- [ ] Chunk TBDY 2018 PDF into sections (per chapter / madde)
-- [ ] Embed with Kimi or OpenAI embeddings → pgvector
-- [ ] Chunk TS 500 equivalent material (academic summaries if PDF unavailable)
-- [ ] CodeAgent skill: given parsed-plan + site-detection, queries RAG for applicable articles, returns compliance verdict per article
-- [ ] Focus on Bölüm 7 (seismic detailing), etriye sıklaştırma, min donatı oranları
+### Day 7 (Apr 24) — CodeAgent (RAG) + Hermes 4 narrative
+- [ ] Chunk TBDY 2018 PDF into sections (per chapter / article)
+- [ ] Embed via Hermes Agent's embeddings skill OR fallback to local sentence-transformers
+- [ ] Push chunks to pgvector
+- [ ] CodeAgent skill: rule-engine first, then RAG enrichment for relevant articles, then Hermes 4 70B narrative
+- [ ] Focus on Chapter 7 (seismic detailing), stirrup-confinement spacing, min rebar ratios
 
-### Day 8 (Apr 25) — FraudAgent + RiskAgent
-- [ ] FraudAgent: EXIF parsing, timestamp sanity, reference-marker presence (QR / fiducial), photo-hash prior check
-- [ ] RiskAgent: AFAD `tdth.afad.gov.tr` integration (if open API; else hard-code zones for demo), soil class input, risk multiplier
-- [ ] Both as Hermes skills with structured outputs
+### Day 8 (Apr 25) — FraudAgent + RiskAgent (Hermes Agent skills)
+- [ ] FraudAgent skill: EXIF parsing, timestamp sanity, reference-marker presence, photo-hash dedup
+- [ ] RiskAgent skill: AFAD `tdth.afad.gov.tr` integration (if open API exists; else hardcoded demo table), soil class input, risk multiplier
+- [ ] Both emit structured JSON and integrate into the debate stream
 
-### Day 9 (Apr 26) — MaterialAgent + CoverAgent
-- [ ] MaterialAgent: Kimi-VL prompt for rebar-class marking detection (S420, B500C text on bar), corrosion level 0-3
-- [ ] CoverAgent: concrete-cover estimation from photo using reference marker scale
-- [ ] Both as Hermes skills
+### Day 9 (Apr 26) — MaterialAgent + CoverAgent (Hermes Agent skills)
+- [ ] MaterialAgent skill: Kimi K2.5 via Hermes Agent — rebar class markings, corrosion level 0-3
+- [ ] CoverAgent skill: concrete-cover estimation via reference marker scale
+- [ ] Both emit structured JSON
 
-### Day 10 (Apr 27) — Moderator + debate engine
-- [ ] Moderator skill: takes all 7 agent outputs, runs a debate round (each agent can raise challenges/counterpoints), produces final consolidated report
-- [ ] Scoring algorithm: weighted sum across categories × risk multiplier = 0-100 score
+### Day 10 (Apr 27) — Moderator + multi-round debate
+- [ ] Moderator skill using Hermes 4 70B reasoning — multi-round: after initial reports, agents can raise challenges → rebuttals → final verdict
+- [ ] Scoring algorithm: weighted sum × risk multiplier → 0-100
 - [ ] Thresholds: ≥85 APPROVE, 60-84 CONDITIONAL (human review), <60 REJECT
-- [ ] SSE streaming endpoint so frontend can watch debate live
+- [ ] SSE streaming: each debate round yields messages into the live feed
 
 ### Day 11 (Apr 28) — Frontend core
 - [ ] Next.js 16 + Tailwind v4 init
@@ -122,10 +148,10 @@ Ship a working end-to-end demo where:
 ## Scope guardrails
 
 **IN scope:**
-- 7 agents + moderator
-- Kimi-VL vision for PDF + site photos
-- Hermes 4 70B reasoning + tool use
-- SSE live agent-debate stream
+- 7 agents + moderator as Hermes Agent skills (Path B)
+- Kimi K2.5 via subscription (free) for vision + agentic orchestration
+- Hermes 4 70B via subscription for Moderator + CodeAgent narrative
+- SSE live agent-debate stream to frontend
 - Three.js 3D overlay (columns only — beams/shear walls only if time)
 - 2 demo scenarios (happy + fraud)
 - TBDY 2018 RAG (TS 500 if accessible)
@@ -133,23 +159,26 @@ Ship a working end-to-end demo where:
 
 **OUT of scope:**
 - Mobile app (web only)
-- Real municipality integration
-- Rebar detection model training (use Kimi-VL zero-shot)
-- Full Turkish construction code coverage (only cite relevant articles)
+- Real municipality integration (mock dashboard only)
+- Rebar detection model training (Kimi K2.5 zero-shot)
+- Full Turkish construction code coverage (cite relevant articles only)
 - User accounts beyond role-based demo
-- Payment, subscriptions, invoicing
+- Payment / subscriptions / invoicing
 
 ## Risk register
 
 | Risk | Mitigation |
 |------|-----------|
-| Kimi-VL can't read Turkish structural drawings well | Prompt engineering, few-shot examples; fallback: pre-annotate demo projects |
-| No open TS 500 PDF | Use academic summaries + İMO ders notları; cite on-screen |
-| AFAD has no public API | Hard-code 5-10 cities' zone data for demo |
-| Rebar detection inaccurate on real photos | Curate demo photos to ones Kimi handles well; note "research prototype" framing |
-| Hermes 4 70B slow / rate-limited | Show async debate streaming, cache results, fallback to 35B A3B |
-| 3D viewer too ambitious | Scope to 1-2 columns, not whole building |
-| Video production time underestimated | Day 15 is FULL day, Day 14 produces the canned scenarios ready to record |
+| **Hermes Agent framework doesn't expose usable Python SDK / vision via subscription** | Day 2 morning research spike answers this. Fallback: subprocess bridge (`hermes run ...`). Worst case: $5-10 Moonshot direct for vision only |
+| **Windows / WSL2 install friction for Hermes Agent** | Install path documented by Nous (curl installer); WSL2 if native Windows fails. Budget: 2-3 hours before falling back |
+| **Subscription doesn't cover the volume we need during testing** | Unlikely at $10/mo given our small call volume; monitor `hermes usage` if available. Keep direct API as a $5 safety net |
+| Kimi K2.5 can't read some structural drawings well | Prompt engineering, few-shot examples; fallback: pre-annotate 2-3 demo projects |
+| No open TS 500 PDF | Use academic summaries + İMO lecture notes; cite on-screen |
+| AFAD has no public API | Hard-code 5-10 cities' zone data for demo (already implemented) |
+| Rebar detection inaccurate on real photos | Curate demo photos to ones Kimi handles well; "research prototype" framing in video |
+| Hermes 4 70B latency for debate | Show async streaming so the wait is visible; cache deterministic steps |
+| 3D viewer too ambitious | Scope to 1-2 columns — already done in Day 1 scaffold |
+| Video production time underestimated | Day 15 is dedicated; Day 14 locks the scenarios |
 
 ## Success metrics
 
