@@ -267,6 +267,7 @@ cd frontend && pnpm dev
 - **Kimi K2.5 usage must be provable** in the demo video for Kimi-track eligibility (show model name `moonshotai/kimi-k2.5` in logs / on screen).
 - **No mocks in final demo** — real Nous Portal calls, real Kimi K2.5, real debate. Happy path + fraud case must both run live.
 - **Time is the scarcest resource.** Scope creep = death. If a feature isn't in the timeline table, don't build it.
+- **Billing model: Path B — Hermes Agent framework via subscription.** The Nous Portal subscription ($10/mo Nous Chat + Hermes Agent plan) covers model calls made BY the Hermes Agent CLI/runtime. Direct API access is a separate pay-per-token tier and is AVOIDED. All LLM work routes through `hermes` (subprocess or Python SDK). Verified vs. unverified in Day 2 morning research spike. Best case: $0 total spend. Worst case: ~$5 Moonshot direct if framework lacks multimodal via subscription — vision-only fallback.
 
 ## Open questions (track here, close as decided)
 
