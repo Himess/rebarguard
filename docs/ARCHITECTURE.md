@@ -71,13 +71,17 @@
 3. Each stage emits an `AgentMessage` through the async generator.
 4. FastAPI SSE endpoint forwards each message to the frontend.
 
-## Why Hermes + Kimi
+## Why Hermes Agent + Kimi K2.5 + Hermes 4 (hybrid)
 
-| Role | Chosen | Why |
-|------|--------|-----|
-| Vision / OCR | Kimi-VL (Moonshot) | Native-res encoder (MoonViT), 128K ctx, strong OCR for Turkish technical drawings, cheap API, Kimi-track eligibility |
-| Reasoning / debate | Hermes 4 70B (Nous Portal) | Trained on agentic traces, strong multi-tool use, hackathon-branded, JSON-mode reliable |
-| Orchestration | Hermes Agent framework (future) | Skill system + memory; Day 2 we layer this on top of bare Hermes calls |
+| Role | Model | Why |
+|------|-------|-----|
+| Agentic orchestration, vision (PDF + site photos + material + cover) | **Kimi K2.5** via Nous Portal (`moonshotai/kimi-k2.5`) | $0 on Nous Portal free tier. Native vision (MoonViT). Explicitly recommended by Nous Portal as an agentic model. Kimi-track eligibility. |
+| Deep reasoning: Moderator verdict synthesis + CodeAgent violation narrative | **Hermes-4-70B** via Nous Portal ($0.05 in / $0.20 out per 1M) | Hybrid-thinking reasoning model, Nous-branded. Single-shot synthesis is its sweet spot. Moderator is where verdict correctness matters most. |
+| Orchestration glue | **Hermes Agent** framework (Nous) | Skill system, FTS5 memory, subagent parallelism. Hackathon host's own product. |
+| Reasoning fallback | Hermes-4-405B ($0.09/$0.37) | Optional — switch via `HERMES_REASONING_MODEL` env for frontier-depth demo scenario. |
+| Vision fallback | Moonshot direct API | Set `VISION_BACKEND=moonshot` if Nous Portal multimodal proves unreliable. |
+
+**Design principle:** agentic models (Kimi K2.5) run in loops with tools; reasoning models (Hermes 4) think deeply in one shot. Use each for what it's best at. Nous Portal's UI explicitly warns against using Hermes 4 as the main agentic loop — we follow that guidance.
 
 ## Scoring algorithm
 

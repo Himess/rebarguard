@@ -1,7 +1,8 @@
-"""Hermes 4 reasoning client (Nous Portal API — OpenAI-compatible).
+"""Agentic-model client — routes to Nous Portal OpenAI-compatible endpoint.
 
-Hermes Agent framework will be layered on top for skill execution; this client provides
-direct chat/tool-calling access when we don't need the full skill runtime.
+Nous Portal recommends agentic models (Kimi K2.5, GPT-5.4, GLM 5, Claude, etc.) over Hermes 4
+for Hermes Agent workloads. Our default is `moonshotai/kimi-k2.5` (free tier).
+`HERMES_REASONING_MODEL` (default `Hermes-4-70B`) is kept as an option for pure reasoning calls.
 """
 
 from __future__ import annotations
@@ -17,32 +18,39 @@ from rebarguard.config import Settings, get_settings
 
 
 class HermesClient:
-    """Thin wrapper around Nous Portal (Hermes 4 70B) Chat Completions."""
-
     def __init__(self, settings: Settings):
         if not settings.nous_portal_api_key:
             raise RuntimeError(
-                "NOUS_PORTAL_API_KEY is not set. Get one at https://portal.nousresearch.com"
+                "NOUS_PORTAL_API_KEY is not set. Subscribe at https://portal.nousresearch.com."
             )
         self._client = AsyncOpenAI(
             api_key=settings.nous_portal_api_key,
             base_url=settings.nous_portal_base_url,
         )
-        self._model = settings.hermes_model
+        self._agentic_model = settings.hermes_agentic_model
+        self._reasoning_model = settings.hermes_reasoning_model
+
+    @property
+    def agentic_model(self) -> str:
+        return self._agentic_model
+
+    @property
+    def reasoning_model(self) -> str:
+        return self._reasoning_model
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def complete(
         self,
         messages: list[dict[str, Any]],
         *,
+        model: str | None = None,
         tools: list[dict[str, Any]] | None = None,
         json_mode: bool = False,
         max_tokens: int = 2048,
         temperature: float = 0.3,
     ) -> dict[str, Any]:
-        """Single-shot chat completion. Returns {content, tool_calls, raw}."""
         kwargs: dict[str, Any] = {
-            "model": self._model,
+            "model": model or self._agentic_model,
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
@@ -66,6 +74,7 @@ class HermesClient:
             ],
             "finish_reason": resp.choices[0].finish_reason,
             "usage": resp.usage.model_dump() if resp.usage else {},
+            "model": kwargs["model"],
         }
 
     async def json_complete(
@@ -73,12 +82,13 @@ class HermesClient:
         system: str,
         user: str,
         *,
+        model: str | None = None,
         max_tokens: int = 2048,
         temperature: float = 0.2,
     ) -> dict[str, Any]:
-        """Convenience: system+user prompt, JSON-object response."""
         result = await self.complete(
             [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            model=model,
             json_mode=True,
             max_tokens=max_tokens,
             temperature=temperature,

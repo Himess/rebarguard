@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,11 +12,18 @@ class Settings(BaseSettings):
     nous_portal_base_url: str = Field(
         default="https://api.portal.nousresearch.com/v1", alias="NOUS_PORTAL_BASE_URL"
     )
-    hermes_model: str = Field(default="Hermes-4-70B", alias="HERMES_MODEL")
+    hermes_agentic_model: str = Field(
+        default="moonshotai/kimi-k2.5", alias="HERMES_AGENTIC_MODEL"
+    )
+    hermes_reasoning_model: str = Field(default="Hermes-4-70B", alias="HERMES_REASONING_MODEL")
 
     moonshot_api_key: str = Field(default="", alias="MOONSHOT_API_KEY")
     moonshot_base_url: str = Field(default="https://api.moonshot.ai/v1", alias="MOONSHOT_BASE_URL")
     kimi_vision_model: str = Field(default="kimi-k2.5", alias="KIMI_VISION_MODEL")
+
+    vision_backend: Literal["nous_portal", "moonshot"] = Field(
+        default="nous_portal", alias="VISION_BACKEND"
+    )
 
     supabase_url: str = Field(default="", alias="SUPABASE_URL")
     supabase_anon_key: str = Field(default="", alias="SUPABASE_ANON_KEY")

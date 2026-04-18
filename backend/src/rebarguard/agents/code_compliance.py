@@ -1,8 +1,4 @@
-"""CodeAgent — TBDY 2018 / TS 500 compliance check via RAG + Hermes reasoning.
-
-Day-7 task: wire up pgvector retrieval. For now this ships a deterministic rule-engine fallback
-so Phase-2 integration can proceed without the RAG index. Hermes handles the narrative.
-"""
+"""CodeAgent — TBDY 2018 / TS 500 compliance check via rule engine + RAG (Day 7)."""
 
 from __future__ import annotations
 
@@ -37,59 +33,73 @@ class CodeAgent(BaseAgent[CodeInput, ComplianceReport]):
         articles: list[str] = []
 
         ratio = self._rebar_ratio(col)
-        articles.append("TBDY 2018 Bölüm 7.3.4 (kolon donatı oranları)")
+        articles.append("TBDY 2018 §7.3.4 (column longitudinal rebar ratio)")
         if _MIN_REBAR_RATIO <= ratio <= _MAX_REBAR_RATIO:
-            passes.append(f"Boyuna donatı oranı %{ratio * 100:.2f} sınırlar içinde.")
+            passes.append(f"Longitudinal rebar ratio {ratio * 100:.2f}% within 1%–4% range.")
         elif ratio < _MIN_REBAR_RATIO:
-            violations.append(f"Boyuna donatı oranı %{ratio * 100:.2f} < %1 (min).")
+            violations.append(f"Longitudinal rebar ratio {ratio * 100:.2f}% < 1% minimum.")
         else:
-            violations.append(f"Boyuna donatı oranı %{ratio * 100:.2f} > %4 (max).")
+            violations.append(f"Longitudinal rebar ratio {ratio * 100:.2f}% > 4% maximum.")
 
-        articles.append("TBDY 2018 Bölüm 7.3.6 (enine donatı — etriye)")
+        articles.append("TBDY 2018 §7.3.6 (transverse rebar — stirrup)")
         if col.stirrup.diameter_mm >= _MIN_STIRRUP_DIA_SEISMIC_MM:
-            passes.append(f"Etriye çapı Ø{col.stirrup.diameter_mm} ≥ Ø10 (sismik).")
+            passes.append(f"Stirrup diameter Ø{col.stirrup.diameter_mm} ≥ Ø10 (seismic min).")
         else:
-            violations.append(f"Etriye çapı Ø{col.stirrup.diameter_mm} < Ø10 (sismik min).")
+            violations.append(
+                f"Stirrup diameter Ø{col.stirrup.diameter_mm} < Ø10 (seismic minimum)."
+            )
 
         confinement = col.stirrup.spacing_confinement_mm or col.stirrup.spacing_mm
         if confinement <= _MAX_STIRRUP_SPACING_CONFINEMENT_MM:
             passes.append(
-                f"Sıklaştırma bölgesi etriye aralığı {confinement} mm ≤ 100 mm."
+                f"Confinement-zone stirrup spacing {confinement} mm ≤ 100 mm."
             )
         else:
             violations.append(
-                f"Sıklaştırma bölgesi etriye aralığı {confinement} mm > 100 mm."
+                f"Confinement-zone stirrup spacing {confinement} mm > 100 mm."
             )
 
         if col.stirrup.spacing_mm <= _MAX_STIRRUP_SPACING_MIDDLE_MM:
-            passes.append(f"Orta bölge etriye aralığı {col.stirrup.spacing_mm} mm ≤ 200 mm.")
+            passes.append(f"Mid-zone stirrup spacing {col.stirrup.spacing_mm} mm ≤ 200 mm.")
         else:
-            violations.append(
-                f"Orta bölge etriye aralığı {col.stirrup.spacing_mm} mm > 200 mm."
-            )
+            violations.append(f"Mid-zone stirrup spacing {col.stirrup.spacing_mm} mm > 200 mm.")
 
         if col.stirrup.hook_angle_deg >= 135:
-            passes.append("Etriye kancası 135°.")
-        else:
-            violations.append(f"Etriye kancası {col.stirrup.hook_angle_deg}° < 135° (sismik).")
-
-        articles.append("TBDY 2018 Bölüm 7.3.7 (çiroz)")
-        if col.stirrup.crossties >= 2:
-            passes.append(f"Çiroz sayısı {col.stirrup.crossties} ≥ 2.")
+            passes.append("Stirrup hook bent to 135°.")
         else:
             violations.append(
-                f"Çiroz sayısı {col.stirrup.crossties} yetersiz (min 2 önerilir)."
+                f"Stirrup hook {col.stirrup.hook_angle_deg}° < 135° (seismic minimum)."
+            )
+
+        articles.append("TBDY 2018 §7.3.7 (crossties)")
+        if col.stirrup.crossties >= 2:
+            passes.append(f"Crosstie count {col.stirrup.crossties} ≥ 2.")
+        else:
+            violations.append(
+                f"Crosstie count {col.stirrup.crossties} insufficient (≥ 2 recommended)."
             )
 
         if payload.detection.estimated_stirrup_spacing_mm is not None:
             actual = payload.detection.estimated_stirrup_spacing_mm
             if actual > col.stirrup.spacing_mm + 30:
                 violations.append(
-                    f"Saha etriye aralığı {actual} mm, proje {col.stirrup.spacing_mm} mm."
+                    f"Site stirrup spacing {actual} mm exceeds plan spec "
+                    f"{col.stirrup.spacing_mm} mm."
                 )
 
         severity = self._severity(len(violations))
-        summary = self._summary(col.id, len(passes), len(violations))
+        base_summary = self._summary(col.id, len(passes), len(violations))
+
+        # When there are violations, ask Hermes 4 70B for a concise narrative that explains
+        # the seismic-safety implication in plain English (reasoning-model strength).
+        summary = base_summary
+        if violations:
+            try:
+                narrative = await self._hermes_narrative(col.id, violations, passes)
+                if narrative:
+                    summary = narrative
+            except Exception:
+                summary = base_summary
 
         return ComplianceReport(
             element_id=col.id,
@@ -99,6 +109,31 @@ class CodeAgent(BaseAgent[CodeInput, ComplianceReport]):
             severity=severity,
             summary=summary,
         )
+
+    async def _hermes_narrative(
+        self, element_id: str, violations: list[str], passes: list[str]
+    ) -> str | None:
+        system = (
+            "You are a senior structural engineer. In 2-3 clear English sentences, explain what "
+            "the following TBDY 2018 violations mean for seismic safety of the column. "
+            "Be concrete and specific. No markdown, no bullets."
+        )
+        user = (
+            f"Column {element_id}\n"
+            f"Violations:\n- " + "\n- ".join(violations) + "\n"
+            f"Passing checks: {len(passes)}."
+        )
+        resp = await self.hermes.complete(
+            [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            model=self.hermes.reasoning_model,
+            max_tokens=220,
+            temperature=0.3,
+        )
+        text = (resp.get("content") or "").strip()
+        return text or None
 
     @staticmethod
     def _rebar_ratio(col: ColumnSchema) -> float:
@@ -124,5 +159,5 @@ class CodeAgent(BaseAgent[CodeInput, ComplianceReport]):
     @staticmethod
     def _summary(element_id: str, n_pass: int, n_fail: int) -> str:
         if n_fail == 0:
-            return f"Kolon {element_id}: TBDY 2018 uyumlu ({n_pass} madde)."
-        return f"Kolon {element_id}: {n_fail} ihlal, {n_pass} uyum."
+            return f"Column {element_id}: TBDY 2018 compliant across {n_pass} checks."
+        return f"Column {element_id}: {n_fail} violation(s), {n_pass} passing check(s)."

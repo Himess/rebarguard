@@ -1,4 +1,4 @@
-"""Kimi-VL vision client (OpenAI-compatible API at platform.moonshot.ai)."""
+"""Vision client — routes to Nous Portal (preferred, Kimi K2.5 is free) or Moonshot directly."""
 
 from __future__ import annotations
 
@@ -31,18 +31,37 @@ def _image_mime(path: str | Path) -> str:
 
 
 class KimiVisionClient:
-    """Thin wrapper around Moonshot's OpenAI-compatible Chat Completions API for vision."""
+    """OpenAI-compatible vision client. Targets Nous Portal by default (Kimi K2.5 free).
+
+    If `VISION_BACKEND=moonshot`, falls back to direct Moonshot API.
+    """
 
     def __init__(self, settings: Settings):
-        if not settings.moonshot_api_key:
-            raise RuntimeError(
-                "MOONSHOT_API_KEY is not set. Get one at https://platform.moonshot.ai"
+        if settings.vision_backend == "moonshot":
+            if not settings.moonshot_api_key:
+                raise RuntimeError(
+                    "VISION_BACKEND=moonshot but MOONSHOT_API_KEY is unset."
+                )
+            self._client = AsyncOpenAI(
+                api_key=settings.moonshot_api_key, base_url=settings.moonshot_base_url
             )
-        self._client = AsyncOpenAI(
-            api_key=settings.moonshot_api_key,
-            base_url=settings.moonshot_base_url,
-        )
-        self._model = settings.kimi_vision_model
+            self._model = settings.kimi_vision_model
+            self._backend = "moonshot"
+        else:
+            if not settings.nous_portal_api_key:
+                raise RuntimeError(
+                    "VISION_BACKEND=nous_portal but NOUS_PORTAL_API_KEY is unset. "
+                    "Get one at https://portal.nousresearch.com."
+                )
+            self._client = AsyncOpenAI(
+                api_key=settings.nous_portal_api_key, base_url=settings.nous_portal_base_url
+            )
+            self._model = "moonshotai/kimi-k2.5"
+            self._backend = "nous_portal"
+
+    @property
+    def backend(self) -> str:
+        return self._backend
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def analyze_image(
@@ -54,14 +73,12 @@ class KimiVisionClient:
         max_tokens: int = 2048,
         temperature: float = 0.1,
     ) -> dict[str, Any]:
-        """Send a single image + prompt, receive (ideally) JSON response."""
         b64 = _encode_image(image_path)
         mime = _image_mime(image_path)
         content: list[dict[str, Any]] = [
             {"type": "text", "text": prompt},
             {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
         ]
-
         kwargs: dict[str, Any] = {
             "model": self._model,
             "messages": [{"role": "user", "content": content}],
@@ -92,7 +109,6 @@ class KimiVisionClient:
         max_tokens: int = 4096,
         temperature: float = 0.1,
     ) -> dict[str, Any]:
-        """Multi-image analysis in a single call."""
         content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
         for path in image_paths:
             b64 = _encode_image(path)
@@ -100,7 +116,6 @@ class KimiVisionClient:
             content.append(
                 {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
             )
-
         kwargs: dict[str, Any] = {
             "model": self._model,
             "messages": [{"role": "user", "content": content}],

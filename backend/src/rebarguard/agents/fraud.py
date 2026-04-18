@@ -1,4 +1,4 @@
-"""FraudAgent — EXIF validation, timestamp sanity, reference-marker presence, hash dup."""
+"""FraudAgent — EXIF validation, timestamp sanity, reference-marker presence, hash dedup."""
 
 from __future__ import annotations
 
@@ -33,11 +33,11 @@ class FraudAgent(BaseAgent[FraudInput, FraudReport]):
         for photo in payload.photo_paths:
             ts, coords = self._read_exif(photo)
             if ts is None:
-                issues.append(f"{photo.name}: EXIF timestamp yok.")
+                issues.append(f"{photo.name}: no EXIF timestamp.")
                 exif_ok = False
             elif abs((payload.now - ts).total_seconds()) > timedelta(days=7).total_seconds():
                 issues.append(
-                    f"{photo.name}: EXIF tarihi {ts.isoformat()} — inceleme anından uzak."
+                    f"{photo.name}: EXIF date {ts.isoformat()} is far from inspection time."
                 )
                 exif_ok = False
             if coords is not None:
@@ -45,11 +45,11 @@ class FraudAgent(BaseAgent[FraudInput, FraudReport]):
             h = self._sha256(photo)
             if h in payload.known_hashes:
                 hash_dup = True
-                issues.append(f"{photo.name}: daha önce yüklenmiş foto (hash eşleşti).")
+                issues.append(f"{photo.name}: previously uploaded photo (hash match).")
 
         ref_ok = any(d.reference_marker_found for d in payload.detections)
         if not ref_ok:
-            issues.append("Hiçbir fotoğrafta kalibrasyon referans işareti yok.")
+            issues.append("No reference marker found in any photo.")
 
         severity = self._severity(len(issues), hash_dup, not exif_ok)
         summary = self._summary(exif_ok, ref_ok, hash_dup, len(issues))
@@ -113,14 +113,14 @@ class FraudAgent(BaseAgent[FraudInput, FraudReport]):
     @staticmethod
     def _summary(exif_ok: bool, ref_ok: bool, dup: bool, n: int) -> str:
         if dup:
-            return "Kritik: fotoğraflardan biri daha önce sisteme yüklenmiş."
+            return "Critical: a photo was previously uploaded (hash duplicate)."
         if not exif_ok and not ref_ok:
-            return "EXIF ve referans işareti yok — denetim güvenilirliği düşük."
+            return "Missing EXIF and reference marker — inspection reliability is low."
         if not ref_ok:
-            return "Kalibrasyon referansı yok — ölçüm doğrulanamaz."
+            return "No reference marker — measurements cannot be verified."
         if n == 0:
-            return "Sahtecilik göstergesi yok."
-        return f"{n} tutarsızlık bulundu."
+            return "No fraud indicators detected."
+        return f"{n} inconsistency/-ies found."
 
 
 def _dms_to_dd(dms: tuple, ref: str) -> float:

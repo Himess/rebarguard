@@ -51,6 +51,7 @@ export type AgentMessage = {
     | 'moderator';
   kind: 'observation' | 'challenge' | 'rebuttal' | 'verdict';
   content: string;
+  model?: string | null;
   evidence?: Record<string, unknown> | null;
 };
 

@@ -1,4 +1,4 @@
-"""MaterialAgent — detects rebar steel class and corrosion level via Kimi-VL."""
+"""MaterialAgent — detects rebar steel class and corrosion level via Kimi K2.5."""
 
 from __future__ import annotations
 
@@ -54,8 +54,8 @@ class MaterialAgent(BaseAgent[MaterialInput, MaterialReport]):
     @staticmethod
     def _default_summary(detected: str | None, corrosion: int, class_ok: bool) -> str:
         parts = []
-        parts.append(f"Çelik sınıfı: {detected or 'okunamadı'}.")
+        parts.append(f"Steel class: {detected or 'unreadable'}.")
         if not class_ok:
-            parts.append("Proje ile uyumsuz.")
-        parts.append(f"Korozyon seviyesi {corrosion}.")
+            parts.append("Does not match the plan.")
+        parts.append(f"Corrosion level {corrosion}/3.")
         return " ".join(parts)

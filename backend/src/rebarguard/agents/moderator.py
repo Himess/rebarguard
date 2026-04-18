@@ -1,11 +1,4 @@
-"""ModeratorAgent — consumes all agent reports, drives a debate round, produces final verdict.
-
-The debate asks Hermes 4 to review every agent's report and emit:
-- critical issues in rank order
-- recommendations
-- a narrative suitable for a municipality engineer
-- category-wise scores (0-100) and an overall score
-"""
+"""ModeratorAgent — consumes all agent reports, drives a debate round, produces final verdict."""
 
 from __future__ import annotations
 
@@ -37,7 +30,7 @@ violations → REJECT.
 - CONDITIONAL if there are medium-severity issues that a human engineer must verify on site.
 - APPROVE only when all agents report low severity and compliance has zero violations.
 - Weight the score by the risk multiplier (higher multiplier → stricter scoring).
-- Speak Turkish in the narrative field (audience: Turkish municipality engineer)."""
+- Write the narrative in English, concise and suitable for a municipal engineer."""
 
 _USER_TEMPLATE = """Agent reports (JSON):
 
@@ -55,7 +48,7 @@ Produce output matching this schema exactly:
     "material": 0-100,
     "cover": 0-100
   }},
-  "narrative": "Turkish, 3-6 sentences, municipal-engineer audience",
+  "narrative": "English, 3-6 sentences, municipal-engineer audience",
   "critical_issues": ["string"],
   "recommendations": ["string"]
 }}
@@ -85,7 +78,14 @@ class ModeratorAgent(BaseAgent[ModeratorInput, ModeratorReport]):
             "cover": payload.cover.model_dump(),
         }
         user = _USER_TEMPLATE.format(reports=json.dumps(reports, ensure_ascii=False, indent=2))
-        raw = await self.hermes.json_complete(_SYSTEM, user, max_tokens=1500, temperature=0.2)
+        # Use Hermes 4 70B reasoning model for verdict synthesis (hybrid thinking strength)
+        raw = await self.hermes.json_complete(
+            _SYSTEM,
+            user,
+            model=self.hermes.reasoning_model,
+            max_tokens=1500,
+            temperature=0.2,
+        )
 
         verdict = self._parse_verdict(raw.get("verdict"))
         score_data = raw.get("score") or {}
@@ -130,10 +130,12 @@ class ModeratorAgent(BaseAgent[ModeratorInput, ModeratorReport]):
 
     @staticmethod
     def _default_narrative(v: AgentVerdict, s: InspectionScore) -> str:
-        verdict_tr = {"approve": "onay", "conditional": "koşullu onay", "reject": "red"}[v.value]
+        verdict_label = {"approve": "APPROVE", "conditional": "CONDITIONAL", "reject": "REJECT"}[
+            v.value
+        ]
         return (
-            f"Genel skor {s.overall:.0f}/100. Sonuç: {verdict_tr}. "
-            "Detaylı bulgular için ajan raporlarına bakınız."
+            f"Overall score {s.overall:.0f}/100. Verdict: {verdict_label}. "
+            "See per-agent reports for detailed findings."
         )
 
 

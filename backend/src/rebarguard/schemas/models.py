@@ -175,6 +175,10 @@ class AgentMessage(BaseModel):
     agent: AgentRole
     kind: Literal["observation", "challenge", "rebuttal", "verdict"] = "observation"
     content: str
+    model: str | None = Field(
+        default=None,
+        description="LLM that produced this message, e.g. 'moonshotai/kimi-k2.5' or 'Hermes-4-70B'",
+    )
     evidence: dict[str, Any] | None = None
 
 

@@ -9,10 +9,10 @@ export default function HomePage() {
           <span className="text-lg font-semibold tracking-tight">RebarGuard</span>
         </div>
         <div className="flex items-center gap-6 text-sm text-[var(--color-text-muted)]">
-          <Link href="/upload" className="hover:text-white">Yükle</Link>
-          <Link href="/dashboard" className="hover:text-white">Belediye Paneli</Link>
-          <a href="https://github.com/nousresearch/hermes-agent" className="hover:text-white">Hermes</a>
-          <a href="https://platform.moonshot.ai" className="hover:text-white">Kimi-VL</a>
+          <Link href="/upload" className="hover:text-white">Upload</Link>
+          <Link href="/dashboard" className="hover:text-white">Municipality</Link>
+          <a href="https://github.com/nousresearch/hermes-agent" className="hover:text-white">Hermes Agent</a>
+          <a href="https://platform.moonshot.ai" className="hover:text-white">Kimi K2.5</a>
         </div>
       </nav>
 
@@ -22,17 +22,17 @@ export default function HomePage() {
           Hermes Agent Creative Hackathon 2026
         </div>
         <h1 className="text-5xl font-semibold leading-tight tracking-tight">
-          Beton döküldükten sonra demir görünmez.
+          Once concrete pours, the steel inside is invisible forever.
           <br />
           <span className="text-[var(--color-accent)]">
-            Dökülmeden önce yedi ajan kontrol eder.
+            Seven agents check it before the pour.
           </span>
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-[var(--color-text-muted)]">
-          RebarGuard, onaylı betonarme projeyi ve saha fotoğraflarını alır; Hermes 4 ve Kimi-VL
-          üzerine kurulu <b>7 ajanlı bir denetim ekibi</b> demir işçiliğini TBDY 2018 ve TS 500&apos;e
-          göre analiz eder. Skor &gt;= 85 ise belediye onayı; aksi halde detaylı rapor ve düzeltme
-          talebi.
+          RebarGuard takes the approved structural drawing and site photos; a{' '}
+          <b>7-agent inspection team</b> powered by Hermes Agent and Kimi K2.5 analyzes rebar
+          workmanship against seismic codes. Score ≥ 85 gates municipal approval; anything less
+          returns a detailed, evidence-backed report.
         </p>
 
         <div className="mt-8 flex gap-4">
@@ -40,13 +40,13 @@ export default function HomePage() {
             href="/upload"
             className="rounded bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-black hover:opacity-90"
           >
-            Denetime başla →
+            Start an inspection →
           </Link>
           <Link
             href="/dashboard"
             className="rounded border border-[var(--color-border)] px-5 py-3 text-sm font-medium hover:border-white/30"
           >
-            Bekleyen Denetimler
+            Pending inspections
           </Link>
         </div>
       </section>
@@ -54,16 +54,16 @@ export default function HomePage() {
       <section className="mt-24 grid grid-cols-1 gap-4 md:grid-cols-3">
         {[
           {
-            title: 'Faz 1 — Proje',
-            body: 'Onaylı betonarme PDF projeyi Kimi-VL okur, kolon şemasını JSON&apos;a çevirir.',
+            title: 'Phase 1 — Project',
+            body: 'The approved reinforced-concrete PDF is parsed by Kimi K2.5 into a structured column schedule.',
           },
           {
-            title: 'Faz 2 — Saha',
-            body: 'Saha fotoğrafları 7 ajan tarafından analiz edilir: Geometri, Kod, Sahtecilik, Risk, Malzeme, Paspayı, Moderatör.',
+            title: 'Phase 2 — Site',
+            body: 'Site photos are analyzed by 7 agents: Geometry, Code, Fraud, Risk, Material, Cover, and Moderator.',
           },
           {
-            title: 'Faz 3 — Onay',
-            body: 'Skor eşiği aşılırsa beton dökümü onaylanır. Aksi halde detaylı gerekçeli red.',
+            title: 'Phase 3 — Approval',
+            body: 'If the score passes the threshold, the pour is approved. Otherwise a detailed rejection with causes.',
           },
         ].map((p) => (
           <div
@@ -83,10 +83,10 @@ export default function HomePage() {
         </a>{' '}
         +{' '}
         <a href="https://github.com/MoonshotAI/Kimi-VL" className="hover:text-white">
-          Kimi-VL (Moonshot)
+          Kimi K2.5 (Moonshot)
         </a>
-        . TBDY 2018 / TS 500 referanslıdır. Araştırma prototipi; insan mühendis onayının yerine
-        geçmez.
+        . Referencing TBDY 2018 (Turkish Building Earthquake Code) and TS 500. Research prototype
+        — does not replace a licensed structural engineer&apos;s sign-off.
       </footer>
     </main>
   );

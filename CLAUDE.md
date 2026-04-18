@@ -33,31 +33,35 @@
 
 | Layer | Tech | Why |
 |-------|------|-----|
-| Orchestrator agent | **Hermes Agent framework** (Python) | Multi-agent native, model-agnostic, skill system, memory |
-| Reasoning model | **Hermes 4 70B** via Nous Portal API | Trained on agentic traces, strong tool use, hackathon-branded |
-| Vision model | **Kimi-VL** (A3B-Instruct) via Moonshot API | MoonViT native-resolution encoder, strong OCR, cheap ($0.60/M in, $2.50/M out), Kimi track qualifier |
-| Backend | **FastAPI** (Python 3.11+) | Native Hermes integration, async-first |
-| Frontend | **Next.js 16** (App Router, React 19) | Modern, Vercel deploy, familiar |
+| Orchestrator framework | **Hermes Agent** (Python, Nous Research) | Multi-agent native, model-agnostic, skill system, memory; install `curl -fsSL https://hermes-agent.nousresearch.com/install.sh \| bash` |
+| Agentic + Vision model | **Kimi K2.5** (`moonshotai/kimi-k2.5`) via **Nous Portal** | **$0 / 1M tokens on Nous Portal free tier.** Vision-capable (K2.5 adds image+video). Covers BOTH Main and Kimi tracks. Nous Portal explicitly recommends agentic models (Kimi K2.5 / GPT-5.4 / GLM 5 / Claude) over Hermes 4 for Hermes Agent |
+| Reasoning fallback | **Hermes-4-70B** via Nous Portal ($0.05 in / $0.20 out per 1M) | Dedicated reasoning when Kimi K2.5 orchestration needs a hybrid-thinking boost |
+| Vision fallback | **Kimi K2.5** direct via Moonshot API | If Nous Portal multimodal proves unreliable — set `VISION_BACKEND=moonshot` |
+| Backend | **FastAPI** (Python 3.11+) | Async-first, SSE streaming |
+| Frontend | **Next.js 16** (App Router, React 19) | Modern, Vercel deploy |
 | 3D viewer | **Three.js** + react-three-fiber | Rebar schematic vs. site-photo overlay |
 | Styling | **Tailwind CSS v4** | |
-| Motion | **Motion / GSAP / Lenis** | Demo polish |
+| Motion | **Motion** | Agent debate animations |
 | Database | **Supabase** (Postgres + Storage) | Project files, photos, audit history |
-| Auth | Supabase Auth, roles: Müteahhit / Belediye / İnşaat Mühendisi | |
+| Auth | Supabase Auth, roles: Contractor / Municipality / Engineer | |
 | Regulations RAG | **pgvector** on Supabase | TBDY 2018 + TS 500 chunks |
 | Deploy | Vercel (frontend) + Modal or Fly.io (backend) | |
 
+### Why NOT Hermes 4 as primary model
+Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Hermes Agent. Use an agentic model from the list above."* Hermes 4 is a frontier reasoning model; the Hermes Agent framework is tuned for tool-calling agentic models (Kimi K2.5, GPT-5.4, GLM 5, Claude). We follow the sanctioned path.
+
 ## User decisions (recorded verbatim)
 
-- **User:** Hackathon'a birincilik hedefliyoruz. "Yetişmez" deme.
-- **User:** Hermes kullanalım. Nous Portal $10 free tier mevcut.
-- **User:** Kahramanmaraş vakasını çekirdek feature yapma — sadece demo videosunda bahset.
-- **User:** Rebar dataset: open-source scrape + Kahramanmaraş açık veri + birkaç foto kullanıcıdan.
-- **User:** TBDY 2018 + TS 500'ü Claude indirsin.
-- **User:** Tech stack (Next.js 16 + FastAPI + Supabase + Three.js) onaylı.
-- **User:** 7 agent olsun (4 yerine).
-- **User:** Claude durmadan çalışsın, tek sessionda 2-3 günlük iş.
-- **User:** No Claude AI / Co-Authored-By references in commits/PRs (global preference).
-- **User:** Turkish-speaking, prefers direct communication.
+- Target: hackathon 1st place. "Won't finish in time" is not an acceptable answer.
+- Nous Portal subscription acquired by user (free tier available). **Kimi K2.5 via Nous Portal is $0/1M — use as primary model for both agentic orchestration and vision.**
+- Kahramanmaraş framing belongs in the demo video intro only, NOT as a core feature.
+- Rebar dataset: open-source (Roboflow Universe) + Kahramanmaraş open data + user-supplied photos.
+- TBDY 2018 + TS 500: downloaded by Claude (TBDY done, TS 500 deferred to academic fallback).
+- Tech stack (Next.js 16 + FastAPI + Supabase + Three.js) approved.
+- **7 agents** + Moderator (not 4).
+- Claude works continuously, 2-3 days of progress per session.
+- **No Claude AI / Co-Authored-By references in commits/PRs** (global user preference).
+- User is Turkish-speaking; **project code/UI/docs are English**. Claude replies to user in Turkish in conversation.
 
 ## Architecture overview
 
@@ -108,16 +112,20 @@
                                              └───────────────┘
 ```
 
-## The 7 agents (detailed)
+## The 7 agents (with model attribution)
 
-1. **PlanParserAgent** (Phase 1) — Kimi-VL reads approved PDF structural drawing, emits structured JSON schema. Handles Turkish technical drawing conventions.
-2. **GeometryAgent** (Phase 2) — Takes Kimi-VL site-photo detection output + PlanParser JSON → computes diff (rebar count, spacing, diameter, stirrup ratio, vertical/horizontal arrangement).
-3. **CodeAgent** (Phase 2) — RAG against TBDY 2018 + TS 500 pgvector index. Checks: min rebar ratio, stirrup spacing in confinement zones, seismic detailing (Bölüm 7).
-4. **FraudAgent** (Phase 2) — EXIF timestamp & geolocation validation, reference-marker presence, cross-photo consistency, prior-photo hash check.
-5. **RiskAgent** (Phase 2) — Queries AFAD earthquake-zone API for coordinates → soil class + PGA → computes risk multiplier for scoring.
-6. **MaterialAgent** (Phase 2) — Detects rebar class markings (S420, B500C), corrosion/rust level, surface condition.
-7. **CoverAgent** (Phase 2) — Concrete cover (paspayı) check — estimates distance from rebar to form surface using reference markers.
-8. **ModeratorAgent** — Not counted in the 7. Consumes other agents' outputs, orchestrates a debate round (each agent can challenge), produces final score + structured report + recommendation (APPROVE / CONDITIONAL / REJECT).
+| # | Agent | Phase | Model | Role |
+|---|-------|-------|-------|------|
+| 1 | **PlanParserAgent** | 1 | `moonshotai/kimi-k2.5` | Reads approved PDF drawing → structured column schedule JSON |
+| 2 | **GeometryAgent** | 2 | deterministic (no LLM) | Plan vs. site detection diff (count, spacing, diameter, stirrups) |
+| 3 | **CodeAgent** | 2 | rule engine + **Hermes 4 70B** narrative | TBDY 2018 / TS 500 compliance (Day 7 adds RAG). Hermes 4 generates the violation-narrative when there are failures |
+| 4 | **FraudAgent** | 2 | deterministic | EXIF timestamp, geolocation, reference marker, hash-dup |
+| 5 | **RiskAgent** | 2 | deterministic (AFAD table) | Zone × soil × floors → risk multiplier |
+| 6 | **MaterialAgent** | 2 | `moonshotai/kimi-k2.5` | Rebar class (S420, B500C), corrosion, surface condition from close-up |
+| 7 | **CoverAgent** | 2 | `moonshotai/kimi-k2.5` | Concrete cover (paspayı) estimation from site photo with reference marker |
+| — | **ModeratorAgent** | post | **Hermes 4 70B** | Synthesizes 6 reports → final verdict (approve/conditional/reject) + score + narrative |
+
+**Why Hermes 4 70B on Moderator + CodeAgent narrative:** these are deep-reasoning, single-shot synthesis tasks — the `hybrid-thinking` strength of Hermes 4. Kimi K2.5 is the agentic (tool-calling) model, Hermes 4 is the reasoner. Both visible on screen = triple Nous showcase (Hermes Agent framework + Hermes 4 model + Nous Portal provider) + Kimi K2.5 for Kimi track.
 
 ## Data assets
 
@@ -198,10 +206,10 @@
 ### Known TODOs to close in Day 2-10
 
 - `pdf2image` import is lazy in `plan_parser.py` — needs poppler on host
-- RAG is stubbed in `CodeAgent` — deterministic rule engine runs, RAG hooked in Day 7
+- RAG is stubbed in `CodeAgent` — deterministic rule engine runs + Hermes 4 70B narrative; pgvector RAG hooked Day 7
 - AFAD in `RiskAgent` is hardcoded for demo — replace with live API Day 8 if accessible
 - Supabase persistence not wired — in-memory `_STORE` dict in `routers/projects.py` — Day 11
-- Hermes Agent framework (the Python CLI tool) not yet used — current implementation uses bare `HermesClient`. Day 2 decision: either adopt full framework or keep bare client (bare is simpler for SSE streaming; framework helps if we want skills/memory surfaced in UI)
+- Hermes Agent framework CLI not yet wrapped — current implementation uses bare `HermesClient` talking to Nous Portal directly. Day 2 decision: either adopt full framework (install via `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash`) or keep bare client. Bare is simpler for SSE streaming; framework helps if we want skills/memory surfaced in UI and gives stronger hackathon alignment
 
 ## Environment setup (for future Claude / future me)
 
@@ -220,14 +228,22 @@ uv sync
 cd frontend
 pnpm install
 
-# Hermes Agent framework
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+# Hermes Agent framework (official installer)
+curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+hermes setup
+hermes model  # select moonshotai/kimi-k2.5 (free)
 ```
 
 ### Env vars (create `backend/.env`)
 ```
 NOUS_PORTAL_API_KEY=sk-...
-MOONSHOT_API_KEY=sk-...
+HERMES_AGENTIC_MODEL=moonshotai/kimi-k2.5      # $0 on Nous Portal
+HERMES_REASONING_MODEL=Hermes-4-70B            # optional, $0.05/$0.20
+
+# Optional direct Moonshot fallback
+VISION_BACKEND=nous_portal                     # or "moonshot"
+MOONSHOT_API_KEY=                              # only if VISION_BACKEND=moonshot
+
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...
@@ -246,10 +262,10 @@ cd frontend && pnpm dev
 ## Rules / non-negotiables
 
 - **No Claude AI / Co-Authored-By in commits or PRs.** User's standing preference.
-- **Turkish-language UI** (müteahhit / belediye audience). English comments in code OK.
-- **Hermes must be visibly center-stage** in the demo video — we're in their hackathon.
-- **Kimi usage must be provable** in the demo video for Kimi-track eligibility (show model name in logs / on screen).
-- **No mocks in final demo** — real API calls, real Hermes 4, real Kimi-VL. Happy path + fraud case must both run live.
+- **English UI and code.** Docs too. Domain terms may keep Turkish names (TBDY 2018, TS 500 — these are proper-noun regulations) but explained in English.
+- **Hermes Agent must be visibly center-stage** in the demo video — we're in their hackathon. Show the `hermes` CLI, model picker, or Hermes Agent branding on screen.
+- **Kimi K2.5 usage must be provable** in the demo video for Kimi-track eligibility (show model name `moonshotai/kimi-k2.5` in logs / on screen).
+- **No mocks in final demo** — real Nous Portal calls, real Kimi K2.5, real debate. Happy path + fraud case must both run live.
 - **Time is the scarcest resource.** Scope creep = death. If a feature isn't in the timeline table, don't build it.
 
 ## Open questions (track here, close as decided)

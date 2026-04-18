@@ -28,22 +28,23 @@ export default function UploadPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       <Link href="/" className="text-xs text-[var(--color-text-muted)] hover:text-white">
-        ← ana sayfa
+        ← home
       </Link>
       <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-        Onaylı proje PDF&apos;sini yükle
+        Upload the approved project PDF
       </h1>
       <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-        Belediye tarafından onaylanmış betonarme çizimi. Kimi-VL kolon şemasını ayrıştıracak.
+        Municipality-approved reinforced-concrete structural drawing. Kimi K2.5 will extract the
+        column schedule.
       </p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-panel)] px-6 py-12 hover:border-white/30">
           <div className="text-sm">
-            {pdf ? pdf.name : 'PDF seç veya buraya sürükle'}
+            {pdf ? pdf.name : 'Choose a PDF or drag it here'}
           </div>
           <div className="text-xs text-[var(--color-text-muted)]">
-            {pdf ? `${(pdf.size / 1024 / 1024).toFixed(1)} MB` : 'Maks 25 MB'}
+            {pdf ? `${(pdf.size / 1024 / 1024).toFixed(1)} MB` : 'Max 25 MB'}
           </div>
           <input
             type="file"
@@ -64,7 +65,7 @@ export default function UploadPage() {
           disabled={!pdf || busy}
           className="rounded bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-black disabled:opacity-40"
         >
-          {busy ? 'Kimi-VL ile ayrıştırılıyor...' : 'Projeyi yükle ve ayrıştır'}
+          {busy ? 'Parsing with Kimi K2.5...' : 'Upload and parse project'}
         </button>
       </form>
     </main>

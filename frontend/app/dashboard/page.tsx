@@ -15,16 +15,16 @@ export default async function Dashboard() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <Link href="/" className="text-xs text-[var(--color-text-muted)] hover:text-white">
-        ← ana sayfa
+        ← home
       </Link>
-      <h1 className="mt-4 text-3xl font-semibold tracking-tight">Belediye Paneli</h1>
+      <h1 className="mt-4 text-3xl font-semibold tracking-tight">Municipality Dashboard</h1>
       <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-        Yüklenmiş projeler ve bekleyen denetimler
+        Uploaded projects and pending pour-approval inspections
       </p>
 
       {err && (
         <div className="mt-6 rounded border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-300">
-          Backend bağlanamadı: {err}
+          Backend unreachable: {err}
         </div>
       )}
 
@@ -32,10 +32,10 @@ export default async function Dashboard() {
         <table className="w-full text-sm">
           <thead className="bg-[var(--color-panel-2)] text-left text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
             <tr>
-              <th className="px-4 py-3">Proje</th>
-              <th className="px-4 py-3">Kolon Sayısı</th>
-              <th className="px-4 py-3">Deprem Bölgesi</th>
-              <th className="px-4 py-3">Güven</th>
+              <th className="px-4 py-3">Project</th>
+              <th className="px-4 py-3">Columns</th>
+              <th className="px-4 py-3">Seismic Zone</th>
+              <th className="px-4 py-3">Parser Confidence</th>
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
@@ -51,7 +51,7 @@ export default async function Dashboard() {
                     href={`/inspection/new?project=${p.id}`}
                     className="rounded bg-[var(--color-accent)] px-3 py-1 text-xs font-medium text-black hover:opacity-90"
                   >
-                    Denetim başlat →
+                    Start inspection →
                   </Link>
                 </td>
               </tr>
@@ -59,7 +59,7 @@ export default async function Dashboard() {
             {!err && projects.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-[var(--color-text-muted)]">
-                  Henüz proje yok. <Link href="/upload" className="text-[var(--color-accent)]">Yükle →</Link>
+                  No projects yet. <Link href="/upload" className="text-[var(--color-accent)]">Upload →</Link>
                 </td>
               </tr>
             )}

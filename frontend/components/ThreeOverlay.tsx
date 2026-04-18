@@ -68,7 +68,7 @@ export default function ThreeOverlay({ column, detectedRebarCount }: Props) {
         <OrbitControls enablePan={false} />
       </Canvas>
       <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-[10px] text-white">
-        Turuncu: projede belirlenmiş donatı • Kırmızı (yanar): sahada tespit edilemeyen
+        Orange: rebars specified in the plan • Red (glowing): missing on site
       </div>
     </div>
   );

@@ -79,17 +79,17 @@ export default function NewInspection() {
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
       <Link href="/dashboard" className="text-xs text-[var(--color-text-muted)] hover:text-white">
-        ← panel
+        ← dashboard
       </Link>
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight">Saha Denetimi</h1>
+      <h1 className="mt-3 text-2xl font-semibold tracking-tight">Site Inspection</h1>
       <p className="text-sm text-[var(--color-text-muted)]">
-        {project?.name ?? 'Proje yükleniyor...'}
+        {project?.name ?? 'Loading project...'}
       </p>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr_360px]">
         {/* LEFT — form */}
         <div className="space-y-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
-          <Field label="Kolon">
+          <Field label="Column">
             <select
               value={columnId}
               onChange={(e) => setColumnId(e.target.value)}
@@ -97,13 +97,13 @@ export default function NewInspection() {
             >
               {project?.plan.columns.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.id} — Kat {c.floor} ({c.width_mm}×{c.depth_mm})
+                  {c.id} — Floor {c.floor} ({c.width_mm}×{c.depth_mm})
                 </option>
               ))}
             </select>
           </Field>
 
-          <Field label="Saha fotoğrafları (birden çok)">
+          <Field label="Site photos (one or more)">
             <input
               type="file"
               accept="image/*"
@@ -112,11 +112,11 @@ export default function NewInspection() {
               className="w-full text-xs"
             />
             <div className="mt-1 text-[10px] text-[var(--color-text-muted)]">
-              {photos.length} foto seçildi
+              {photos.length} selected
             </div>
           </Field>
 
-          <Field label="Çelik yakın çekim (opsiyonel)">
+          <Field label="Rebar close-up (optional)">
             <input
               type="file"
               accept="image/*"
@@ -125,7 +125,7 @@ export default function NewInspection() {
             />
           </Field>
 
-          <Field label="Paspayı fotoğrafı (opsiyonel)">
+          <Field label="Concrete-cover photo (optional)">
             <input
               type="file"
               accept="image/*"
@@ -135,14 +135,14 @@ export default function NewInspection() {
           </Field>
 
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Şehir">
+            <Field label="City">
               <input
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className="w-full rounded border border-[var(--color-border)] bg-black/40 px-2 py-1 text-sm"
               />
             </Field>
-            <Field label="Zemin">
+            <Field label="Soil class">
               <select
                 value={soilClass}
                 onChange={(e) => setSoilClass(e.target.value)}
@@ -157,7 +157,7 @@ export default function NewInspection() {
             </Field>
           </div>
 
-          <Field label="Kat sayısı">
+          <Field label="Floors">
             <input
               type="number"
               value={floors}
@@ -173,16 +173,16 @@ export default function NewInspection() {
             disabled={running || !project || !columnId || photos.length === 0}
             className="mt-2 w-full rounded bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-black disabled:opacity-40"
           >
-            {running ? '7 ajan tartışıyor...' : done ? 'Yeniden çalıştır' : 'Denetimi başlat'}
+            {running ? '7 agents debating...' : done ? 'Run again' : 'Start inspection'}
           </button>
         </div>
 
         {/* CENTER — agent debate */}
         <div className="flex h-[720px] flex-col rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-medium">Ajan tartışması</h2>
+            <h2 className="text-sm font-medium">Agent debate</h2>
             <div className="text-xs text-[var(--color-text-muted)]">
-              Hermes 4 + Kimi-VL canlı
+              Hermes Agent + Kimi K2.5 live
             </div>
           </div>
           <AgentDebateFeed messages={messages} />

@@ -1,4 +1,10 @@
-"""InspectionOrchestrator — runs the 7-agent debate, yields AgentMessages for streaming."""
+"""InspectionOrchestrator — runs the 7-agent debate, yields AgentMessages for streaming.
+
+Model attribution per message:
+- Kimi K2.5 (`moonshotai/kimi-k2.5`) powers PlanParser vision, rebar detection, Material, Cover.
+- Hermes 4 70B powers ModeratorAgent verdict + CodeAgent narrative.
+- Deterministic agents (Geometry, Fraud, Risk) report `model=None` (rule-engine only).
+"""
 
 from __future__ import annotations
 
@@ -23,6 +29,7 @@ from rebarguard.agents.geometry import GeometryInput
 from rebarguard.agents.material import MaterialInput
 from rebarguard.agents.moderator import ModeratorInput
 from rebarguard.agents.risk import RiskInput
+from rebarguard.config import get_settings
 from rebarguard.schemas import (
     AgentMessage,
     AgentRole,
@@ -32,6 +39,8 @@ from rebarguard.schemas import (
 )
 from rebarguard.vision import get_kimi_client
 from rebarguard.vision.prompts import REBAR_DETECT_PROMPT
+
+_KIMI_MODEL_TAG = "moonshotai/kimi-k2.5"
 
 
 @dataclass
@@ -48,6 +57,7 @@ class InspectionJob:
 
 class InspectionOrchestrator:
     def __init__(self) -> None:
+        self.settings = get_settings()
         self.kimi = get_kimi_client()
         self.geometry = GeometryAgent()
         self.code = CodeAgent()
@@ -63,14 +73,17 @@ class InspectionOrchestrator:
             yield AgentMessage(
                 agent=AgentRole.MODERATOR,
                 kind="verdict",
-                content=f"Kolon {job.column_id} projede bulunamadı.",
+                content=f"Column {job.column_id} not found in the project plan.",
             )
             return
 
         yield AgentMessage(
             agent=AgentRole.MODERATOR,
             kind="observation",
-            content=f"Kolon {job.column_id} için denetim başlatıldı. 7 ajan aktive ediliyor.",
+            content=(
+                f"Inspection started for column {job.column_id}. 7 agents activating — "
+                f"Kimi K2.5 handles vision, Hermes 4 70B handles reasoning."
+            ),
         )
 
         detections = await self._detect_all(job.site_photos)
@@ -79,9 +92,10 @@ class InspectionOrchestrator:
                 agent=AgentRole.PLAN_PARSER,
                 kind="observation",
                 content=(
-                    f"Kimi-VL tespiti: {det.detected_rebar_count} donatı, "
-                    f"etriye {'var' if det.stirrup_visible else 'görünmüyor'}."
+                    f"Kimi K2.5 detection: {det.detected_rebar_count} rebars, "
+                    f"stirrups {'visible' if det.stirrup_visible else 'not visible'}."
                 ),
+                model=_KIMI_MODEL_TAG,
                 evidence=det.model_dump(mode="json"),
             )
 
@@ -98,10 +112,33 @@ class InspectionOrchestrator:
             ),
         )
 
-        yield AgentMessage(agent=AgentRole.GEOMETRY, kind="verdict", content=geom.summary, evidence=geom.model_dump(mode="json"))
-        yield AgentMessage(agent=AgentRole.CODE, kind="verdict", content=comp.summary, evidence=comp.model_dump(mode="json"))
-        yield AgentMessage(agent=AgentRole.FRAUD, kind="verdict", content=fraud.summary, evidence=fraud.model_dump(mode="json"))
-        yield AgentMessage(agent=AgentRole.RISK, kind="verdict", content=risk.summary, evidence=risk.model_dump(mode="json"))
+        yield AgentMessage(
+            agent=AgentRole.GEOMETRY,
+            kind="verdict",
+            content=geom.summary,
+            evidence=geom.model_dump(mode="json"),
+        )
+        # CodeAgent narrative comes from Hermes 4 70B when violations exist
+        code_model = self.settings.hermes_reasoning_model if comp.violations else None
+        yield AgentMessage(
+            agent=AgentRole.CODE,
+            kind="verdict",
+            content=comp.summary,
+            model=code_model,
+            evidence=comp.model_dump(mode="json"),
+        )
+        yield AgentMessage(
+            agent=AgentRole.FRAUD,
+            kind="verdict",
+            content=fraud.summary,
+            evidence=fraud.model_dump(mode="json"),
+        )
+        yield AgentMessage(
+            agent=AgentRole.RISK,
+            kind="verdict",
+            content=risk.summary,
+            evidence=risk.model_dump(mode="json"),
+        )
 
         material_task = (
             self.material.run(MaterialInput(column=column, closeup_photo=job.closeup_photo))
@@ -117,8 +154,20 @@ class InspectionOrchestrator:
             material_task if material_task else _noop_material(column.id),
             cover_task if cover_task else _noop_cover(column),
         )
-        yield AgentMessage(agent=AgentRole.MATERIAL, kind="verdict", content=material.summary, evidence=material.model_dump(mode="json"))
-        yield AgentMessage(agent=AgentRole.COVER, kind="verdict", content=cover.summary, evidence=cover.model_dump(mode="json"))
+        yield AgentMessage(
+            agent=AgentRole.MATERIAL,
+            kind="verdict",
+            content=material.summary,
+            model=_KIMI_MODEL_TAG if job.closeup_photo else None,
+            evidence=material.model_dump(mode="json"),
+        )
+        yield AgentMessage(
+            agent=AgentRole.COVER,
+            kind="verdict",
+            content=cover.summary,
+            model=_KIMI_MODEL_TAG if job.cover_photo else None,
+            evidence=cover.model_dump(mode="json"),
+        )
 
         moderator_report = await self.moderator.run(
             ModeratorInput(
@@ -134,6 +183,7 @@ class InspectionOrchestrator:
             agent=AgentRole.MODERATOR,
             kind="verdict",
             content=moderator_report.narrative,
+            model=self.settings.hermes_reasoning_model,
             evidence=moderator_report.model_dump(mode="json"),
         )
 
@@ -179,7 +229,7 @@ async def _noop_material(element_id: str):
         corrosion_level=0,
         surface_condition="clean",
         severity="low",
-        summary="Malzeme yakın çekim fotoğrafı sağlanmadı — atlandı.",
+        summary="No rebar close-up photo provided — skipped.",
     )
 
 
@@ -192,5 +242,5 @@ async def _noop_cover(column: ColumnSchema):
         estimated_cover_mm=None,
         within_tolerance=False,
         severity="medium",
-        summary="Paspayı fotoğrafı sağlanmadı — tahmin yapılamadı.",
+        summary="No concrete-cover photo provided — estimation skipped.",
     )

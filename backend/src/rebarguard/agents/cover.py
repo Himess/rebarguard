@@ -1,4 +1,4 @@
-"""CoverAgent — estimates paspayı (concrete cover) from site photo with a reference marker."""
+"""CoverAgent — estimates concrete cover from a site photo with a reference marker."""
 
 from __future__ import annotations
 
@@ -30,9 +30,9 @@ class CoverAgent(BaseAgent[CoverInput, ConcreteCoverReport]):
 
         severity = self._severity(estimated_int, expected)
         summary = parsed.get("summary") or (
-            f"Paspayı ~{estimated_int} mm (proje: {expected} mm)."
+            f"Concrete cover ~{estimated_int} mm (plan: {expected} mm)."
             if estimated_int is not None
-            else "Paspayı tahmini yapılamadı (referans işareti yok)."
+            else "Concrete cover could not be estimated (no reference marker)."
         )
         return ConcreteCoverReport(
             element_id=payload.column.id,

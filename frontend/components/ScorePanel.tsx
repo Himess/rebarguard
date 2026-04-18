@@ -18,9 +18,9 @@ const VERDICT_COLOR: Record<Verdict, string> = {
   reject: 'var(--color-danger)',
 };
 const VERDICT_LABEL: Record<Verdict, string> = {
-  approve: 'ONAY',
-  conditional: 'KOŞULLU',
-  reject: 'RED',
+  approve: 'APPROVE',
+  conditional: 'CONDITIONAL',
+  reject: 'REJECT',
 };
 
 export default function ScorePanel({
@@ -35,17 +35,17 @@ export default function ScorePanel({
   if (!score || !verdict) {
     return (
       <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-6 text-sm text-[var(--color-text-muted)]">
-        Moderatör kararı bekleniyor...
+        Waiting for moderator verdict...
       </div>
     );
   }
   const categories: [keyof Score, string][] = [
-    ['geometry', 'Geometri'],
-    ['compliance', 'Kod Uyumu'],
-    ['fraud', 'Sahtecilik'],
-    ['risk', 'Risk'],
-    ['material', 'Malzeme'],
-    ['cover', 'Paspayı'],
+    ['geometry', 'Geometry'],
+    ['compliance', 'Code compliance'],
+    ['fraud', 'Fraud'],
+    ['risk', 'Seismic risk'],
+    ['material', 'Material'],
+    ['cover', 'Concrete cover'],
   ];
 
   return (
@@ -53,7 +53,7 @@ export default function ScorePanel({
       <div className="flex items-start justify-between">
         <div>
           <div className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
-            Genel Skor
+            Overall score
           </div>
           <div className="mt-1 text-5xl font-semibold">{Math.round(score.overall)}</div>
           <div className="text-xs text-[var(--color-text-muted)]">/ 100</div>

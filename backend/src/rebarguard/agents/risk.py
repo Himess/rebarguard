@@ -24,8 +24,10 @@ _DEMO_PGA: dict[str, float] = {
     "ankara": 0.25,
     "izmir": 0.53,
     "kahramanmaras": 0.65,
+    "kahramanmaraş": 0.65,
     "hatay": 0.58,
     "duzce": 0.62,
+    "düzce": 0.62,
     "van": 0.55,
     "erzurum": 0.48,
     "bursa": 0.45,
@@ -50,13 +52,13 @@ class RiskAgent(BaseAgent[RiskInput, RiskReport]):
         zone: str | None = None
         if pga is not None:
             if pga >= 0.5:
-                zone = "1. derece"
+                zone = "Zone 1 (highest)"
             elif pga >= 0.35:
-                zone = "2. derece"
+                zone = "Zone 2"
             elif pga >= 0.2:
-                zone = "3. derece"
+                zone = "Zone 3"
             else:
-                zone = "4. derece"
+                zone = "Zone 4 (lowest)"
 
         soil_mult = _SOIL_MULTIPLIER.get((payload.soil_class or "ZC").upper(), 1.0)
         floor_mult = 1.0 + max(0, payload.floors - 3) * 0.05
@@ -64,8 +66,9 @@ class RiskAgent(BaseAgent[RiskInput, RiskReport]):
         multiplier = round(base * soil_mult * floor_mult, 2)
 
         summary = (
-            f"{payload.city or 'Bilinmeyen'}: PGA {pga or 'N/A'} g, "
-            f"zemin {payload.soil_class or 'ZC'}, {payload.floors} kat → risk ×{multiplier}"
+            f"{payload.city or 'Unknown city'}: PGA {pga or 'N/A'} g, "
+            f"soil {payload.soil_class or 'ZC'}, {payload.floors} floor(s) → "
+            f"risk multiplier ×{multiplier}"
         )
         return RiskReport(
             afad_zone=zone,

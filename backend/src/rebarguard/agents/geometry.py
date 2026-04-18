@@ -1,4 +1,4 @@
-"""GeometryAgent — compares plan spec vs. Kimi-VL site detection."""
+"""GeometryAgent — compares plan spec vs. vision-detected site rebar."""
 
 from __future__ import annotations
 
@@ -91,13 +91,13 @@ class GeometryAgent(BaseAgent[GeometryInput, GeometryDiff]):
         dia_ok: bool | None,
         stirrup_ok: bool | None,
     ) -> str:
-        parts = [f"Kolon {eid}: projede {expected} donatı, sahada {actual}."]
+        parts = [f"Column {eid}: plan specifies {expected} rebars, site shows {actual}."]
         if missing:
-            parts.append(f"{missing} adet eksik.")
+            parts.append(f"{missing} missing.")
         if dia_ok is False:
-            parts.append("Çap uyumsuz.")
+            parts.append("Diameter does not match the plan.")
         if stirrup_ok is False:
-            parts.append("Etriye aralığı uyumsuz.")
+            parts.append("Stirrup spacing does not match the plan.")
         if not missing and dia_ok is not False and stirrup_ok is not False:
-            parts.append("Geometri uyumlu.")
+            parts.append("Geometry matches the plan.")
         return " ".join(parts)
