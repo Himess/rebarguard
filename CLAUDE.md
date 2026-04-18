@@ -227,11 +227,51 @@ curl http://localhost:8000/health
 uv run python tests/e2e_hermes_bridge.py
 ```
 
-### Day 3 starts here
+### Day 3 — DONE (major scope expansion + full pipeline live)
 
-- Feed a real Turkish structural-drawing PDF to `POST /api/projects` — verify `PlanParserAgent` extracts a `StructuralPlan` via Kimi K2.5. This requires `poppler-utils` in WSL (for `pdf2image`).
-- Install frontend: `cd frontend && pnpm install && pnpm dev`.
-- End-to-end: upload PDF → click through → see 7-agent debate stream live.
+User decisions absorbed into scope:
+- Auto-extract metadata (city/soil/floors) from the project PDF — no manual entry
+- Analyze ALL structural elements, not just columns (beams, slabs, shear walls, stairs)
+- 3D preview on upload (professional CAD-like) — Kimi extracts, we render in Three.js
+- Public dashboard — anyone uploads, everyone sees. Auth deferred to Day 11 TODO
+- Mobile-responsive everywhere
+- Deploy target: Vercel frontend + Modal/Fly.io backend (Day 16)
+
+What shipped Day 3:
+- `StructuralPlan` schema rewritten with `ProjectMetadata` + 5 element types
+- `PLAN_PARSE_PROMPT` + `parse-structural-plan/SKILL.md` updated for multi-element
+- Agents migrated to generic `StructuralElement` (via `_element_utils`)
+- `InspectionJob` no longer asks user for city/soil/floors — pulled from plan metadata
+- poppler-utils installed, `pdf2image` added to deps
+- Frontend: `pnpm install` done, Next.js 16 dev server live at `http://localhost:3000`
+- R3F upgraded to v9 + drei v10 for React 19 compatibility
+- Dashboard restyled as public board with metadata + element counts
+- `/inspection/new` now dropdown covers all element types + reads metadata as badges
+- Mobile-responsive via `overflow-x-auto`, stacked panes on small screens
+- `routers/projects.py` fixed for new schema path
+
+Validation:
+- `pytest`: 6/6 pass
+- `pnpm typecheck`: clean
+- `curl GET /health` → 200, `curl localhost:3000` → full HTML
+- `POST /api/projects` with a 3-page TBDY 2018 sample:
+  - Kimi K2.5 reads Turkish technical content correctly
+  - Correctly identifies "not a construction drawing", returns empty element lists
+  - Confidence 0.99, cost $0 via subscription
+
+### Day 4 — next up
+
+- **Need a real Turkish RC structural drawing PDF** (column schedule + plan views) to
+  validate column/beam/wall extraction. Try:
+  - İnşaat mühendisliği lisans ders portföyleri
+  - `yapi-proje.com`-style open examples
+  - User-provided drawing
+- Implement `/upload` page 3D preview — while Kimi parses, progressively show the extracted
+  elements in a Three.js scene (each column/beam pops in as it's recognized)
+- Full-building 3D viewer: all columns at `(x, y)` positions, extruded by floor height
+- Toggle full-building ↔ inspected-element zoom
+- First real end-to-end site-inspection run (POST /api/inspections/stream) with curated
+  real or synthetic rebar photos
 
 ### Completed in Day 1
 
