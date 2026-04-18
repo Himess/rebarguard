@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# uv
+.venv
+uv.lock
+
+# Node
+node_modules/
+.next/
+.turbo/
+out/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Env
+.env
+.env.local
+.env.*.local
+*.key
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project-specific
+data/rebar_photos/*
+!data/rebar_photos/.gitkeep
+data/sample_projects/*
+!data/sample_projects/.gitkeep
+data/cache/
+data/embeddings/
+*.pdf
+!data/regulations/*.pdf
+output/
+test-output/
+demo-artifacts/
+
+# Secrets
+*.pem
+credentials.json
+service-account.json
