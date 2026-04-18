@@ -157,9 +157,41 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
 
 ## Current state (update every session)
 
-- **Last updated:** 2026-04-18 (Day 1 complete)
-- **Current day:** 1 of 16 → entering Day 2
-- **Active task:** Day 2 — install deps, smoke test backend/frontend, Kimi-VL first real call
+- **Last updated:** 2026-04-18 (Day 1 complete + Day 2 AM research spike complete)
+- **Current day:** 2 of 16
+- **Active task:** Day 2 PM — awaiting user to run `hermes login --provider nous` (OAuth), then refactor runtime to cli mode
+
+### Day 2 AM findings (Hermes Agent v0.10.0 on WSL2)
+
+- Install succeeded: `/root/.local/bin/hermes`, project at `/root/.hermes/hermes-agent/`
+- **Key CLI surface discovered:**
+  - `hermes chat -q "<prompt>" -m <model> -Q --provider nous` — non-interactive one-shot (our main driver)
+  - `--image <path>` — **NATIVE VISION SUPPORT** (single image per query, path is host-local)
+  - `-s <skill-names>` — preload SKILL.md skills from `~/.hermes/skills/<category>/<name>/`
+  - `--provider nous` — route through Nous Portal subscription (covered by $10/mo plan)
+  - `-Q` = quiet, only final response to stdout
+  - `--source tool` — tag for programmatic callers (keep out of user session list)
+- **Providers supported:** auto, openrouter, **nous**, openai-codex, copilot-acp, copilot, anthropic, gemini, xai, ollama-cloud, huggingface, zai, kimi-coding, kimi-coding-cn, minimax, minimax-cn, kilocode, xiaomi, arcee, nvidia
+- **76 bundled skills** already installed (codebase-inspection, manim-video, github-pr-workflow, systematic-debugging, etc.)
+- **Skills are Markdown, not Python.** `SKILL.md` = YAML frontmatter + Markdown body with instructions. Our 3 LLM-driven agents (PlanParser, InspectRebar, Moderator) become SKILL.md files at `skills/rebarguard/<name>/SKILL.md`. Deterministic agents (Geometry, Fraud, Risk, Material rules) stay as Python.
+- **MCP server mode available** via `hermes mcp serve` — deferred to Day 10+ if useful for streaming debate UX
+- **ACP mode available** via `hermes acp` — for editor integration, not relevant to our web app
+- **Vision spike RESULT: pending user login.** Multimodal call shape is known (`--image`), but we can't verify it works until `hermes login --provider nous` succeeds.
+
+### What changed in Day 2 AM
+
+- `backend/src/rebarguard/hermes_runtime/bridge.py` — rewrote using real CLI: `hermes chat -q ... --image ... -m ... -Q --provider nous`. Handles Windows→WSL path translation (`C:\...` → `/mnt/c/...`).
+- Removed obsolete `hermes_oneshot.py` helper (was based on guessed Python SDK).
+- `scripts/setup-hermes.sh` — now invokes `hermes login --provider nous` (OAuth device flow — prints URL + code, user opens in browser, approves).
+- `scripts/test-hermes-vision.sh` — rewritten to use `hermes chat --image` for smoke test.
+- `skills/rebarguard/{parse-structural-plan, inspect-rebar, moderate-inspection}/SKILL.md` — new custom skills in agentskills.io format.
+- `skills/README.md` — install/layout docs.
+
+### Blocked / waiting on user
+
+- **Run `hermes login --provider nous`** — interactive OAuth device flow. OAuth prints a URL and a code; open URL in Windows browser, paste the code, approve. One-shot — token stored at `/root/.hermes/`.
+- Easiest way: from Windows `cmd`/PowerShell, run `scripts/setup-hermes.cmd` (invokes WSL). Or from a WSL shell: `bash /mnt/c/Users/USER/Desktop/RebarGuard/scripts/setup-hermes.sh`.
+- After login: Claude will run `scripts/test-hermes-vision.sh` (needs a sample JPG at `data/rebar_photos/smoke-test.jpg`) and flip `HERMES_RUNTIME=cli` once verified.
 
 ### Completed in Day 1
 

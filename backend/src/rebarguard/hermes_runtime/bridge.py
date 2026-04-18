@@ -1,21 +1,24 @@
 """Hermes Agent CLI bridge.
 
-Design goals:
-- Minimal surface: `chat(messages, model=...) -> str/dict`
-- Compatible with our existing agent code (`HermesClient.complete` et al).
-- Works on Windows by invoking `wsl` transparently when `HERMES_CLI_VIA_WSL=true`.
-- Timeouts + retries.
+Uses `hermes chat -q ... -m ... --image ... -Q --provider nous` as a non-interactive
+one-shot call. Subscription-backed (Nous Portal $10/mo covers these calls).
 
-The Hermes Agent CLI supports an inline prompt mode we can drive from code. When it
-lacks a machine-readable one-shot endpoint, we fall back to a tiny adapter script that
-drives `hermes chat` via a JSON-over-stdin/stdout protocol we control.
+On Windows this invokes WSL2: `wsl -d Ubuntu-22.04 -- hermes ...`.
+
+Discovered via Day 2 research spike (Hermes Agent v0.10.0):
+- `-q QUERY`   single non-interactive query
+- `-m MODEL`   model selection (e.g. `moonshotai/kimi-k2.5`)
+- `--image P`  attach a local image to the query (native vision support!)
+- `-Q`         quiet mode — only final response to stdout
+- `--provider nous`  route through Nous Portal subscription
+- `-s SKILLS`  preload comma-separated skill names from ~/.hermes/skills/
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
-import os
+import re
 import shutil
 from dataclasses import dataclass
 from functools import lru_cache
@@ -35,8 +38,6 @@ class BridgeResult:
 
 
 class HermesRuntime:
-    """Abstract interface the rest of the app uses."""
-
     mode: RuntimeMode
 
     async def chat(
@@ -44,21 +45,67 @@ class HermesRuntime:
         messages: list[dict[str, Any]],
         *,
         model: str | None = None,
+        image: Path | str | None = None,
         json_mode: bool = False,
         max_tokens: int = 2048,
         temperature: float = 0.3,
+        skills: list[str] | None = None,
     ) -> BridgeResult:  # pragma: no cover
         raise NotImplementedError
 
 
+_JSON_TAIL_HINT = (
+    "\n\nIMPORTANT: respond with a single valid JSON object only, no markdown fences, "
+    "no prose outside the JSON."
+)
+
+
+def _messages_to_prompt(messages: list[dict[str, Any]], *, json_mode: bool) -> str:
+    """Flatten OpenAI-style messages into a single prompt for `hermes chat -q`."""
+    parts: list[str] = []
+    for m in messages:
+        role = m.get("role", "user").upper()
+        content = m.get("content", "")
+        if isinstance(content, list):
+            content = " ".join(
+                (c.get("text", "") if isinstance(c, dict) else str(c)) for c in content
+            )
+        parts.append(f"[{role}]\n{content.strip()}")
+    prompt = "\n\n".join(parts)
+    if json_mode:
+        prompt += _JSON_TAIL_HINT
+    return prompt
+
+
+def _win_to_wsl(path: Path | str) -> str:
+    p = Path(path).resolve()
+    posix = p.as_posix()
+    m = re.match(r"^([A-Za-z]):(/.*)$", posix)
+    if m:
+        return f"/mnt/{m.group(1).lower()}{m.group(2)}"
+    return posix
+
+
+_JSON_OBJECT_RE = re.compile(r"\{[\s\S]*\}")
+
+
+def _extract_json(text: str) -> dict[str, Any]:
+    """Grab the first JSON object from the response, tolerating pre/post prose."""
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    match = _JSON_OBJECT_RE.search(text)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            pass
+    return {"error": "could not parse JSON", "raw": text[:400]}
+
+
 class HermesCLIBridge(HermesRuntime):
-    """Bridge to `hermes` CLI (optionally via WSL).
-
-    Uses Hermes Agent's one-shot run mode. If the CLI doesn't ship a direct one-shot
-    API, our helper `scripts/hermes_oneshot.py` (installed inside the WSL venv) will
-    accept a JSON payload on stdin and emit a JSON response.
-    """
-
     mode: RuntimeMode = "cli"
 
     def __init__(self, settings: Settings):
@@ -68,92 +115,94 @@ class HermesCLIBridge(HermesRuntime):
         self._timeout = settings.hermes_cli_timeout_s
 
     def _base_cmd(self) -> list[str]:
-        # Full command prefix depending on whether we're invoking via WSL.
         if self._via_wsl:
             return ["wsl", "-d", self._wsl_distro, "--", "hermes"]
         if shutil.which("hermes") is None:
             raise RuntimeError(
-                "hermes CLI not found on PATH. Either install it natively or set "
-                "HERMES_CLI_VIA_WSL=true in .env."
+                "hermes CLI not found. Install via `bash scripts/setup-hermes.sh` "
+                "inside WSL2 and set HERMES_CLI_VIA_WSL=true in backend/.env."
             )
         return ["hermes"]
+
+    def _translate_image_path(self, image: Path | str) -> str:
+        if self._via_wsl:
+            return _win_to_wsl(image)
+        return str(Path(image).resolve())
 
     async def chat(
         self,
         messages: list[dict[str, Any]],
         *,
         model: str | None = None,
+        image: Path | str | None = None,
         json_mode: bool = False,
         max_tokens: int = 2048,
         temperature: float = 0.3,
+        skills: list[str] | None = None,
     ) -> BridgeResult:
-        payload: dict[str, Any] = {
-            "messages": messages,
-            "model": model or self._settings.hermes_agentic_model,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-        }
-        if json_mode:
-            payload["response_format"] = {"type": "json_object"}
-
-        helper_rel = "backend/src/rebarguard/hermes_runtime/scripts/hermes_oneshot.py"
-        helper_path_posix = self._path_for_wsl(helper_rel) if self._via_wsl else helper_rel
-
+        chosen_model = model or self._settings.hermes_agentic_model
+        prompt = _messages_to_prompt(messages, json_mode=json_mode)
         cmd = self._base_cmd() + [
-            "run",
-            "--script",
-            helper_path_posix,
+            "chat",
+            "-q",
+            prompt,
+            "-m",
+            chosen_model,
+            "-Q",
+            "--provider",
+            "nous",
+            "--source",
+            "tool",
         ]
+        if image is not None:
+            cmd.extend(["--image", self._translate_image_path(image)])
+        if skills:
+            cmd.extend(["-s", ",".join(skills)])
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
-            stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            env={**os.environ},
         )
         try:
             stdout, stderr = await asyncio.wait_for(
-                proc.communicate(json.dumps(payload).encode("utf-8")),
-                timeout=self._timeout,
+                proc.communicate(), timeout=self._timeout
             )
         except asyncio.TimeoutError as e:
             proc.kill()
-            raise RuntimeError("hermes CLI timed out") from e
+            raise RuntimeError(
+                f"hermes CLI timed out after {self._timeout}s"
+            ) from e
 
         if proc.returncode != 0:
+            err = stderr.decode("utf-8", "replace").strip()[:400]
+            out = stdout.decode("utf-8", "replace").strip()[:400]
             raise RuntimeError(
-                f"hermes CLI failed (code={proc.returncode}): {stderr.decode('utf-8', 'replace')[:400]}"
+                f"hermes CLI failed (rc={proc.returncode}). stderr: {err} | stdout: {out}"
             )
         text = stdout.decode("utf-8", "replace").strip()
-        try:
-            parsed = json.loads(text)
-            return BridgeResult(
-                content=parsed.get("content", ""),
-                model=parsed.get("model", payload["model"]),
-                raw=text,
-            )
-        except json.JSONDecodeError:
-            return BridgeResult(content=text, model=payload["model"], raw=text)
+        return BridgeResult(content=text, model=chosen_model, raw=text)
 
-    @staticmethod
-    def _path_for_wsl(win_relative: str) -> str:
-        """Convert a Windows-relative path into a WSL-visible path.
-
-        The project lives at `C:\\Users\\USER\\Desktop\\RebarGuard` which is
-        `/mnt/c/Users/USER/Desktop/RebarGuard` inside WSL.
-        """
-        project_root = Path(__file__).resolve().parents[4]
-        wsl_root = "/mnt/" + str(project_root).replace(":\\", "/").replace("\\", "/").replace(
-            "C/", "c/"
-        ).lower().replace("c/users", "c/Users")
-        # The above is intentionally conservative — we normalize at call time.
-        drive = project_root.drive.rstrip(":").lower()
-        posix_body = project_root.as_posix()
-        # Strip leading "C:" if present
-        if ":" in posix_body:
-            posix_body = posix_body.split(":", 1)[1]
-        return f"/mnt/{drive}{posix_body}/{win_relative}"
+    async def chat_json(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        model: str | None = None,
+        image: Path | str | None = None,
+        max_tokens: int = 2048,
+        temperature: float = 0.3,
+        skills: list[str] | None = None,
+    ) -> dict[str, Any]:
+        result = await self.chat(
+            messages,
+            model=model,
+            image=image,
+            json_mode=True,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            skills=skills,
+        )
+        return _extract_json(result.content)
 
 
 class _NullRuntime(HermesRuntime):
@@ -161,7 +210,17 @@ class _NullRuntime(HermesRuntime):
 
     mode: RuntimeMode = "direct"
 
-    async def chat(self, messages, *, model=None, json_mode=False, max_tokens=2048, temperature=0.3):  # type: ignore[override]
+    async def chat(
+        self,
+        messages,
+        *,
+        model=None,
+        image=None,
+        json_mode=False,
+        max_tokens=2048,
+        temperature=0.3,
+        skills=None,
+    ):  # type: ignore[override]
         raise RuntimeError(
             "direct runtime mode has no bridge. Call HermesClient / KimiVisionClient directly."
         )
@@ -173,3 +232,6 @@ def get_runtime() -> HermesRuntime:
     if settings.hermes_runtime == "cli":
         return HermesCLIBridge(settings)
     return _NullRuntime()
+
+
+__all__ = ["HermesRuntime", "HermesCLIBridge", "BridgeResult", "get_runtime"]

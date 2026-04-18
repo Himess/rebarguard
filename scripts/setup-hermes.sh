@@ -1,33 +1,50 @@
 #!/usr/bin/env bash
 # Interactive Hermes Agent setup — run inside WSL2 Ubuntu.
-# Installs the framework and launches the subscription-login wizard.
+# Installs the framework (if missing) and runs `hermes login` with the Nous Portal subscription.
 #
 # Usage (from a WSL2 shell):
 #   bash scripts/setup-hermes.sh
 
 set -euo pipefail
 
-echo "==> Installing Hermes Agent (if missing)..."
+export PATH="$HOME/.local/bin:$HOME/.hermes/hermes-agent/bin:$PATH"
+
+echo "==> 1/4: Install Hermes Agent (if missing)"
 if ! command -v hermes >/dev/null 2>&1; then
     curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-setup
     export PATH="$HOME/.local/bin:$HOME/.hermes/hermes-agent/bin:$PATH"
 fi
+hermes --version || { echo "hermes still not on PATH"; exit 1; }
 
-echo "==> Running 'hermes setup' — follow the prompts to sign in with your Nous Portal subscription."
-hermes setup
+echo
+echo "==> 2/4: Sign in to Nous Portal subscription (OAuth device flow)"
+echo "   A URL + code will print — open it in Windows browser, paste the code, approve."
+hermes login --provider nous
 
-echo "==> Selecting Kimi K2.5 as the default agentic model..."
-hermes model moonshotai/kimi-k2.5 || echo "(you can pick it manually later via 'hermes model')"
+echo
+echo "==> 3/4: Set Kimi K2.5 as the default agentic model"
+hermes setup model --non-interactive || true
+hermes config set agent.model moonshotai/kimi-k2.5 2>/dev/null \
+    || echo "   (set the model interactively via 'hermes model' if needed)"
 
-echo "==> Done. Sanity check:"
-hermes --version || true
-hermes model || true
+echo
+echo "==> 4/4: Sanity check"
+hermes status 2>&1 | head -20
 
 cat <<EOF
 
-Next steps:
-  1. cd /mnt/c/Users/USER/Desktop/RebarGuard/backend
-  2. Ensure backend/.env has: HERMES_RUNTIME=cli  and  HERMES_CLI_VIA_WSL=true
-  3. From Windows (outside WSL), run: uvicorn rebarguard.main:app --reload
+────────────────────────────────────────────────────────────
+Setup complete. Next:
+
+  1. From this SAME WSL shell, try a text call:
+       hermes chat -q "say hi as JSON {\"hi\": true}" -m moonshotai/kimi-k2.5 --provider nous -Q
+
+  2. Place a sample rebar JPG at  data/rebar_photos/smoke-test.jpg
+
+  3. Test vision (subscription multimodal):
+       bash scripts/test-hermes-vision.sh
+
+  4. If vision test passes (exit 0):
+       → set HERMES_RUNTIME=cli in backend/.env
 
 EOF
