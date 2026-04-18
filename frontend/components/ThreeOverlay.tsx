@@ -110,7 +110,7 @@ function GenericMesh({ element }: { element: StructuralElement }) {
 
 export default function ThreeOverlay({ element, detectedRebarCount }: Props) {
   return (
-    <div className="relative h-[320px] w-full overflow-hidden rounded-lg border border-[var(--color-border)] bg-black sm:h-[360px]">
+    <div className="relative h-full w-full">
       <Canvas camera={{ position: [2.5, 2, 2.5], fov: 45 }}>
         <ambientLight intensity={0.6} />
         <directionalLight position={[5, 8, 5]} intensity={0.8} />
@@ -122,7 +122,7 @@ export default function ThreeOverlay({ element, detectedRebarCount }: Props) {
         </Suspense>
         <OrbitControls enablePan={false} />
       </Canvas>
-      <div className="absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-[10px] text-white">
+      <div className="pointer-events-none absolute bottom-2 left-2 rounded bg-black/60 px-2 py-1 text-[10px] text-white">
         {element?.element_type === 'column'
           ? 'Orange: plan spec • Red (glowing): missing on site'
           : element

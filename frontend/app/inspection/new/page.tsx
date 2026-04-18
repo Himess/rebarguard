@@ -11,8 +11,8 @@ import type {
 } from '@/lib/api';
 import { startInspectionStream, BACKEND_URL } from '@/lib/api';
 import AgentDebateFeed from '@/components/AgentDebateFeed';
+import BuildingPane from '@/components/BuildingPane';
 import ScorePanel, { type Score, type Verdict } from '@/components/ScorePanel';
-import ThreeOverlay from '@/components/ThreeOverlay';
 
 type ElementEntry = {
   element: StructuralElement;
@@ -199,9 +199,17 @@ export default function NewInspection() {
         {/* RIGHT — score + 3D */}
         <div className="space-y-4">
           <ScorePanel score={score} verdict={verdict} narrative={narrative} />
-          <ThreeOverlay
-            element={selected?.element ?? null}
+          <BuildingPane
+            plan={project?.plan ?? null}
+            selectedElement={selected?.element ?? null}
             detectedRebarCount={detectedRebarCount}
+            onSelectById={(id, type) => {
+              if (!id) return;
+              const match = entries.find(
+                (e) => e.element.id.startsWith(id) && (type === '' || e.type === type),
+              );
+              if (match) setElementKey(`${match.type}:${match.element.id}`);
+            }}
           />
         </div>
       </div>
