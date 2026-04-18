@@ -149,18 +149,59 @@
 
 ## Current state (update every session)
 
-- **Last updated:** 2026-04-18 (Day 1, session 1)
-- **Current day:** 1 of 16
-- **Active task:** Initial scaffold + documentation
-- **Completed:**
-  - Folder structure created
-  - TBDY 2018 PDF downloaded
-  - CLAUDE.md + plan.md drafted
-- **Blocked/waiting on user:**
-  - Nous Portal API key (user said $10 free tier available — key needed in `.env.local`)
-  - Moonshot/Kimi API key (`platform.moonshot.ai`)
-  - Supabase project URL + anon key (or defer until needed)
-  - GitHub repo creation decision (suggested: `github.com/Himess/rebarguard`)
+- **Last updated:** 2026-04-18 (Day 1 complete)
+- **Current day:** 1 of 16 → entering Day 2
+- **Active task:** Day 2 — install deps, smoke test backend/frontend, Kimi-VL first real call
+
+### Completed in Day 1
+
+- Folder structure created
+- TBDY 2018 PDF downloaded (7.1 MB, from AFAD)
+- CLAUDE.md + plan.md drafted
+- Backend scaffold:
+  - `pyproject.toml` with FastAPI/Pydantic/OpenAI SDK/pypdf/piexif/tenacity/sse-starlette/supabase/pgvector
+  - `config.py` (pydantic-settings, loads `.env`)
+  - `main.py` (FastAPI app, CORS, /health, routers)
+  - `schemas/models.py` — all 15+ Pydantic models (ColumnSchema, RebarDetection, AgentMessage, InspectionScore, ModeratorReport, etc.)
+  - `vision/kimi_client.py` — async Kimi-VL wrapper with retry
+  - `vision/prompts.py` — PLAN_PARSE_PROMPT, REBAR_DETECT_PROMPT, MATERIAL_PROMPT, COVER_PROMPT
+  - `hermes/client.py` — Hermes 4 70B via Nous Portal (OpenAI-compat)
+  - `agents/`: base + plan_parser + geometry + code_compliance + fraud + risk + material + cover + moderator (ALL 7 + Moderator implemented)
+  - `services/inspection.py` — InspectionOrchestrator, async agent debate generator
+  - `routers/projects.py` + `routers/inspections.py` (SSE streaming)
+  - `tests/test_schemas.py` + `tests/test_geometry_agent.py`
+- Frontend scaffold (Next.js 16 + Tailwind v4):
+  - `package.json`, `next.config.mjs`, `tsconfig.json`, `postcss.config.mjs`
+  - `app/layout.tsx`, `app/globals.css` (dark theme + CSS vars)
+  - `app/page.tsx` — Turkish landing page with pitch
+  - `app/upload/page.tsx` — PDF upload flow
+  - `app/dashboard/page.tsx` — belediye panel (server component, force-dynamic)
+  - `app/inspection/new/page.tsx` — 3-pane: form | live debate | score + 3D
+  - `components/AgentDebateFeed.tsx` — motion-animated SSE feed w/ 8 agent avatars
+  - `components/ScorePanel.tsx` — overall score + category bars + verdict badge
+  - `components/ThreeOverlay.tsx` — Three.js column with rebar cylinders (green=OK, red glow=missing)
+  - `lib/api.ts` — REST + SSE streaming client (AgentMessage type)
+- `docs/ARCHITECTURE.md` — full system diagram + data flow
+- `data/README.md` — dataset sources (Roboflow Universe links)
+- `.gitignore`, `.env.example` (both backend and frontend)
+- Git initialized, first commit: `71148a5 init: RebarGuard scaffold — backend agents + frontend shell + docs`
+
+### Blocked / waiting on user
+
+- **Nous Portal API key** — put in `backend/.env` as `NOUS_PORTAL_API_KEY=sk-...` (user has $10 free tier)
+- **Moonshot API key** — get at https://platform.moonshot.ai, put in `backend/.env` as `MOONSHOT_API_KEY=sk-...`
+- **Roboflow account** (optional) — if downloading the rebar datasets programmatically; else manual download
+- **GitHub repo** — decide name (`rebarguard` vs Turkish alt) and create `github.com/Himess/<name>`, then `git remote add origin ...`
+- **Poppler for Windows** — PlanParserAgent uses `pdf2image` which needs poppler. Install: https://github.com/oschwartz10612/poppler-windows/releases and add to PATH
+- **Real Turkish betonarme project PDFs** (3-4) — user can provide, else I'll search academic / open portfolio
+
+### Known TODOs to close in Day 2-10
+
+- `pdf2image` import is lazy in `plan_parser.py` — needs poppler on host
+- RAG is stubbed in `CodeAgent` — deterministic rule engine runs, RAG hooked in Day 7
+- AFAD in `RiskAgent` is hardcoded for demo — replace with live API Day 8 if accessible
+- Supabase persistence not wired — in-memory `_STORE` dict in `routers/projects.py` — Day 11
+- Hermes Agent framework (the Python CLI tool) not yet used — current implementation uses bare `HermesClient`. Day 2 decision: either adopt full framework or keep bare client (bare is simpler for SSE streaming; framework helps if we want skills/memory surfaced in UI)
 
 ## Environment setup (for future Claude / future me)
 
