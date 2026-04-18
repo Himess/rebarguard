@@ -1,26 +1,34 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import type { AgentMessage, Column, Project } from '@/lib/api';
+import type {
+  AgentMessage,
+  ElementType,
+  Project,
+  StructuralElement,
+} from '@/lib/api';
 import { startInspectionStream, BACKEND_URL } from '@/lib/api';
 import AgentDebateFeed from '@/components/AgentDebateFeed';
 import ScorePanel, { type Score, type Verdict } from '@/components/ScorePanel';
 import ThreeOverlay from '@/components/ThreeOverlay';
+
+type ElementEntry = {
+  element: StructuralElement;
+  type: ElementType;
+  label: string;
+};
 
 export default function NewInspection() {
   const params = useSearchParams();
   const projectId = params.get('project') || '';
 
   const [project, setProject] = useState<Project | null>(null);
-  const [columnId, setColumnId] = useState<string>('');
+  const [elementKey, setElementKey] = useState<string>('');
   const [photos, setPhotos] = useState<File[]>([]);
   const [closeup, setCloseup] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
-  const [city, setCity] = useState('Istanbul');
-  const [soilClass, setSoilClass] = useState('ZC');
-  const [floors, setFloors] = useState(5);
 
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [running, setRunning] = useState(false);
@@ -32,12 +40,30 @@ export default function NewInspection() {
       .then((r) => r.json())
       .then((p: Project) => {
         setProject(p);
-        if (p.plan.columns[0]) setColumnId(p.plan.columns[0].id);
-      });
+        const first = p.plan.columns[0] || p.plan.beams[0] || p.plan.shear_walls[0];
+        if (first) setElementKey(`${first.element_type}:${first.id}`);
+      })
+      .catch(() => {});
   }, [projectId]);
 
-  const column: Column | null =
-    project?.plan.columns.find((c) => c.id === columnId) ?? null;
+  const entries: ElementEntry[] = useMemo(() => {
+    if (!project) return [];
+    const p = project.plan;
+    const out: ElementEntry[] = [];
+    for (const c of p.columns) out.push({ element: c, type: 'column', label: `Column ${c.id} (Floor ${c.floor}, ${c.width_mm}×${c.depth_mm})` });
+    for (const b of p.beams) out.push({ element: b, type: 'beam', label: `Beam ${b.id} (Floor ${b.floor}, ${b.width_mm}×${b.depth_mm})` });
+    for (const w of p.shear_walls) out.push({ element: w, type: 'shear_wall', label: `Wall ${w.id} (${w.floor_from}→${w.floor_to}, t${w.thickness_mm})` });
+    for (const s of p.slabs) out.push({ element: s, type: 'slab', label: `Slab ${s.id} (Floor ${s.floor}, t${s.thickness_mm})` });
+    for (const st of p.stairs) out.push({ element: st, type: 'stair', label: `Stair ${st.id} (${st.floor_from}→${st.floor_to})` });
+    return out;
+  }, [project]);
+
+  const selected = useMemo(() => {
+    if (!elementKey) return null;
+    const [type, id] = elementKey.split(':');
+    return entries.find((e) => e.type === (type as ElementType) && e.element.id === id) ?? null;
+  }, [entries, elementKey]);
+
   const detectedRebarCount =
     (messages.find((m) => m.agent === 'plan_parser')?.evidence?.detected_rebar_count as number) ??
     null;
@@ -49,17 +75,15 @@ export default function NewInspection() {
   const narrative = (moderator?.evidence?.narrative as string) ?? null;
 
   function startRun() {
-    if (!project || !columnId || photos.length === 0) return;
+    if (!project || !selected || photos.length === 0) return;
     setMessages([]);
     setRunning(true);
     setDone(false);
     startInspectionStream(
       {
         projectId: project.id,
-        columnId,
-        city,
-        soilClass,
-        floors,
+        elementId: selected.element.id,
+        elementType: selected.type,
         photos,
         closeup: closeup ?? undefined,
         cover: cover ?? undefined,
@@ -76,28 +100,42 @@ export default function NewInspection() {
     );
   }
 
+  const meta = project?.plan.metadata;
+
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
       <Link href="/dashboard" className="text-xs text-[var(--color-text-muted)] hover:text-white">
         ← dashboard
       </Link>
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight">Site Inspection</h1>
-      <p className="text-sm text-[var(--color-text-muted)]">
-        {project?.name ?? 'Loading project...'}
-      </p>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Site Inspection</h1>
+          <p className="text-sm text-[var(--color-text-muted)]">
+            {meta?.project_name ?? 'Loading project...'}
+          </p>
+        </div>
+        {meta && (
+          <div className="flex flex-wrap gap-1 text-[10px] font-mono text-[var(--color-text-muted)]">
+            {meta.city && <Badge>{meta.city}</Badge>}
+            {meta.earthquake_zone && <Badge>{meta.earthquake_zone}</Badge>}
+            {meta.soil_class && <Badge>Soil {meta.soil_class}</Badge>}
+            {meta.floor_count && <Badge>{meta.floor_count} floors</Badge>}
+          </div>
+        )}
+      </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr_360px]">
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[340px_1fr_340px]">
         {/* LEFT — form */}
         <div className="space-y-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
-          <Field label="Column">
+          <Field label="Element">
             <select
-              value={columnId}
-              onChange={(e) => setColumnId(e.target.value)}
+              value={elementKey}
+              onChange={(e) => setElementKey(e.target.value)}
               className="w-full rounded border border-[var(--color-border)] bg-black/40 px-2 py-2 text-sm"
             >
-              {project?.plan.columns.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.id} — Floor {c.floor} ({c.width_mm}×{c.depth_mm})
+              {entries.map((e) => (
+                <option key={`${e.type}:${e.element.id}`} value={`${e.type}:${e.element.id}`}>
+                  {e.label}
                 </option>
               ))}
             </select>
@@ -134,51 +172,21 @@ export default function NewInspection() {
             />
           </Field>
 
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="City">
-              <input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="w-full rounded border border-[var(--color-border)] bg-black/40 px-2 py-1 text-sm"
-              />
-            </Field>
-            <Field label="Soil class">
-              <select
-                value={soilClass}
-                onChange={(e) => setSoilClass(e.target.value)}
-                className="w-full rounded border border-[var(--color-border)] bg-black/40 px-2 py-1 text-sm"
-              >
-                {['ZA', 'ZB', 'ZC', 'ZD', 'ZE'].map((z) => (
-                  <option key={z} value={z}>
-                    {z}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <Field label="Floors">
-            <input
-              type="number"
-              value={floors}
-              min={1}
-              max={40}
-              onChange={(e) => setFloors(parseInt(e.target.value, 10) || 1)}
-              className="w-full rounded border border-[var(--color-border)] bg-black/40 px-2 py-1 text-sm"
-            />
-          </Field>
-
           <button
             onClick={startRun}
-            disabled={running || !project || !columnId || photos.length === 0}
+            disabled={running || !project || !selected || photos.length === 0}
             className="mt-2 w-full rounded bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-black disabled:opacity-40"
           >
             {running ? '7 agents debating...' : done ? 'Run again' : 'Start inspection'}
           </button>
+
+          <p className="text-[10px] text-[var(--color-text-muted)]">
+            City, soil class, and floor count are auto-extracted from the project. No manual entry.
+          </p>
         </div>
 
         {/* CENTER — agent debate */}
-        <div className="flex h-[720px] flex-col rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-4">
+        <div className="flex h-[560px] flex-col rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-4 lg:h-[720px]">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-medium">Agent debate</h2>
             <div className="text-xs text-[var(--color-text-muted)]">
@@ -191,7 +199,10 @@ export default function NewInspection() {
         {/* RIGHT — score + 3D */}
         <div className="space-y-4">
           <ScorePanel score={score} verdict={verdict} narrative={narrative} />
-          <ThreeOverlay column={column} detectedRebarCount={detectedRebarCount} />
+          <ThreeOverlay
+            element={selected?.element ?? null}
+            detectedRebarCount={detectedRebarCount}
+          />
         </div>
       </div>
     </main>
@@ -204,5 +215,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <div className="mb-1 text-xs text-[var(--color-text-muted)]">{label}</div>
       {children}
     </label>
+  );
+}
+
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded border border-[var(--color-border)] px-2 py-0.5">{children}</span>
   );
 }
