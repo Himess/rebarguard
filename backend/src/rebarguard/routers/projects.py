@@ -5,7 +5,6 @@ from __future__ import annotations
 import shutil
 import tempfile
 from pathlib import Path
-from uuid import uuid4
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
@@ -33,7 +32,7 @@ async def create_project(pdf: UploadFile = File(...)) -> Project:
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, f"plan parse failed: {e}") from e
 
-    proj = Project(name=result.plan.project_name, plan=result.plan)
+    proj = Project(plan=result.plan)
     _STORE[str(proj.id)] = proj
     return proj
 
