@@ -187,11 +187,21 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
 - `skills/rebarguard/{parse-structural-plan, inspect-rebar, moderate-inspection}/SKILL.md` — new custom skills in agentskills.io format.
 - `skills/README.md` — install/layout docs.
 
-### Blocked / waiting on user
+### Day 2 PM — Hermes Agent CLI wired end-to-end (SUBSCRIPTION CONFIRMED WORKING)
 
-- **Run `hermes login --provider nous`** — interactive OAuth device flow. OAuth prints a URL and a code; open URL in Windows browser, paste the code, approve. One-shot — token stored at `/root/.hermes/`.
-- Easiest way: from Windows `cmd`/PowerShell, run `scripts/setup-hermes.cmd` (invokes WSL). Or from a WSL shell: `bash /mnt/c/Users/USER/Desktop/RebarGuard/scripts/setup-hermes.sh`.
-- After login: Claude will run `scripts/test-hermes-vision.sh` (needs a sample JPG at `data/rebar_photos/smoke-test.jpg`) and flip `HERMES_RUNTIME=cli` once verified.
+- **OAuth login succeeded.** `hermes auth add nous --type oauth --no-browser` printed the device-code URL; user approved in browser; token stored at `/root/.hermes/`. Subscription plan label: **Basic** (that's Nous's name for the $10/mo tier).
+- **Text smoke test: PASS.** `hermes chat -q ... -m moonshotai/kimi-k2.5 --provider nous -Q` returned valid JSON `{"hello": "world", "model": "kimi-k2.5"}` at $0 cost.
+- **Vision smoke test: PASS.** `--image` flag works with subscription. Synthetic 800×800 test JPG (6 vertical + 3 horizontal lines) → Kimi returned `{"count": 9, "confidence": 1.0}`. Max-turns=3 (1 was too low when Kimi internally dispatched its vision-tool).
+- **`HermesClient` and `KimiVisionClient` refactored** to branch on `HERMES_RUNTIME`:
+  - `cli` (new default): calls route through `HermesCLIBridge` → WSL `hermes chat` → subscription
+  - `direct`: legacy OpenAI-compat path, still functional if user ever pays for direct API
+- **Default `.env` switched to `HERMES_RUNTIME=cli`.** Zero code changes required in our 7 agents — they still call `HermesClient.complete` / `KimiVisionClient.analyze_image` and transparently hit subscription now.
+
+### Path B is validated — $0 target achievable
+
+- Kimi K2.5 (vision + agentic): FREE via subscription
+- Hermes 4 70B (Moderator, CodeAgent narrative): subscription includes this too (subscription covers all `--provider nous` traffic)
+- **Worst case**: if subscription has a hidden rate limit we hit during stress testing, fall back to `VISION_BACKEND=moonshot` (~$5 direct) — not expected
 
 ### Completed in Day 1
 

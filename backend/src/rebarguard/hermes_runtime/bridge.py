@@ -153,6 +153,8 @@ class HermesCLIBridge(HermesRuntime):
             "nous",
             "--source",
             "tool",
+            "--max-turns",
+            str(self._settings.hermes_cli_max_turns),
         ]
         if image is not None:
             cmd.extend(["--image", self._translate_image_path(image)])

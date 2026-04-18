@@ -1,8 +1,10 @@
-"""Agentic-model client — routes to Nous Portal OpenAI-compatible endpoint.
+"""Agentic-model client — routes through Hermes Agent CLI (subscription) or direct API.
 
-Nous Portal recommends agentic models (Kimi K2.5, GPT-5.4, GLM 5, Claude, etc.) over Hermes 4
-for Hermes Agent workloads. Our default is `moonshotai/kimi-k2.5` (free tier).
-`HERMES_REASONING_MODEL` (default `Hermes-4-70B`) is kept as an option for pure reasoning calls.
+Mode selection via `HERMES_RUNTIME`:
+- `cli`    (default): subprocess `hermes chat` covered by Nous Portal $10/mo subscription.
+- `direct`:           direct OpenAI-compat call to Nous Portal (pay-per-token).
+
+The client surface is the same in both modes so downstream agents don't change.
 """
 
 from __future__ import annotations
@@ -19,16 +21,21 @@ from rebarguard.config import Settings, get_settings
 
 class HermesClient:
     def __init__(self, settings: Settings):
-        if not settings.nous_portal_api_key:
-            raise RuntimeError(
-                "NOUS_PORTAL_API_KEY is not set. Subscribe at https://portal.nousresearch.com."
-            )
-        self._client = AsyncOpenAI(
-            api_key=settings.nous_portal_api_key,
-            base_url=settings.nous_portal_base_url,
-        )
+        self._settings = settings
+        self._mode = settings.hermes_runtime
         self._agentic_model = settings.hermes_agentic_model
         self._reasoning_model = settings.hermes_reasoning_model
+
+        self._direct: AsyncOpenAI | None = None
+        if self._mode == "direct":
+            if not settings.nous_portal_api_key:
+                raise RuntimeError(
+                    "HERMES_RUNTIME=direct but NOUS_PORTAL_API_KEY is unset."
+                )
+            self._direct = AsyncOpenAI(
+                api_key=settings.nous_portal_api_key,
+                base_url=settings.nous_portal_base_url,
+            )
 
     @property
     def agentic_model(self) -> str:
@@ -49,8 +56,60 @@ class HermesClient:
         max_tokens: int = 2048,
         temperature: float = 0.3,
     ) -> dict[str, Any]:
+        chosen = model or self._agentic_model
+        if self._mode == "cli":
+            return await self._complete_cli(
+                messages, model=chosen, json_mode=json_mode, max_tokens=max_tokens, temperature=temperature
+            )
+        return await self._complete_direct(
+            messages,
+            model=chosen,
+            tools=tools,
+            json_mode=json_mode,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+
+    async def _complete_cli(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        model: str,
+        json_mode: bool,
+        max_tokens: int,
+        temperature: float,
+    ) -> dict[str, Any]:
+        from rebarguard.hermes_runtime import get_runtime
+
+        runtime = get_runtime()
+        result = await runtime.chat(  # type: ignore[attr-defined]
+            messages,
+            model=model,
+            json_mode=json_mode,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+        return {
+            "content": result.content,
+            "tool_calls": [],
+            "finish_reason": "stop",
+            "usage": {},
+            "model": result.model,
+        }
+
+    async def _complete_direct(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        model: str,
+        tools: list[dict[str, Any]] | None,
+        json_mode: bool,
+        max_tokens: int,
+        temperature: float,
+    ) -> dict[str, Any]:
+        assert self._direct is not None
         kwargs: dict[str, Any] = {
-            "model": model or self._agentic_model,
+            "model": model,
             "messages": messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
@@ -60,7 +119,7 @@ class HermesClient:
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
 
-        resp = await self._client.chat.completions.create(**kwargs)
+        resp = await self._direct.chat.completions.create(**kwargs)
         msg = resp.choices[0].message
         return {
             "content": msg.content or "",
@@ -93,10 +152,16 @@ class HermesClient:
             max_tokens=max_tokens,
             temperature=temperature,
         )
+        content = result.get("content") or "{}"
+        # In cli mode, prose may wrap the JSON — extract tolerantly
+        if self._mode == "cli":
+            from rebarguard.hermes_runtime.bridge import _extract_json  # type: ignore
+
+            return _extract_json(content)
         try:
-            return json.loads(result["content"] or "{}")
+            return json.loads(content)
         except json.JSONDecodeError:
-            return {"error": "invalid json", "raw": result["content"]}
+            return {"error": "invalid json", "raw": content}
 
 
 @lru_cache(maxsize=1)

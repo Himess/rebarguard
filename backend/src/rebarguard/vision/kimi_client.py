@@ -1,4 +1,10 @@
-"""Vision client — routes to Nous Portal (preferred, Kimi K2.5 is free) or Moonshot directly."""
+"""Vision client — routes through Hermes Agent CLI (subscription) or direct API.
+
+Mode selection via `HERMES_RUNTIME` / `VISION_BACKEND`:
+- runtime=cli + vision_backend=nous_portal or hermes_cli → `hermes chat --image` (subscription $0)
+- runtime=direct + vision_backend=nous_portal → direct Nous Portal OpenAI-compat (paid)
+- runtime=direct + vision_backend=moonshot     → direct Moonshot API (paid)
+"""
 
 from __future__ import annotations
 
@@ -31,37 +37,40 @@ def _image_mime(path: str | Path) -> str:
 
 
 class KimiVisionClient:
-    """OpenAI-compatible vision client. Targets Nous Portal by default (Kimi K2.5 free).
-
-    If `VISION_BACKEND=moonshot`, falls back to direct Moonshot API.
-    """
-
     def __init__(self, settings: Settings):
-        if settings.vision_backend == "moonshot":
+        self._settings = settings
+        self._runtime = settings.hermes_runtime
+        self._vision_backend = settings.vision_backend
+
+        self._direct: AsyncOpenAI | None = None
+        self._direct_model: str | None = None
+
+        if self._runtime == "cli" and self._vision_backend in {"nous_portal", "hermes_cli"}:
+            # Route all vision through Hermes CLI (subscription) — no direct client needed.
+            self._mode = "cli"
+        elif self._vision_backend == "moonshot":
             if not settings.moonshot_api_key:
-                raise RuntimeError(
-                    "VISION_BACKEND=moonshot but MOONSHOT_API_KEY is unset."
-                )
-            self._client = AsyncOpenAI(
+                raise RuntimeError("VISION_BACKEND=moonshot but MOONSHOT_API_KEY is unset.")
+            self._direct = AsyncOpenAI(
                 api_key=settings.moonshot_api_key, base_url=settings.moonshot_base_url
             )
-            self._model = settings.kimi_vision_model
-            self._backend = "moonshot"
+            self._direct_model = settings.kimi_vision_model
+            self._mode = "direct"
         else:
+            # direct runtime + nous_portal backend
             if not settings.nous_portal_api_key:
                 raise RuntimeError(
-                    "VISION_BACKEND=nous_portal but NOUS_PORTAL_API_KEY is unset. "
-                    "Get one at https://portal.nousresearch.com."
+                    "HERMES_RUNTIME=direct with VISION_BACKEND=nous_portal needs NOUS_PORTAL_API_KEY."
                 )
-            self._client = AsyncOpenAI(
+            self._direct = AsyncOpenAI(
                 api_key=settings.nous_portal_api_key, base_url=settings.nous_portal_base_url
             )
-            self._model = "moonshotai/kimi-k2.5"
-            self._backend = "nous_portal"
+            self._direct_model = settings.hermes_agentic_model  # kimi-k2.5 via Nous
+            self._mode = "direct"
 
     @property
     def backend(self) -> str:
-        return self._backend
+        return self._mode
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def analyze_image(
@@ -73,6 +82,63 @@ class KimiVisionClient:
         max_tokens: int = 2048,
         temperature: float = 0.1,
     ) -> dict[str, Any]:
+        if self._mode == "cli":
+            return await self._cli_call(image_path, prompt, json_mode=json_mode)
+        return await self._direct_call(
+            image_path, prompt, json_mode=json_mode, max_tokens=max_tokens, temperature=temperature
+        )
+
+    async def analyze_images(
+        self,
+        image_paths: list[str | Path],
+        prompt: str,
+        *,
+        json_mode: bool = True,
+        max_tokens: int = 4096,
+        temperature: float = 0.1,
+    ) -> dict[str, Any]:
+        # `hermes chat --image` accepts a single image per call; fan out sequentially in cli mode.
+        if self._mode == "cli":
+            results: list[Any] = []
+            for p in image_paths:
+                results.append(await self._cli_call(p, prompt, json_mode=json_mode))
+            return {"images": results}
+        return await self._direct_multi_call(
+            image_paths, prompt, json_mode=json_mode, max_tokens=max_tokens, temperature=temperature
+        )
+
+    async def _cli_call(
+        self, image_path: str | Path, prompt: str, *, json_mode: bool
+    ) -> dict[str, Any]:
+        from rebarguard.hermes_runtime import get_runtime
+        from rebarguard.hermes_runtime.bridge import HermesCLIBridge, _extract_json
+
+        runtime = get_runtime()
+        if not isinstance(runtime, HermesCLIBridge):
+            raise RuntimeError(
+                "Vision routed to CLI but runtime is not HermesCLIBridge. "
+                "Check HERMES_RUNTIME / VISION_BACKEND combination."
+            )
+        result = await runtime.chat(
+            [{"role": "user", "content": prompt}],
+            model=self._settings.hermes_agentic_model,
+            image=image_path,
+            json_mode=json_mode,
+        )
+        if json_mode:
+            return _extract_json(result.content)
+        return {"raw": result.content}
+
+    async def _direct_call(
+        self,
+        image_path: str | Path,
+        prompt: str,
+        *,
+        json_mode: bool,
+        max_tokens: int,
+        temperature: float,
+    ) -> dict[str, Any]:
+        assert self._direct is not None and self._direct_model is not None
         b64 = _encode_image(image_path)
         mime = _image_mime(image_path)
         content: list[dict[str, Any]] = [
@@ -80,15 +146,14 @@ class KimiVisionClient:
             {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
         ]
         kwargs: dict[str, Any] = {
-            "model": self._model,
+            "model": self._direct_model,
             "messages": [{"role": "user", "content": content}],
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
-
-        resp = await self._client.chat.completions.create(**kwargs)
+        resp = await self._direct.chat.completions.create(**kwargs)
         text = (resp.choices[0].message.content or "").strip()
         if not text:
             return {"raw": "", "error": "empty response"}
@@ -99,33 +164,32 @@ class KimiVisionClient:
                 return {"raw": text, "error": "failed to parse JSON"}
         return {"raw": text}
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-    async def analyze_images(
+    async def _direct_multi_call(
         self,
         image_paths: list[str | Path],
         prompt: str,
         *,
-        json_mode: bool = True,
-        max_tokens: int = 4096,
-        temperature: float = 0.1,
+        json_mode: bool,
+        max_tokens: int,
+        temperature: float,
     ) -> dict[str, Any]:
+        assert self._direct is not None and self._direct_model is not None
         content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
-        for path in image_paths:
-            b64 = _encode_image(path)
-            mime = _image_mime(path)
+        for p in image_paths:
+            b64 = _encode_image(p)
+            mime = _image_mime(p)
             content.append(
                 {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}}
             )
         kwargs: dict[str, Any] = {
-            "model": self._model,
+            "model": self._direct_model,
             "messages": [{"role": "user", "content": content}],
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
-
-        resp = await self._client.chat.completions.create(**kwargs)
+        resp = await self._direct.chat.completions.create(**kwargs)
         text = (resp.choices[0].message.content or "").strip()
         if not text:
             return {"raw": "", "error": "empty response"}

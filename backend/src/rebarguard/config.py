@@ -13,11 +13,12 @@ class Settings(BaseSettings):
     # "cli":    subprocess bridge to `hermes` CLI (subscription-backed).
     # "sdk":    import Python SDK from hermes_agent package (if available).
     hermes_runtime: Literal["direct", "cli", "sdk"] = Field(
-        default="direct", alias="HERMES_RUNTIME"
+        default="cli", alias="HERMES_RUNTIME"
     )
     hermes_cli_via_wsl: bool = Field(default=True, alias="HERMES_CLI_VIA_WSL")
     hermes_wsl_distro: str = Field(default="Ubuntu-22.04", alias="HERMES_WSL_DISTRO")
-    hermes_cli_timeout_s: int = Field(default=90, alias="HERMES_CLI_TIMEOUT_S")
+    hermes_cli_timeout_s: int = Field(default=120, alias="HERMES_CLI_TIMEOUT_S")
+    hermes_cli_max_turns: int = Field(default=3, alias="HERMES_CLI_MAX_TURNS")
 
     # ---- Nous Portal (used in `direct` mode) ----
     nous_portal_api_key: str = Field(default="", alias="NOUS_PORTAL_API_KEY")
