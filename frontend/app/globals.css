@@ -65,6 +65,7 @@
   --agent-6: oklch(0.72 0.14 200);
   --agent-7: oklch(0.72 0.14 135);
   --agent-8: oklch(0.82 0.12 75);
+  --agent-9: oklch(0.75 0.14 50);
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --r-1: 2px; --r-2: 4px; --r-3: 6px; --r-4: 10px;

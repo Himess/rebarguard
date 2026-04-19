@@ -41,6 +41,7 @@ class AgentRole(str, Enum):
     MATERIAL = "material"
     COVER = "cover"
     MODERATOR = "moderator"
+    MUNICIPALITY = "municipality"
 
 
 class AgentVerdict(str, Enum):
@@ -355,6 +356,17 @@ class ModeratorReport(BaseModel):
     narrative: str
     critical_issues: list[str] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)
+
+
+class MunicipalityReport(BaseModel):
+    """Independent belediye-reviewer verdict on the Moderator's decision."""
+
+    agent: AgentRole = AgentRole.MUNICIPALITY
+    verdict_agrees: bool
+    concerns: list[str] = Field(default_factory=list)
+    additional_requirements: list[str] = Field(default_factory=list)
+    recommendation: Literal["uphold", "downgrade", "escalate_to_human"]
+    narrative: str
 
 
 # ============================================================================

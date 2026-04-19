@@ -12,7 +12,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from sse_starlette.sse import EventSourceResponse
 
 from rebarguard.routers.projects import _STORE
-from rebarguard.schemas import AgentMessage, ElementType
+from rebarguard.schemas import AgentMessage, ElementType, InspectionPhase
 from rebarguard.services.inspection import InspectionJob, InspectionOrchestrator
 
 router = APIRouter()
@@ -33,6 +33,7 @@ async def inspect_stream(
     project_id: Annotated[str, Form()],
     element_id: Annotated[str, Form()],
     element_type: Annotated[str, Form()] = "column",
+    stage: Annotated[str, Form()] = "other",
     photos: list[UploadFile] = File(...),
     closeup: UploadFile | None = File(None),
     cover: UploadFile | None = File(None),
@@ -45,6 +46,11 @@ async def inspect_stream(
         et = ElementType(element_type)
     except ValueError as e:
         raise HTTPException(400, f"invalid element_type: {element_type}") from e
+
+    try:
+        st = InspectionPhase(stage)
+    except ValueError:
+        st = InspectionPhase.OTHER
 
     element = project.plan.find_element(element_id)
     if element is None:
@@ -74,6 +80,7 @@ async def inspect_stream(
         plan=project.plan,
         element_id=element_id,
         element_type=et,
+        stage=st,
         site_photos=photo_paths,
         closeup_photo=closeup_path,
         cover_photo=cover_path,

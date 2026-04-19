@@ -144,12 +144,20 @@ export type AgentMessage = {
     | 'risk'
     | 'material'
     | 'cover'
-    | 'moderator';
+    | 'moderator'
+    | 'municipality';
   kind: 'observation' | 'challenge' | 'rebuttal' | 'verdict';
   content: string;
   model?: string | null;
   evidence?: Record<string, unknown> | null;
 };
+
+export type InspectionStage =
+  | 'foundation'
+  | 'ground_floor'
+  | 'mid_floor'
+  | 'roof'
+  | 'other';
 
 export async function uploadProject(pdf: File): Promise<Project> {
   const fd = new FormData();
@@ -191,6 +199,7 @@ export type InspectionRequest = {
   projectId: string;
   elementId: string;
   elementType?: ElementType;
+  stage?: InspectionStage;
   photos: File[];
   closeup?: File;
   cover?: File;
@@ -206,6 +215,7 @@ export function startInspectionStream(
   fd.append('project_id', req.projectId);
   fd.append('element_id', req.elementId);
   fd.append('element_type', req.elementType || 'column');
+  fd.append('stage', req.stage || 'other');
   req.photos.forEach((p) => fd.append('photos', p));
   if (req.closeup) fd.append('closeup', req.closeup);
   if (req.cover) fd.append('cover', req.cover);

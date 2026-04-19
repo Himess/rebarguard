@@ -12,7 +12,8 @@ export type AgentId =
   | 'seismic'
   | 'material'
   | 'cover'
-  | 'mod';
+  | 'mod'
+  | 'municipality';
 
 export type ModelClass = 'blue' | 'amber' | 'neutral';
 
@@ -22,7 +23,7 @@ export type AgentDef = {
   short: string;
   model: string;
   modelClass: ModelClass;
-  hueVar: `--agent-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`;
+  hueVar: `--agent-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
   role: string;
 };
 
@@ -35,6 +36,7 @@ export const AGENTS: AgentDef[] = [
   { id: 'material', name: 'MaterialAgent',    short: 'MATL',   model: 'kimi-k2.5',    modelClass: 'blue',  hueVar: '--agent-6', role: 'Steel class, corrosion' },
   { id: 'cover',    name: 'CoverAgent',       short: 'COVER',  model: 'kimi-k2.5',    modelClass: 'blue',  hueVar: '--agent-7', role: 'Concrete cover estimation' },
   { id: 'mod',      name: 'Moderator',        short: 'MOD',    model: 'hermes-4-70b', modelClass: 'amber', hueVar: '--agent-8', role: 'Synthesizes all findings' },
+  { id: 'municipality', name: 'Belediye Agent', short: 'BLD',  model: 'hermes-4-70b', modelClass: 'amber', hueVar: '--agent-9', role: 'Independent municipal reviewer (pour-approval gate)' },
 ];
 
 export const AGENT_BY_ID: Record<AgentId, AgentDef> = Object.fromEntries(
@@ -51,7 +53,8 @@ export function toAgentId(
     | 'risk'
     | 'material'
     | 'cover'
-    | 'moderator',
+    | 'moderator'
+    | 'municipality',
 ): AgentId {
   switch (role) {
     case 'plan_parser':
@@ -60,6 +63,8 @@ export function toAgentId(
       return 'seismic';
     case 'moderator':
       return 'mod';
+    case 'municipality':
+      return 'municipality';
     default:
       return role as AgentId;
   }

@@ -18,8 +18,10 @@ from rebarguard.agents import (
     GeometryAgent,
     MaterialAgent,
     ModeratorAgent,
+    MunicipalityAgent,
     RiskAgent,
 )
+from rebarguard.agents.municipality import MunicipalityInput
 from rebarguard.agents._element_utils import element_label
 from rebarguard.agents.code_compliance import CodeInput
 from rebarguard.agents.cover import CoverInput
@@ -33,6 +35,7 @@ from rebarguard.schemas import (
     AgentMessage,
     AgentRole,
     ElementType,
+    InspectionPhase,
     RebarDetection,
     StructuralElement,
     StructuralPlan,
@@ -48,6 +51,7 @@ class InspectionJob:
     plan: StructuralPlan
     element_id: str
     element_type: ElementType | None = None
+    stage: InspectionPhase = InspectionPhase.OTHER
     site_photos: list[Path] = None  # type: ignore[assignment]
     closeup_photo: Path | None = None
     cover_photo: Path | None = None
@@ -64,6 +68,7 @@ class InspectionOrchestrator:
         self.material = MaterialAgent()
         self.cover = CoverAgent()
         self.moderator = ModeratorAgent()
+        self.municipality = MunicipalityAgent()
 
     async def run(self, job: InspectionJob) -> AsyncIterator[AgentMessage]:
         element = job.plan.find_element(job.element_id)
@@ -78,11 +83,12 @@ class InspectionOrchestrator:
         label = element_label(element)
         metadata = job.plan.metadata
 
+        stage_label = job.stage.value.replace("_", " ")
         yield AgentMessage(
             agent=AgentRole.MODERATOR,
             kind="observation",
             content=(
-                f"Inspection started for {label}. 7 agents activating — "
+                f"Stage: {stage_label}. Inspection started for {label}. 7 agents + belediye — "
                 f"Kimi K2.5 handles vision, Hermes 4 70B handles reasoning."
             ),
         )
@@ -198,6 +204,33 @@ class InspectionOrchestrator:
             model=self.settings.hermes_reasoning_model,
             evidence=moderator_report.model_dump(mode="json"),
         )
+
+        # Municipality reviewer — independent second-check before pour is authorized
+        try:
+            municipality_report = await self.municipality.run(
+                MunicipalityInput(
+                    moderator=moderator_report,
+                    geometry=geom,
+                    compliance=comp,
+                    fraud=fraud,
+                    risk=risk,
+                    material=material,
+                    cover=cover,
+                )
+            )
+            yield AgentMessage(
+                agent=AgentRole.MUNICIPALITY,
+                kind="verdict",
+                content=municipality_report.narrative,
+                model=self.settings.hermes_reasoning_model,
+                evidence=municipality_report.model_dump(mode="json"),
+            )
+        except Exception as e:  # noqa: BLE001
+            yield AgentMessage(
+                agent=AgentRole.MUNICIPALITY,
+                kind="observation",
+                content=f"Municipal reviewer unavailable: {e}",
+            )
 
     async def _detect_all(
         self, photos: list[Path], element_type: ElementType

@@ -5,6 +5,7 @@ from rebarguard.agents.fraud import FraudAgent
 from rebarguard.agents.geometry import GeometryAgent
 from rebarguard.agents.material import MaterialAgent
 from rebarguard.agents.moderator import ModeratorAgent
+from rebarguard.agents.municipality import MunicipalityAgent
 from rebarguard.agents.plan_parser import PlanParserAgent
 from rebarguard.agents.risk import RiskAgent
 
@@ -16,6 +17,7 @@ __all__ = [
     "GeometryAgent",
     "MaterialAgent",
     "ModeratorAgent",
+    "MunicipalityAgent",
     "PlanParserAgent",
     "RiskAgent",
 ]

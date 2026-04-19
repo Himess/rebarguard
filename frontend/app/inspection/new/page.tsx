@@ -12,9 +12,18 @@ import {
   startInspectionStream,
   type AgentMessage,
   type ElementType,
+  type InspectionStage,
   type Project,
   type StructuralElement,
 } from '@/lib/api';
+
+const STAGES: { value: InspectionStage; label: string }[] = [
+  { value: 'foundation',   label: 'Foundation · confinement zone' },
+  { value: 'ground_floor', label: 'Ground floor · pre-pour' },
+  { value: 'mid_floor',    label: 'Mid floor · pre-pour' },
+  { value: 'roof',         label: 'Roof slab · pre-pour' },
+  { value: 'other',        label: 'Other · ad-hoc' },
+];
 
 type ElementEntry = {
   element: StructuralElement;
@@ -46,6 +55,7 @@ export default function NewInspection() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [elementKey, setElementKey] = useState('');
+  const [stage, setStage] = useState<InspectionStage>('foundation');
   const [photos, setPhotos] = useState<File[]>([]);
   const [closeup, setCloseup] = useState<File | null>(null);
   const [cover, setCover] = useState<File | null>(null);
@@ -159,6 +169,7 @@ export default function NewInspection() {
         projectId: project.id,
         elementId: selected.element.id,
         elementType: selected.type,
+        stage,
         photos,
         closeup: closeup ?? undefined,
         cover: cover ?? undefined,
@@ -293,7 +304,7 @@ export default function NewInspection() {
           <div style={{ borderTop: '1px solid var(--line-1)', paddingTop: 14 }}>
             <Eyebrow>02 · Scope</Eyebrow>
             <ScopeSelect label="Element" value={elementKey} onChange={setElementKey} entries={entries} />
-            <Field label="Stage" value="Pre-pour · confinement zone" />
+            <StageSelect value={stage} onChange={setStage} />
             <Field label="Floor" value={selected?.element && 'floor' in selected.element ? String((selected.element as { floor: string }).floor) : '—'} />
             <Field label="Pour spec" value="C30/37 · S4" />
           </div>
@@ -613,6 +624,50 @@ function SmallUpload({ label, onFile }: { label: string; onFile: (f: File | null
         style={{ display: 'none' }}
       />
     </label>
+  );
+}
+
+function StageSelect({
+  value,
+  onChange,
+}: {
+  value: InspectionStage;
+  onChange: (v: InspectionStage) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+      <span
+        className="mono"
+        style={{
+          fontSize: 10,
+          color: 'var(--text-3)',
+          letterSpacing: '0.06em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Stage
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as InspectionStage)}
+        style={{
+          height: 30,
+          padding: '0 10px',
+          fontSize: 12,
+          background: 'var(--bg-2)',
+          color: 'var(--text-0)',
+          border: '1px solid var(--line-2)',
+          borderRadius: 3,
+          fontFamily: 'var(--font-sans)',
+        }}
+      >
+        {STAGES.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
