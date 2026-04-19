@@ -75,74 +75,101 @@ Ship a working end-to-end demo where:
 - [ ] Confidence scoring per parsed element
 - [ ] Keep our FastAPI as the HTTP adapter that invokes these skills
 
-### Day 5-6 (Apr 22-23) — Full site-photo pipeline via Hermes Agent
-- [ ] Multi-image prompt via Hermes Agent / Kimi K2.5 — batched rebar detection
-- [ ] Collect 10-15 curated site photos (Roboflow + self-captured)
-- [ ] End-to-end: upload photos → Hermes Agent invokes `inspect_rebar` skill → GeometryAgent diff → frontend renders
-- [ ] Edge cases: blurry photo, partial coverage, missing reference marker
+### Day 5-6 (Apr 19-20) — Layout refactor + photo annotations (user-directed expansion)
 
-### Day 7 (Apr 24) — CodeAgent (RAG) + Hermes 4 narrative
+**User decision on Day 5:** current UI too basic. Redesign with 60% 3D hero + quick
+photo-analyzer mode. Ferhat Baş's project already validated end-to-end via curl stream.
+
+#### Day 5
+- [x] GitHub repo push (`github.com/Himess/rebarguard`, public)
+- [ ] Layout refactor of `/inspection/new` — 60% 3D viewer + 25% upload column + bottom
+      strip for agent debate + score
+- [ ] Claude Design brief (user runs it in parallel while Claude writes code)
+- [ ] Landing hero redesign with architectural blueprint motif
+- [ ] Agent debate bubble v2 (motion + typographic polish)
+
+#### Day 6
+- [ ] Add `/quick` route — drag any construction photo, no project needed, Kimi returns
+      issues + bounding boxes
+- [ ] Extend Kimi prompts to emit `issues[]` with `{ label, severity, bbox: {x,y,w,h} }`
+      where coordinates are normalized [0,1] over image
+- [ ] Build `PhotoAnnotations` component: SVG overlay on `<img>` with circles + labels,
+      click-for-detail popover showing TBDY / TS 500 reference + Kimi narrative
+- [ ] Validate on the 19 Fıstık photos + seed a curated demo gallery
+
+### Day 7 (Apr 21) — Stage-by-stage workflow
+- [ ] Extend `Inspection` with `stage` enum: `foundation | basement | ground | {1..N} | roof`
+- [ ] UI stage picker on `/inspection/new` — walks contractor through each pour phase
+- [ ] Backend accumulates per-stage history on the project (pour record)
+- [ ] Each stage kicks off 7-agent debate; rejected stages block next-stage start
+- [ ] Dashboard shows project progress as a ladder (which pour is where)
+
+### Day 8 (Apr 22) — Belediye Agent + 2-step approval
+- [ ] New agent: `MunicipalityAgent` — takes Moderator's report, re-scores independently,
+      flags anything Moderator underweighted. Uses Hermes 4 70B reasoning, different
+      system prompt (role: municipal engineer reviewer).
+- [ ] Approval gate state machine:
+      pending → `agent_consensus` (score ≥ 85 && no critical) → `municipal_review`
+      (belediye agent counter-check) → `human_review` (manual click button) → `authorized`
+      Any failure returns to `rejected` with reason chain.
+- [ ] Municipal reviewer UI — sees queued inspections, belediye-agent report, and can
+      click "Approve pour" or "Reject with reasons"
+
+### Day 9 (Apr 23) — TBDY RAG + CodeAgent article-level narration
 - [ ] Chunk TBDY 2018 PDF into sections (per chapter / article)
-- [ ] Embed via Hermes Agent's embeddings skill OR fallback to local sentence-transformers
-- [ ] Push chunks to pgvector
-- [ ] CodeAgent skill: rule-engine first, then RAG enrichment for relevant articles, then Hermes 4 70B narrative
-- [ ] Focus on Chapter 7 (seismic detailing), stirrup-confinement spacing, min rebar ratios
+- [ ] Embed via Kimi/Moonshot embeddings or local sentence-transformers
+- [ ] pgvector index (or simpler: FAISS on-disk for demo)
+- [ ] CodeAgent enrichment: rule engine → RAG lookup for violated articles → Hermes 4 70B
+      turns cited article text into plain-English explanation
+- [ ] Focus on §7.3 (columns), §7.4 (beams), §7.6 (shear walls)
 
-### Day 8 (Apr 25) — FraudAgent + RiskAgent (Hermes Agent skills)
-- [ ] FraudAgent skill: EXIF parsing, timestamp sanity, reference-marker presence, photo-hash dedup
-- [ ] RiskAgent skill: AFAD `tdth.afad.gov.tr` integration (if open API exists; else hardcoded demo table), soil class input, risk multiplier
-- [ ] Both emit structured JSON and integrate into the debate stream
+### Day 10 (Apr 24) — Multi-round Moderator debate + scoring polish
+- [ ] Moderator multi-round: after initial 7 reports, invites challenges from specific
+      agents (e.g. Fraud challenges Geometry's count if EXIF conflicts), then closes
+      with final verdict
+- [ ] Scoring algorithm review: weighted sum × risk multiplier, thresholds
+      (≥85 APPROVE, 60-84 CONDITIONAL, <60 REJECT)
+- [ ] SSE stream emits each debate round separately for richer live feed
 
-### Day 9 (Apr 26) — MaterialAgent + CoverAgent (Hermes Agent skills)
-- [ ] MaterialAgent skill: Kimi K2.5 via Hermes Agent — rebar class markings, corrosion level 0-3
-- [ ] CoverAgent skill: concrete-cover estimation via reference marker scale
-- [ ] Both emit structured JSON
+### Day 11 (Apr 25) — Supabase persistence + project history
+- [ ] Schema: `projects`, `inspections`, `agent_messages`, `approval_events`
+- [ ] Replace in-memory `_STORE` with Supabase client
+- [ ] Projects + stage history survive backend restart
+- [ ] Dashboard per-project pour ladder visualization
 
-### Day 10 (Apr 27) — Moderator + multi-round debate
-- [ ] Moderator skill using Hermes 4 70B reasoning — multi-round: after initial reports, agents can raise challenges → rebuttals → final verdict
-- [ ] Scoring algorithm: weighted sum × risk multiplier → 0-100
-- [ ] Thresholds: ≥85 APPROVE, 60-84 CONDITIONAL (human review), <60 REJECT
-- [ ] SSE streaming: each debate round yields messages into the live feed
+### Day 12 (Apr 26) — Frontend polish
+- [ ] `VerdictReveal` full-screen cinematic moment on final verdict
+- [ ] Agent debate bubbles — motion v2, typographic hierarchy
+- [ ] Score ring animation (counts up to final value)
+- [ ] Photo annotation popovers refined
+- [ ] Dark-mode CAD blueprint motif background for landing + 3D pane
 
-### Day 11 (Apr 28) — Frontend core
-- [ ] Next.js 16 + Tailwind v4 init
-- [ ] Landing `/` — hero pitch, "how it works"
-- [ ] `/upload` — file upload (PDF project + multi-photo site)
-- [ ] `/dashboard` — list of pending/approved/rejected inspections (municipality role)
-- [ ] Supabase auth (magic link)
+### Day 13 (Apr 27) — Demo scenarios with Fıstık project
+- [ ] Curate 3 narrative scenarios using the 19 Fıstık photos:
+      **Happy**: compliant foundation pour → APPROVE
+      **Warning**: cover shortage → CONDITIONAL (human review)
+      **Reject**: shear wall missing 25% rebars → REJECT with quantified loss estimate
+- [ ] Script narration beats for video
 
-### Day 12 (Apr 29) — Inspection detail page + agent debate UI
-- [ ] `/inspection/[id]` — left: photos + plan, right: live agent chat feed (SSE)
-- [ ] Agent avatars, role colors, message-bubble animation
-- [ ] Score panel (circular progress, category breakdown)
+### Day 14 (Apr 28) — Vercel + Modal/Fly deploy
+- [ ] Frontend on Vercel with public domain
+- [ ] Backend on Modal (fastest) or Fly.io with WSL-bridge caveats solved
+      (options: run backend natively on target platform, or dockerize + install
+      hermes inside container)
+- [ ] End-to-end test on deployed URLs
 
-### Day 13 (Apr 30) — Three.js 3D overlay
-- [ ] Three.js scene: parsed structural plan as 3D schematic (extruded rebars)
-- [ ] Overlay mode: fade between plan and site-photo (with detected rebar boxes)
-- [ ] Highlight mismatches in red (missing rebars, wrong spacing)
-- [ ] Orbit controls, reset camera
-
-### Day 14 (May 1) — Demo data + end-to-end polish
-- [ ] Curate 2 demo scenarios:
-  - **Happy path:** real project + compliant site photos → APPROVE with high score
-  - **Fraud case:** same project + site photos with missing rebars / wrong spacing → REJECT with quantified loss estimate
-- [ ] Narrative: optional Kahramanmaraş retrospective segment (if open photos found)
-- [ ] Remove all TODO comments, all `print` debug, lint pass
-- [ ] Make sure Hermes + Kimi model names are VISIBLE on screen during demo
-
-### Day 15 (May 2) — Video + writeup
+### Day 15 (Apr 29) — Demo video shoot + edit
 - [ ] Storyboard (30s intro / 90s demo / 60s outro)
-- [ ] Screen record (OBS) at 1080p
-- [ ] Edit (DaVinci Resolve / CapCut) — overlays, captions, zoom-ins on agent debate & 3D overlay
+- [ ] Screen record at 1080p 60fps
+- [ ] Edit with captions + overlays; highlight model badges (`moonshotai/kimi-k2.5`, `Hermes-4-70B`)
 - [ ] Music (royalty-free, uplifting/tense)
-- [ ] Twitter writeup (under 280 chars + thread)
+- [ ] Twitter writeup (<280 chars + thread)
 
-### Day 16 (May 3) — Buffer + submission
-- [ ] Final test run end-to-end
-- [ ] Deploy frontend + backend to public URLs (or local with ngrok for demo)
-- [ ] Tweet demo video tagging `@NousResearch`
-- [ ] Post Discord link in `creative-hackathon-submissions`
-- [ ] Write project README.md with setup instructions, architecture, credits
+### Day 16 (Apr 30 — May 3) — Buffer + submission
+- [ ] Final E2E test on deployed URLs
+- [ ] Tweet demo video tagging `@NousResearch` + `@Kimi_Moonshot`
+- [ ] Post in Nous Discord `creative-hackathon-submissions`
+- [ ] README with setup, architecture, credits, license
 - [ ] Submit GitHub link
 
 ## Scope guardrails

@@ -259,19 +259,114 @@ Validation:
   - Correctly identifies "not a construction drawing", returns empty element lists
   - Confidence 0.99, cost $0 via subscription
 
-### Day 4 — next up
+### Day 4 — DONE (E2E green, real data validated)
 
-- **Need a real Turkish RC structural drawing PDF** (column schedule + plan views) to
-  validate column/beam/wall extraction. Try:
-  - İnşaat mühendisliği lisans ders portföyleri
-  - `yapi-proje.com`-style open examples
-  - User-provided drawing
-- Implement `/upload` page 3D preview — while Kimi parses, progressively show the extracted
-  elements in a Three.js scene (each column/beam pops in as it's recognized)
-- Full-building 3D viewer: all columns at `(x, y)` positions, extruded by floor height
-- Toggle full-building ↔ inspected-element zoom
-- First real end-to-end site-inspection run (POST /api/inspections/stream) with curated
-  real or synthetic rebar photos
+- Full 7-agent debate ran via `POST /api/inspections/stream` against `fistik-01.jpg` and the
+  seeded 1340 Ada 43 Parsel project. Moderator (Hermes 4 70B) synthesized a REJECT verdict
+  with narrative + critical issues + recommendations. Every message carries a model tag in
+  its `evidence`: `moonshotai/kimi-k2.5` for vision, `Hermes-4-70B` for the verdict.
+- `POST /api/demo/fistik` seeds a realistic plan in memory (engineer, parcel, 6+2 floors,
+  B420C / BS30, 6 columns × 8 floors + 2 shear walls + 6 beams) matching Kimi's metadata
+  extraction from `1340.pdf`. Remove before production.
+- `FullBuildingViewer` merges column segments by base id (48 stacked boxes → 6 tall
+  pillars), adds exterior-wall infill between perimeter columns so the model reads as an
+  enclosed volume, slabs bumped to opacity 0.45 for visibility. Basic material + no shadows
+  for performance.
+- `BuildingPane` toggle: "Inspected element" ↔ "Full building". Default is element mode
+  so the first-paint is cheap.
+
+### Day 5 — MAJOR scope expansion (user-directed, locked)
+
+**User's vision shift after seeing the baseline working:**
+1. Current inspection page is "too basic-looking." Redesign around a **60% 3D hero** with
+   upload controls on the left and debate + score below.
+2. Add a **quick photo-only analyzer** as a primary entry point — drop any construction
+   photo, Kimi calls out problems per TBDY / TS 500 with bounding boxes and clickable
+   detail callouts.
+3. Add **stage-by-stage workflow**: foundation → basement → ground → 1..N → roof, each
+   stage accepts its own photos, each kicks off the 7-agent debate automatically.
+4. Add an **8th agent: Belediye Agent** that re-verifies the Moderator verdict as an
+   independent municipal reviewer before the pour is authorized.
+5. Two-step approval gate: agent consensus → belediye agent counter-review → manual
+   municipal engineer click → "pour authorized."
+6. DWG path: Kimi cannot read binary DWG directly. Free tools (libredwg, snap) are not in
+   Ubuntu repos. User will run **Autodesk DWG TrueView** on Windows to plot the real DWG
+   to PDF → our existing PlanParser pipeline reads it and seeds the real column schedule.
+
+### New layout (inspection page target)
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ Nav                                                                │
+├──────────────┬─────────────────────────────────────────────────────┤
+│ UPLOAD 25%   │                                                     │
+│ ─────        │       3D BUILDING VIEWER 60% (full height)          │
+│ Project PDF  │       - 360° rotate, zoom, click element            │
+│ Project DWG  │       - Toggle: Inspected / Full / (later: Section) │
+│ Site photos  │                                                     │
+│ Close-up     │                                                     │
+│ Cover photo  │                                                     │
+│ ─────        │                                                     │
+│ Stage [▾]    │                                                     │
+│ Element [▾]  │                                                     │
+│ Metadata     │                                                     │
+│ badges       │                                                     │
+│ ─────        │                                                     │
+│ [Start]      │                                                     │
+├──────────────┴──────────────────────────┬──────────────────────────┤
+│ AGENT DEBATE 60%                        │ SCORE + VERDICT 40%      │
+│ SSE live feed, model badges, evidence   │ Ring + bars + narrative  │
+└─────────────────────────────────────────┴──────────────────────────┘
+Mobile stacks vertically.
+```
+
+### New features (Day 5-8)
+
+| Feature | What | Deliverable |
+|---------|------|-------------|
+| Quick photo analyzer | Single-photo → 7 agents parallel without a project plan | `/quick` route + `POST /api/quick/analyze` |
+| Photo annotations | Kimi returns bounding boxes per issue → SVG overlay on photo | `PhotoAnnotations` component + prompt update |
+| Stage-by-stage | foundation / basement / ground / N / roof stage picker | `InspectionStage` enum, UI + backend param |
+| Belediye Agent | 8th agent, re-reviews Moderator verdict as independent check | `agents/municipality.py` + bridge |
+| 2-step approval | agent consensus → belediye counter → human click | New `ApprovalGate` state + route |
+| 60% 3D hero layout | Redesign inspection page | Refactored `/inspection/new` |
+| Photo annotation UI | Click circle → side panel detail | Hit testing + popover |
+| Verdict cinema moment | Full-screen reveal when Moderator decides | `VerdictReveal` component |
+
+### Updated 16-day timeline (2026-04-18 start → 2026-05-03 deadline)
+
+| Day | Date | Milestone | Status |
+|-----|------|-----------|--------|
+| 1 | 04-18 | Scaffold + backend + frontend skeleton | ✅ |
+| 2 | 04-18 | Hermes Agent install + subscription OAuth + bridge E2E | ✅ |
+| 3 | 04-18 | Multi-element schema + auto-metadata + poppler | ✅ |
+| 4 | 04-18 | Full-building viewer + Fıstık seed + E2E 7-agent debate green | ✅ |
+| 5 | 04-19 | **GitHub push + layout refactor (60% 3D hero) + Claude Design brief** | 🔄 |
+| 6 | 04-20 | Photo annotation overlay (Kimi bbox → SVG circles + click-detail) | |
+| 7 | 04-21 | Stage-by-stage workflow (foundation → roof staged uploads) | |
+| 8 | 04-22 | Belediye Agent + 2-step approval gate | |
+| 9 | 04-23 | TBDY 2018 RAG (CodeAgent article-level narration) | |
+| 10 | 04-24 | Multi-round Moderator debate (challenge + rebuttal) | |
+| 11 | 04-25 | Supabase persistence + role-based dashboard views | |
+| 12 | 04-26 | Frontend polish (motion, verdict cinema, agent cards) | |
+| 13 | 04-27 | Demo scenarios curated with Ferhat Baş project | |
+| 14 | 04-28 | Vercel deploy (frontend + Modal/Fly for backend) | |
+| 15 | 04-29 | Demo video shoot + edit (3 min, @NousResearch tag prep) | |
+| 16 | 04-30 — 05-03 | Buffer + submission (Twitter + Discord) | |
+
+### Deferred / cut (to absorb Day 5-8 scope)
+
+- Real auth / magic link (keep global dashboard, TODO section in README)
+- Full role-based permissions
+- E-signature
+- Live AFAD API (hardcoded table stays)
+- TS 500 full RAG (academic summaries only if needed)
+
+### Publish state
+
+- GitHub: `github.com/Himess/rebarguard` — created + pushed public on Day 5
+- Vercel: pending Day 14
+- Current runtime: WSL-local backend (`http://localhost:8000`) + Next.js dev (`http://localhost:3000`)
 
 ### Completed in Day 1
 
