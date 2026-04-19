@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { TopNav } from '@/components/TopNav';
 import { DebateStream, type DebateItem } from '@/components/DebateStream';
@@ -50,7 +50,15 @@ function msToTimer(ms: number): string {
   return `${mm}:${ss}`;
 }
 
-export default function NewInspection() {
+export default function NewInspectionPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewInspection />
+    </Suspense>
+  );
+}
+
+function NewInspection() {
   const params = useSearchParams();
   const projectId = params.get('project') || '';
 
