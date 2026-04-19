@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { TopNav } from '@/components/TopNav';
 import { DebateStream, type DebateItem } from '@/components/DebateStream';
 import { ScorePanel, type Verdict, type CategoryScore } from '@/components/ScorePanel';
-import { ClaudeBuildingViewer } from '@/components/ClaudeBuildingViewer';
+import { ClaudeBuildingViewer, stageToFloorIndex } from '@/components/ClaudeBuildingViewer';
+import { VerdictCinema, type VerdictCinemaPayload } from '@/components/VerdictCinema';
 import { AGENTS, CATEGORIES, toAgentId, type AgentId } from '@/lib/agents';
 import {
   BACKEND_URL,
@@ -118,9 +119,57 @@ export default function NewInspection() {
   const moderatorMsg = messages.findLast?.(
     (m) => m.agent === 'moderator' && m.kind === 'verdict',
   );
+  const municipalityMsg = messages.findLast?.(
+    (m) => m.agent === 'municipality' && m.kind === 'verdict',
+  );
   const verdict = (moderatorMsg?.evidence as { verdict?: Verdict } | undefined)?.verdict ?? null;
   const narrative = (moderatorMsg?.evidence as { narrative?: string } | undefined)?.narrative ?? null;
   const modScore = (moderatorMsg?.evidence as { score?: { overall?: number } } | undefined)?.score?.overall;
+
+  // Cinema modal on final verdict
+  const [cinema, setCinema] = useState<VerdictCinemaPayload | null>(null);
+  const cinemaShownRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!moderatorMsg || !verdict) return;
+    if (cinemaShownRef.current === moderatorMsg.id) return;
+    cinemaShownRef.current = moderatorMsg.id;
+    const criticalIssues =
+      ((moderatorMsg?.evidence as { critical_issues?: string[] } | undefined)?.critical_issues ?? []);
+    const muni = municipalityMsg?.evidence as
+      | { recommendation?: VerdictCinemaPayload['municipalRecommendation']; narrative?: string }
+      | undefined;
+    setCinema({
+      verdict,
+      overall: modScore ?? 0,
+      narrative: narrative ?? '',
+      criticalIssues,
+      municipalRecommendation: muni?.recommendation ?? null,
+      municipalNarrative: muni?.narrative ?? null,
+    });
+  }, [moderatorMsg, verdict, modScore, narrative, municipalityMsg]);
+
+  // Re-trigger cinema when municipality arrives AFTER moderator (enrich)
+  useEffect(() => {
+    if (!cinema || !municipalityMsg) return;
+    const muni = municipalityMsg.evidence as
+      | { recommendation?: VerdictCinemaPayload['municipalRecommendation']; narrative?: string }
+      | undefined;
+    if (!muni) return;
+    if (cinema.municipalRecommendation !== (muni.recommendation ?? null)) {
+      setCinema({ ...cinema, municipalRecommendation: muni.recommendation ?? null, municipalNarrative: muni.narrative ?? null });
+    }
+  }, [municipalityMsg, cinema]);
+
+  // ESC to close cinema
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setCinema(null);
+    }
+    if (cinema) {
+      window.addEventListener('keydown', onKey);
+      return () => window.removeEventListener('keydown', onKey);
+    }
+  }, [cinema]);
 
   const categoryScores: CategoryScore[] = useMemo(() => {
     const s = (moderatorMsg?.evidence as { score?: Record<string, number> } | undefined)?.score;
@@ -194,6 +243,7 @@ export default function NewInspection() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-1)' }}>
+      <VerdictCinema payload={cinema} onClose={() => setCinema(null)} />
       <TopNav projectContext={projectContext} />
 
       {/* Breadcrumb strip */}
@@ -356,7 +406,7 @@ export default function NewInspection() {
           }}
         >
           <div className="bp-grid" style={{ position: 'absolute', inset: 0 }} />
-          <ClaudeBuildingViewer />
+          <ClaudeBuildingViewer highlightFloorIndex={stageToFloorIndex(stage)} />
 
           {/* Corner annotations */}
           <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', flexDirection: 'column', gap: 6, pointerEvents: 'none' }}>

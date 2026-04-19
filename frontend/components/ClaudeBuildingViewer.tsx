@@ -11,6 +11,23 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
+export function stageToFloorIndex(
+  stage: 'foundation' | 'ground_floor' | 'mid_floor' | 'roof' | 'other' | undefined,
+): number {
+  switch (stage) {
+    case 'foundation':
+      return 0;
+    case 'ground_floor':
+      return 2;
+    case 'mid_floor':
+      return 3;
+    case 'roof':
+      return 5;
+    default:
+      return 2;
+  }
+}
+
 type Props = {
   highlightFloorIndex?: number;
   cagePosition?: [number, number, number];
