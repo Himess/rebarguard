@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { TopNav } from '@/components/TopNav';
 import { DebateStream, type DebateItem } from '@/components/DebateStream';
 import { ScorePanel, type Verdict, type CategoryScore } from '@/components/ScorePanel';
-import BuildingPane from '@/components/BuildingPane';
+import { ClaudeBuildingViewer } from '@/components/ClaudeBuildingViewer';
 import { AGENTS, CATEGORIES, toAgentId, type AgentId } from '@/lib/agents';
 import {
   BACKEND_URL,
@@ -345,22 +345,7 @@ export default function NewInspection() {
           }}
         >
           <div className="bp-grid" style={{ position: 'absolute', inset: 0 }} />
-          <div style={{ position: 'absolute', inset: 0 }}>
-            <BuildingPane
-              plan={project?.plan ?? null}
-              selectedElement={selected?.element ?? null}
-              detectedRebarCount={detectedRebarCount}
-              onSelectById={(id, type) => {
-                if (!id) return;
-                const match = entries.find(
-                  (e) => e.element.id.startsWith(id) && (type === '' || e.type === type),
-                );
-                if (match) setElementKey(`${match.type}:${match.element.id}`);
-              }}
-              hideToggle
-              forceMode={viewMode === 'full' ? 'building' : 'element'}
-            />
-          </div>
+          <ClaudeBuildingViewer />
 
           {/* Corner annotations */}
           <div style={{ position: 'absolute', top: 16, left: 16, display: 'flex', flexDirection: 'column', gap: 6, pointerEvents: 'none' }}>
