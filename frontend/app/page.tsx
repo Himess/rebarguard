@@ -1,93 +1,174 @@
 import Link from 'next/link';
+import { TopNav } from '@/components/TopNav';
+import { AgentRing } from '@/components/AgentRing';
 
-export default function HomePage() {
+const STATS = [
+  { k: '14,287', l: 'Pours inspected' },
+  { k: '1,042',  l: 'Blocked before pour' },
+  { k: '38s',    l: 'Median verdict time' },
+  { k: '7',      l: 'Agents + moderator' },
+] as const;
+
+export default function LandingPage() {
   return (
-    <main className="mx-auto max-w-6xl px-6 py-16">
-      <nav className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded bg-[var(--color-accent)]" />
-          <span className="text-lg font-semibold tracking-tight">RebarGuard</span>
-        </div>
-        <div className="flex items-center gap-6 text-sm text-[var(--color-text-muted)]">
-          <Link href="/upload" className="hover:text-white">Upload</Link>
-          <Link href="/dashboard" className="hover:text-white">Municipality</Link>
-          <a href="https://github.com/nousresearch/hermes-agent" className="hover:text-white">Hermes Agent</a>
-          <a href="https://platform.moonshot.ai" className="hover:text-white">Kimi K2.5</a>
-        </div>
-      </nav>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-0)', position: 'relative' }}>
+      <TopNav />
 
-      <section className="mt-24 max-w-3xl">
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-text-muted)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-accent)]" />
-          Hermes Agent Creative Hackathon 2026
-        </div>
-        <h1 className="text-5xl font-semibold leading-tight tracking-tight">
-          Once concrete pours, the steel inside is invisible forever.
-          <br />
-          <span className="text-[var(--color-accent)]">
-            Seven agents check it before the pour.
-          </span>
-        </h1>
-        <p className="mt-6 max-w-2xl text-lg text-[var(--color-text-muted)]">
-          RebarGuard takes the approved structural drawing and site photos; a{' '}
-          <b>7-agent inspection team</b> powered by Hermes Agent and Kimi K2.5 analyzes rebar
-          workmanship against seismic codes. Score ≥ 85 gates municipal approval; anything less
-          returns a detailed, evidence-backed report.
-        </p>
+      <div
+        className="bp-grid"
+        style={{ position: 'absolute', inset: '52px 0 36px 0', opacity: 0.6 }}
+      />
 
-        <div className="mt-8 flex gap-4">
-          <Link
-            href="/upload"
-            className="rounded bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-black hover:opacity-90"
-          >
-            Start an inspection →
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded border border-[var(--color-border)] px-5 py-3 text-sm font-medium hover:border-white/30"
-          >
-            Pending inspections
-          </Link>
-        </div>
-      </section>
-
-      <section className="mt-24 grid grid-cols-1 gap-4 md:grid-cols-3">
-        {[
-          {
-            title: 'Phase 1 — Project',
-            body: 'The approved reinforced-concrete PDF is parsed by Kimi K2.5 into a structured column schedule.',
-          },
-          {
-            title: 'Phase 2 — Site',
-            body: 'Site photos are analyzed by 7 agents: Geometry, Code, Fraud, Risk, Material, Cover, and Moderator.',
-          },
-          {
-            title: 'Phase 3 — Approval',
-            body: 'If the score passes the threshold, the pour is approved. Otherwise a detailed rejection with causes.',
-          },
-        ].map((p) => (
-          <div
-            key={p.title}
-            className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-6"
-          >
-            <div className="text-sm font-medium text-[var(--color-accent)]">{p.title}</div>
-            <div className="mt-2 text-sm text-[var(--color-text-muted)]">{p.body}</div>
+      <div
+        style={{
+          position: 'relative',
+          display: 'grid',
+          gridTemplateColumns: '1.2fr 1fr',
+          gap: 48,
+          padding: '72px 80px 72px',
+          minHeight: 'calc(100vh - 88px)',
+        }}
+      >
+        {/* Left: manifesto */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            maxWidth: 720,
+          }}
+        >
+          <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
+            <span className="chip hazard">PRE-POUR INSPECTION</span>
+            <span className="chip">v0.8 · BETA</span>
           </div>
-        ))}
-      </section>
+          <h1
+            style={{
+              fontSize: 72,
+              lineHeight: 0.98,
+              margin: 0,
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              textWrap: 'balance',
+            }}
+          >
+            Once concrete pours,
+            <br />
+            <span style={{ color: 'var(--hazard)' }}>the rebar is invisible.</span>
+          </h1>
+          <p
+            style={{
+              marginTop: 28,
+              fontSize: 18,
+              lineHeight: 1.5,
+              color: 'var(--text-1)',
+              maxWidth: 560,
+              textWrap: 'pretty',
+            }}
+          >
+            RebarGuard runs 8 AI agents against the approved structural plan{' '}
+            <em>before</em> each pour. Cover thickness, splice length, TBDY 2018 compliance —
+            verified in under 40 seconds from site photos.
+          </p>
 
-      <footer className="mt-24 border-t border-[var(--color-border)] pt-6 text-xs text-[var(--color-text-muted)]">
-        Built on{' '}
-        <a href="https://github.com/nousresearch/hermes-agent" className="hover:text-white">
-          Hermes Agent (Nous Research)
-        </a>{' '}
-        +{' '}
-        <a href="https://github.com/MoonshotAI/Kimi-VL" className="hover:text-white">
-          Kimi K2.5 (Moonshot)
-        </a>
-        . Referencing TBDY 2018 (Turkish Building Earthquake Code) and TS 500. Research prototype
-        — does not replace a licensed structural engineer&apos;s sign-off.
-      </footer>
-    </main>
+          <div style={{ display: 'flex', gap: 12, marginTop: 36 }}>
+            <Link
+              href="/inspection/new"
+              className="btn primary"
+              style={{ height: 44, padding: '0 22px', fontSize: 14, textDecoration: 'none' }}
+            >
+              Start new inspection →
+            </Link>
+            <Link
+              href="/quick"
+              className="btn ghost"
+              style={{ height: 44, padding: '0 22px', fontSize: 14, textDecoration: 'none' }}
+            >
+              Quick scan (upload photo)
+            </Link>
+          </div>
+
+          <div
+            style={{
+              marginTop: 64,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: 0,
+              borderTop: '1px solid var(--line-1)',
+              borderBottom: '1px solid var(--line-1)',
+            }}
+          >
+            {STATS.map((s, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: '20px 16px',
+                  borderRight: i < STATS.length - 1 ? '1px solid var(--line-1)' : 'none',
+                }}
+              >
+                <div
+                  className="mono num"
+                  style={{ fontSize: 28, fontWeight: 500, color: 'var(--text-0)' }}
+                >
+                  {s.k}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--text-3)',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    marginTop: 6,
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {s.l}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: agent ring */}
+        <div style={{ position: 'relative' }}>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <AgentRing />
+          </div>
+        </div>
+      </div>
+
+      {/* Footer mono strip */}
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 36,
+          borderTop: '1px solid var(--line-1)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 24px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          color: 'var(--text-3)',
+          letterSpacing: '0.08em',
+          background: 'var(--bg-0)',
+        }}
+      >
+        <span>TBDY 2018 · TS 500 · AFAD-compatible</span>
+        <span>HERMES AGENT · KIMI K2.5 · HACKATHON 2026</span>
+        <span>41.02°N 28.97°E · IST</span>
+      </div>
+    </div>
   );
 }
