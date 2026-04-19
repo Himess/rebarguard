@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { TopNav } from '@/components/TopNav';
+import { ArticleModal } from '@/components/ArticleModal';
 import { analyzeQuickPhoto, BACKEND_URL, type QuickFinding } from '@/lib/api';
 
 type DisplayFinding = QuickFinding & {
@@ -18,10 +19,10 @@ function bboxToCircle(f: QuickFinding): DisplayFinding {
 }
 
 const DEMO_FALLBACK: QuickFinding[] = [
-  { title: 'Cover < 25mm',         severity: 'fail', bbox: { x: 0.22, y: 0.36, w: 0.12, h: 0.10 }, detail: '22mm measured at bottom-left corner. TS 500 minimum violated.',   ref: 'TBDY 7.3.4.2' },
-  { title: 'Stirrup spacing drift', severity: 'warn', bbox: { x: 0.55, y: 0.28, w: 0.09, h: 0.08 }, detail: 'Ø10 stirrup pitch 140mm, spec 100mm in confinement zone.',          ref: 'TBDY 7.3.6' },
-  { title: 'Splice length OK',      severity: 'info', bbox: { x: 0.44, y: 0.68, w: 0.07, h: 0.06 }, detail: '40Ø splice verified against S-04 sheet.',                            ref: 'TS 500 7.2' },
-  { title: 'Spacer missing',        severity: 'warn', bbox: { x: 0.72, y: 0.55, w: 0.08, h: 0.07 }, detail: 'No plastic spacer visible — potential cover drop.',                   ref: 'TS 500 7.4' },
+  { title: 'Cover < 25mm',         severity: 'fail', bbox: { x: 0.22, y: 0.36, w: 0.12, h: 0.10 }, detail: '22mm measured at bottom-left corner. TS 500 minimum violated.',   ref: 'TS 500 7.3',  confidence: 0.88 },
+  { title: 'Stirrup spacing drift', severity: 'warn', bbox: { x: 0.55, y: 0.28, w: 0.09, h: 0.08 }, detail: 'Ø10 stirrup pitch 140mm, spec 100mm in confinement zone.',          ref: 'TBDY 7.3.6', confidence: 0.76 },
+  { title: 'Splice length OK',      severity: 'info', bbox: { x: 0.44, y: 0.68, w: 0.07, h: 0.06 }, detail: '40Ø splice verified against S-04 sheet.',                            ref: 'TS 500 7.2', confidence: 0.82 },
+  { title: 'Spacer missing',        severity: 'warn', bbox: { x: 0.72, y: 0.55, w: 0.08, h: 0.07 }, detail: 'No plastic spacer visible — potential cover drop.',                   ref: 'TS 500 7.6', confidence: 0.71 },
 ];
 
 const colorFor = (s: QuickFinding['severity']) =>
@@ -31,6 +32,7 @@ export default function QuickScanPage() {
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+  const [openArticle, setOpenArticle] = useState<string | null>(null);
   const [findings, setFindings] = useState<QuickFinding[]>(DEMO_FALLBACK);
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
@@ -79,6 +81,7 @@ export default function QuickScanPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-1)' }}>
+      <ArticleModal code={openArticle} onClose={() => setOpenArticle(null)} />
       <TopNav projectContext="PROJ · QUICK SCAN" />
 
       <div
@@ -405,14 +408,46 @@ export default function QuickScanPage() {
                   <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.45 }}>
                     {f.detail}
                   </div>
-                  {f.ref && (
-                    <div
-                      className="mono"
-                      style={{ marginTop: 4, fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.06em' }}
-                    >
-                      REF · {f.ref}
-                    </div>
-                  )}
+                  <div
+                    style={{
+                      marginTop: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                    }}
+                  >
+                    {f.ref ? (
+                      <button
+                        className="mono"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenArticle(f.ref);
+                        }}
+                        style={{
+                          fontSize: 10,
+                          letterSpacing: '0.06em',
+                          padding: '3px 8px',
+                          background: 'var(--bg-2)',
+                          border: '1px solid var(--line-2)',
+                          color: 'var(--text-0)',
+                          borderRadius: 2,
+                          cursor: 'pointer',
+                        }}
+                        title="Open article text"
+                      >
+                        REF · {f.ref} ↗
+                      </button>
+                    ) : (
+                      <span
+                        className="mono"
+                        style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.06em' }}
+                      >
+                        NO REF
+                      </span>
+                    )}
+                    <ConfidenceChip value={f.confidence} />
+                  </div>
                 </div>
               );
             })}
@@ -425,6 +460,29 @@ export default function QuickScanPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ConfidenceChip({ value }: { value: number }) {
+  const pct = Math.round(value * 100);
+  const color =
+    value >= 0.8 ? 'var(--green)' : value >= 0.6 ? 'var(--yellow)' : 'var(--red)';
+  return (
+    <span
+      className="mono"
+      style={{
+        fontSize: 10,
+        letterSpacing: '0.06em',
+        padding: '3px 6px',
+        border: `1px solid ${color}`,
+        color,
+        borderRadius: 2,
+        textTransform: 'uppercase',
+      }}
+      title={`Kimi confidence ${pct}%`}
+    >
+      {pct}% CONF
+    </span>
   );
 }
 

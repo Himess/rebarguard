@@ -179,7 +179,27 @@ export type QuickFinding = {
   bbox: { x: number; y: number; w: number; h: number };
   detail: string;
   ref: string | null;
+  confidence: number;
 };
+
+export type RegulationArticle = {
+  code: string;
+  document: 'TBDY 2018' | 'TS 500';
+  chapter: string;
+  title_en: string;
+  title_tr: string;
+  text_en: string;
+  text_tr: string;
+  source: 'document' | 'summary';
+  tags: string[];
+};
+
+export async function fetchArticle(code: string): Promise<RegulationArticle> {
+  const safe = encodeURIComponent(code);
+  const res = await fetch(`${BACKEND_URL}/api/regulations/${safe}`);
+  if (!res.ok) throw new Error(`article ${code} not found`);
+  return res.json();
+}
 
 export type QuickScanResult = {
   findings: QuickFinding[];

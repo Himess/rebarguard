@@ -17,8 +17,9 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 
 from rebarguard.config import get_settings
+from rebarguard.rag import citation_codes
 from rebarguard.vision import get_kimi_client
-from rebarguard.vision.prompts import QUICK_SCAN_PROMPT
+from rebarguard.vision.prompts import build_quick_scan_prompt
 
 router = APIRouter()
 
@@ -36,12 +37,27 @@ class QuickFinding(BaseModel):
     bbox: BoundingBox
     detail: str = ""
     ref: str | None = None
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
 
 
 class QuickScanResult(BaseModel):
     findings: list[QuickFinding] = Field(default_factory=list)
     elapsed_s: float
     model: str
+
+
+_WHITELIST = set(citation_codes())
+
+
+def _validate_ref(raw_ref) -> str | None:
+    if not raw_ref:
+        return None
+    key = " ".join(str(raw_ref).replace("-", " ").split())
+    # Case-insensitive exact match, keep the canonical casing
+    for code in _WHITELIST:
+        if code.lower() == key.lower():
+            return code
+    return None
 
 
 def _coerce_finding(raw: dict[str, Any]) -> QuickFinding | None:
@@ -56,12 +72,18 @@ def _coerce_finding(raw: dict[str, Any]) -> QuickFinding | None:
         sev = str(raw.get("severity", "info")).lower()
         if sev not in {"fail", "warn", "info"}:
             sev = "info"
+        conf_raw = raw.get("confidence", 0.7)
+        try:
+            conf = max(0.0, min(1.0, float(conf_raw)))
+        except (TypeError, ValueError):
+            conf = 0.7
         return QuickFinding(
             title=str(raw.get("title", "Finding")).strip() or "Finding",
             severity=sev,  # type: ignore[arg-type]
             bbox=bbox,
             detail=str(raw.get("detail", "")).strip(),
-            ref=(str(raw.get("ref")).strip() or None) if raw.get("ref") else None,
+            ref=_validate_ref(raw.get("ref")),
+            confidence=conf,
         )
     except Exception:  # noqa: BLE001
         return None
@@ -82,7 +104,8 @@ async def analyze(photo: UploadFile = File(...)) -> QuickScanResult:
     t0 = time.perf_counter()
 
     try:
-        parsed = await kimi.analyze_image(tmp_path, QUICK_SCAN_PROMPT, max_tokens=1200)
+        prompt = build_quick_scan_prompt()
+        parsed = await kimi.analyze_image(tmp_path, prompt, max_tokens=1400)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, f"Kimi call failed: {e}") from e
 
