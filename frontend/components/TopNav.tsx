@@ -5,10 +5,11 @@ import { usePathname } from 'next/navigation';
 import { Logo } from './Logo';
 
 const ITEMS = [
-  { href: '/', id: 'dashboard', label: 'Dashboard' },
+  { href: '/', id: 'home', label: 'Home' },
+  { href: '/dashboard', id: 'projects', label: 'Projects' },
   { href: '/inspection/new', id: 'inspections', label: 'Inspections' },
   { href: '/quick', id: 'quick', label: 'Quick Scan' },
-  { href: '/dashboard', id: 'projects', label: 'Projects' },
+  { href: '/demo', id: 'demo', label: 'Demo' },
   { href: '/agents', id: 'agents', label: 'Agents' },
 ];
 
