@@ -1,0 +1,178 @@
+/* ========================================================
+   RebarGuard — Design Tokens
+   Dark industrial / CAD-serious. Balanced legibility.
+   ======================================================== */
+
+:root {
+  /* Neutrals — blue-black, never pure black */
+  --bg-0:     oklch(0.14 0.012 250);   /* deepest */
+  --bg-1:     oklch(0.18 0.012 250);   /* app bg */
+  --bg-2:     oklch(0.22 0.012 250);   /* panel */
+  --bg-3:     oklch(0.27 0.012 250);   /* raised */
+  --bg-4:     oklch(0.32 0.012 250);   /* hover */
+  --line-1:   oklch(0.32 0.012 250);   /* subtle divider */
+  --line-2:   oklch(0.42 0.014 250);   /* visible border */
+  --line-3:   oklch(0.55 0.016 250);   /* active border */
+
+  /* Text */
+  --text-0:   oklch(0.98 0.005 250);   /* primary */
+  --text-1:   oklch(0.85 0.008 250);   /* secondary */
+  --text-2:   oklch(0.65 0.010 250);   /* tertiary */
+  --text-3:   oklch(0.48 0.012 250);   /* disabled / label */
+
+  /* Semantic accents (hazard / seismic / vision) */
+  --hazard:       #FF6A1F;  /* primary action — hazard orange */
+  --hazard-soft:  oklch(0.68 0.19 45 / 0.15);
+  --hazard-ring:  oklch(0.68 0.19 45 / 0.35);
+
+  --amber:        #F5B041;  /* Hermes / reasoning */
+  --amber-soft:   oklch(0.78 0.14 75 / 0.14);
+  --amber-ring:   oklch(0.78 0.14 75 / 0.35);
+
+  --blue:         #3B9EFF;  /* Kimi / vision */
+  --blue-soft:    oklch(0.68 0.16 240 / 0.14);
+  --blue-ring:    oklch(0.68 0.16 240 / 0.35);
+
+  --green:        #4ADE80;  /* approve */
+  --red:          #F4433C;  /* reject */
+  --yellow:       #FACC15;  /* conditional */
+
+  /* Agent slot hues — 8 colors, same chroma/L */
+  --agent-1:  oklch(0.72 0.14 250);    /* PlanParser */
+  --agent-2:  oklch(0.72 0.14 165);    /* Geometry */
+  --agent-3:  oklch(0.72 0.14 95);     /* Code */
+  --agent-4:  oklch(0.72 0.14 25);     /* Fraud */
+  --agent-5:  oklch(0.72 0.14 320);    /* Seismic */
+  --agent-6:  oklch(0.72 0.14 200);    /* Material */
+  --agent-7:  oklch(0.72 0.14 135);    /* Cover */
+  --agent-8:  oklch(0.82 0.12 75);     /* Moderator (amber-ish) */
+
+  /* Type */
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Radii — sharp, engineering-serious */
+  --r-1: 2px;
+  --r-2: 4px;
+  --r-3: 6px;
+  --r-4: 10px;
+
+  /* Spacing scale (8-grid, some 4s) */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
+
+  /* Shadows */
+  --shadow-1: 0 1px 0 rgba(255,255,255,0.04) inset, 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-2: 0 8px 24px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.04) inset;
+}
+
+/* ------------ Base reset ------------ */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  background: var(--bg-0);
+  color: var(--text-0);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+body { overflow: hidden; }
+
+/* Shared slide shell */
+.slide {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-1);
+  color: var(--text-0);
+  overflow: hidden;
+}
+
+/* Mono + numeric */
+.mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1, "zero" 1; }
+.num  { font-variant-numeric: tabular-nums; }
+
+/* Dotted blueprint grid (for 3D pane bg) */
+.bp-grid {
+  background-color: var(--bg-0);
+  background-image:
+    linear-gradient(to right, rgba(150,180,220,0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(150,180,220,0.06) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, rgba(59,158,255,0.04) 0%, transparent 60%);
+  background-size: 40px 40px, 40px 40px, 100% 100%;
+}
+
+/* ISO hatch — faint diagonal for cards */
+.hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255,255,255,0.02) 0 2px,
+    transparent 2px 8px
+  );
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  height: 36px; padding: 0 16px;
+  border-radius: var(--r-2);
+  font: 500 13px/1 var(--font-sans);
+  letter-spacing: 0.01em;
+  border: 1px solid var(--line-2);
+  background: var(--bg-3);
+  color: var(--text-0);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.btn:hover { background: var(--bg-4); border-color: var(--line-3); }
+.btn.primary {
+  background: var(--hazard);
+  border-color: var(--hazard);
+  color: #111;
+  font-weight: 600;
+}
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost {
+  background: transparent;
+  border-color: var(--line-1);
+  color: var(--text-1);
+}
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12px; }
+
+/* Tags / chips */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 8px;
+  border-radius: var(--r-1);
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--bg-3);
+  color: var(--text-1);
+  border: 1px solid var(--line-1);
+}
+.chip.blue   { background: var(--blue-soft);   color: var(--blue);   border-color: var(--blue-ring); }
+.chip.amber  { background: var(--amber-soft);  color: var(--amber);  border-color: var(--amber-ring); }
+.chip.hazard { background: var(--hazard-soft); color: var(--hazard); border-color: var(--hazard-ring); }
+
+/* Panel */
+.panel {
+  background: var(--bg-2);
+  border: 1px solid var(--line-1);
+  border-radius: var(--r-3);
+}
+.panel-h {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 40px; padding: 0 14px;
+  border-bottom: 1px solid var(--line-1);
+  font: 600 11px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* Scrollbar */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+*::-webkit-scrollbar-track { background: transparent; }

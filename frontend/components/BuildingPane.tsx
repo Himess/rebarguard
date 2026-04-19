@@ -10,6 +10,8 @@ type Props = {
   selectedElement: StructuralElement | null;
   detectedRebarCount?: number | null;
   onSelectById?: (id: string, type: string) => void;
+  hideToggle?: boolean;
+  forceMode?: 'building' | 'element';
 };
 
 type Mode = 'building' | 'element';
@@ -19,44 +21,62 @@ export default function BuildingPane({
   selectedElement,
   detectedRebarCount,
   onSelectById,
+  hideToggle = false,
+  forceMode,
 }: Props) {
-  const [mode, setMode] = useState<Mode>('element');
+  const [mode, setMode] = useState<Mode>(forceMode ?? 'element');
+  const effective: Mode = forceMode ?? mode;
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <div className="inline-flex rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-0.5 text-xs">
-          <button
-            onClick={() => setMode('element')}
-            className={`rounded-md px-3 py-1 ${
-              mode === 'element'
-                ? 'bg-[var(--color-accent)] text-black'
-                : 'text-[var(--color-text-muted)] hover:text-white'
-            }`}
+    <div className="flex h-full w-full flex-col gap-2">
+      {!hideToggle && (
+        <div className="flex items-center gap-2">
+          <div
+            className="inline-flex rounded-md border text-xs"
+            style={{ borderColor: 'var(--line-2)', background: 'var(--bg-2)', padding: 2 }}
           >
-            Inspected element
-          </button>
-          <button
-            onClick={() => setMode('building')}
-            disabled={!plan}
-            className={`rounded-md px-3 py-1 ${
-              mode === 'building'
-                ? 'bg-[var(--color-accent)] text-black'
-                : 'text-[var(--color-text-muted)] hover:text-white'
-            } disabled:opacity-40`}
-          >
-            Full building
-          </button>
+            <button
+              onClick={() => setMode('element')}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 3,
+                background: effective === 'element' ? 'var(--hazard)' : 'transparent',
+                color: effective === 'element' ? '#111' : 'var(--text-2)',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Inspected element
+            </button>
+            <button
+              onClick={() => setMode('building')}
+              disabled={!plan}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 3,
+                background: effective === 'building' ? 'var(--hazard)' : 'transparent',
+                color: effective === 'building' ? '#111' : 'var(--text-2)',
+                border: 'none',
+                cursor: 'pointer',
+                opacity: plan ? 1 : 0.4,
+              }}
+            >
+              Full building
+            </button>
+          </div>
+          {effective === 'building' && plan && (
+            <span
+              className="mono"
+              style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.06em' }}
+            >
+              {plan.columns.length}C · {plan.beams.length}B · {plan.shear_walls.length}W
+            </span>
+          )}
         </div>
-        {mode === 'building' && plan && (
-          <span className="text-[10px] text-[var(--color-text-muted)] font-mono">
-            {plan.columns.length}C · {plan.beams.length}B · {plan.shear_walls.length}W
-          </span>
-        )}
-      </div>
+      )}
 
-      <div className="h-[320px] w-full overflow-hidden rounded-lg border border-[var(--color-border)] bg-black sm:h-[360px]">
-        {mode === 'element' ? (
+      <div className="relative flex-1 w-full overflow-hidden" style={{ background: 'transparent' }}>
+        {effective === 'element' ? (
           <ThreeOverlay element={selectedElement} detectedRebarCount={detectedRebarCount} />
         ) : plan ? (
           <FullBuildingViewer
@@ -65,7 +85,10 @@ export default function BuildingPane({
             onSelectElement={onSelectById}
           />
         ) : (
-          <div className="grid h-full place-items-center text-sm text-[var(--color-text-muted)]">
+          <div
+            className="grid h-full place-items-center text-sm"
+            style={{ color: 'var(--text-3)' }}
+          >
             Upload a project to see the full building
           </div>
         )}

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>RebarGuard · Design Preview</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="tokens.css" />
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Three.js -->
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+
+<!-- Deck -->
+<script src="deck-stage.js"></script>
+
+<style>
+  html, body { background: #000; }
+</style>
+</head>
+<body>
+
+<!-- Tweak defaults (EDITMODE) -->
+<script>
+  window.TWEAKS = /*EDITMODE-BEGIN*/{
+    "accent": "hazard",
+    "verdict": "approve",
+    "score": 68,
+    "debateSpeed": 2300,
+    "gridDensity": "medium"
+  }/*EDITMODE-END*/;
+</script>
+
+<deck-stage width="1600" height="1000">
+  <section data-label="Landing"           id="s1"></section>
+  <section data-label="Quick Scan"        id="s2"></section>
+  <section data-label="Inspection · New"  id="s3"></section>
+  <section data-label="Design System"     id="s4"></section>
+  <section data-label="Bubble Anatomy"    id="s5"></section>
+</deck-stage>
+
+<!-- Shared first, then slides, then mount -->
+<script type="text/babel" data-presets="react" src="shared.jsx"></script>
+<script type="text/babel" data-presets="react" src="slides/01-landing.jsx"></script>
+<script type="text/babel" data-presets="react" src="slides/02-quick.jsx"></script>
+<script type="text/babel" data-presets="react" src="slides/03-inspection.jsx"></script>
+<script type="text/babel" data-presets="react" src="slides/04-designsystem.jsx"></script>
+<script type="text/babel" data-presets="react" src="slides/05-bubble.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+  const mounts = [
+    ['s1', window.LandingSlide],
+    ['s2', window.QuickSlide],
+    ['s3', window.InspectionNewSlide],
+    ['s4', window.DesignSystemSlide],
+    ['s5', window.BubbleAnatomySlide],
+  ];
+  for (const [id, Comp] of mounts) {
+    const el = document.getElementById(id);
+    if (el && Comp) ReactDOM.createRoot(el).render(<Comp />);
+  }
+</script>
+
+<!-- Tweaks panel -->
+<script type="text/babel" data-presets="react">
+  // Minimal tweaks UI: hazard hue + verdict + score override + debate speed
+  function TweaksPanel() {
+    const [open, setOpen] = React.useState(false);
+    const [state, setState] = React.useState(window.TWEAKS);
+
+    React.useEffect(() => {
+      const onMsg = (e) => {
+        if (e.data?.type === '__activate_edit_mode')   setOpen(true);
+        if (e.data?.type === '__deactivate_edit_mode') setOpen(false);
+      };
+      window.addEventListener('message', onMsg);
+      window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+      return () => window.removeEventListener('message', onMsg);
+    }, []);
+
+    const update = (k, v) => {
+      const next = { ...state, [k]: v };
+      setState(next);
+      applyTweaks(next);
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+    };
+
+    if (!open) return null;
+
+    return (
+      <div style={{
+        position: 'fixed', right: 16, bottom: 16, zIndex: 10000,
+        width: 260, background: '#14161c', border: '1px solid #3a4052',
+        borderRadius: 4, color: '#eee', fontFamily: 'IBM Plex Sans, sans-serif',
+        fontSize: 12, boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+      }}>
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid #2a2f3a',
+          fontFamily: 'IBM Plex Mono', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888' }}>
+          Tweaks
+        </div>
+        <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Row label="Accent">
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[['hazard','#FF6A1F'],['amber','#F5B041'],['blue','#3B9EFF'],['green','#4ADE80']].map(([k, c]) => (
+                <button key={k} onClick={() => update('accent', k)} style={{
+                  flex: 1, height: 28, border: state.accent === k ? `2px solid #fff` : '1px solid #2a2f3a',
+                  background: c, cursor: 'pointer', borderRadius: 2,
+                }} />
+              ))}
+            </div>
+          </Row>
+          <Row label="Verdict">
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['approve','conditional','reject'].map(v => (
+                <button key={v} onClick={() => update('verdict', v)} style={{
+                  flex: 1, height: 26, fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase',
+                  background: state.verdict === v ? '#FF6A1F' : 'transparent',
+                  color: state.verdict === v ? '#111' : '#ccc',
+                  border: '1px solid #3a4052', cursor: 'pointer', borderRadius: 2,
+                }}>{v}</button>
+              ))}
+            </div>
+          </Row>
+          <Row label={`Score · ${state.score}`}>
+            <input type="range" min="0" max="100" value={state.score}
+              onChange={(e) => update('score', +e.target.value)}
+              style={{ width: '100%' }} />
+          </Row>
+          <Row label={`Debate speed · ${state.debateSpeed}ms`}>
+            <input type="range" min="500" max="4000" step="100" value={state.debateSpeed}
+              onChange={(e) => update('debateSpeed', +e.target.value)}
+              style={{ width: '100%' }} />
+          </Row>
+          <Row label="Grid density">
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['low','medium','high'].map(g => (
+                <button key={g} onClick={() => update('gridDensity', g)} style={{
+                  flex: 1, height: 26, fontSize: 11,
+                  background: state.gridDensity === g ? '#2a2f3a' : 'transparent',
+                  color: '#ccc', border: '1px solid #3a4052', cursor: 'pointer', borderRadius: 2,
+                }}>{g}</button>
+              ))}
+            </div>
+          </Row>
+        </div>
+      </div>
+    );
+  }
+  function Row({ label, children }) {
+    return (
+      <div>
+        <div style={{ fontSize: 10, color: '#888', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+        {children}
+      </div>
+    );
+  }
+  function applyTweaks(t) {
+    // Hazard hue swap
+    const map = { hazard: '#FF6A1F', amber: '#F5B041', blue: '#3B9EFF', green: '#4ADE80' };
+    document.documentElement.style.setProperty('--hazard', map[t.accent] || '#FF6A1F');
+    // Grid density
+    const sz = t.gridDensity === 'low' ? 60 : t.gridDensity === 'high' ? 24 : 40;
+    document.querySelectorAll('.bp-grid').forEach(el => {
+      el.style.backgroundSize = `${sz}px ${sz}px, ${sz}px ${sz}px, 100% 100%`;
+    });
+  }
+  applyTweaks(window.TWEAKS);
+  const tweakMount = document.createElement('div');
+  document.body.appendChild(tweakMount);
+  ReactDOM.createRoot(tweakMount).render(<TweaksPanel />);
+</script>
+
+</body>
+</html>

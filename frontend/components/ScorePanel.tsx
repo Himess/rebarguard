@@ -1,85 +1,131 @@
 'use client';
 
-export type Score = {
-  overall: number;
-  geometry: number;
-  compliance: number;
-  fraud: number;
-  risk: number;
-  material: number;
-  cover: number;
-};
-
+export type CategoryScore = { name: string; score: number };
 export type Verdict = 'approve' | 'conditional' | 'reject';
 
-const VERDICT_COLOR: Record<Verdict, string> = {
-  approve: 'var(--color-ok)',
-  conditional: 'var(--color-warn)',
-  reject: 'var(--color-danger)',
-};
-const VERDICT_LABEL: Record<Verdict, string> = {
-  approve: 'APPROVE',
-  conditional: 'CONDITIONAL',
-  reject: 'REJECT',
+const VERDICT_MAP: Record<Verdict, { label: string; color: string; sub: string }> = {
+  approve:     { label: 'APPROVED',    color: 'var(--green)',  sub: 'Ready for pour' },
+  conditional: { label: 'CONDITIONAL', color: 'var(--yellow)', sub: 'Fix required — re-run' },
+  reject:      { label: 'REJECTED',    color: 'var(--red)',    sub: 'Block pour — structural' },
 };
 
-export default function ScorePanel({
+type Props = {
+  score: number;
+  verdict: Verdict | null;
+  categories: CategoryScore[];
+  moderatorNarrative?: string | null;
+  onExport?: () => void;
+  onAck?: () => void;
+};
+
+export function ScorePanel({
   score,
   verdict,
-  narrative,
-}: {
-  score: Score | null;
-  verdict: Verdict | null;
-  narrative: string | null;
-}) {
-  if (!score || !verdict) {
-    return (
-      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-6 text-sm text-[var(--color-text-muted)]">
-        Waiting for moderator verdict...
-      </div>
-    );
-  }
-  const categories: [keyof Score, string][] = [
-    ['geometry', 'Geometry'],
-    ['compliance', 'Code compliance'],
-    ['fraud', 'Fraud'],
-    ['risk', 'Seismic risk'],
-    ['material', 'Material'],
-    ['cover', 'Concrete cover'],
-  ];
+  categories,
+  moderatorNarrative,
+  onExport,
+  onAck,
+}: Props) {
+  const R = 74;
+  const C = 2 * Math.PI * R;
+  const pct = Math.max(0, Math.min(1, score / 100));
+  const v = verdict ? VERDICT_MAP[verdict] : null;
 
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-panel)] p-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-wider text-[var(--color-text-muted)]">
-            Overall score
+    <div
+      style={{
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        flex: 1,
+        minHeight: 0,
+        overflow: 'auto',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <svg width="120" height="120" viewBox="-85 -85 170 170">
+          <circle r={R} fill="none" stroke="var(--line-1)" strokeWidth="10" />
+          <circle
+            r={R}
+            fill="none"
+            stroke={v?.color ?? 'var(--text-3)'}
+            strokeWidth="10"
+            strokeDasharray={`${C * pct} ${C}`}
+            transform="rotate(-90)"
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dasharray 200ms linear' }}
+          />
+          <text
+            x="0"
+            y="6"
+            textAnchor="middle"
+            style={{
+              font: '500 44px var(--font-mono)',
+              fill: 'var(--text-0)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            {Math.round(score)}
+          </text>
+          <text
+            x="0"
+            y="28"
+            textAnchor="middle"
+            style={{
+              font: '500 10px var(--font-mono)',
+              fill: 'var(--text-3)',
+              letterSpacing: '0.12em',
+            }}
+          >
+            / 100
+          </text>
+        </svg>
+        <div style={{ flex: 1 }}>
+          <div
+            className="mono"
+            style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.1em', marginBottom: 4 }}
+          >
+            VERDICT
           </div>
-          <div className="mt-1 text-5xl font-semibold">{Math.round(score.overall)}</div>
-          <div className="text-xs text-[var(--color-text-muted)]">/ 100</div>
-        </div>
-        <div
-          className="rounded px-3 py-1 text-xs font-semibold"
-          style={{ background: VERDICT_COLOR[verdict], color: '#000' }}
-        >
-          {VERDICT_LABEL[verdict]}
+          {v ? (
+            <>
+              <div
+                className="slam-down"
+                key={v.label}
+                style={{
+                  fontSize: 22,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                  color: v.color,
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {v.label}
+              </div>
+              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-2)' }}>{v.sub}</div>
+            </>
+          ) : (
+            <div style={{ fontSize: 14, color: 'var(--text-2)' }}>Awaiting moderator…</div>
+          )}
         </div>
       </div>
 
-      <div className="mt-6 space-y-2">
-        {categories.map(([key, label]) => {
-          const v = Math.round(score[key]);
-          const color = v >= 80 ? 'var(--color-ok)' : v >= 55 ? 'var(--color-warn)' : 'var(--color-danger)';
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {categories.map((c) => {
+          const color =
+            c.score >= 80 ? 'var(--green)' : c.score >= 60 ? 'var(--yellow)' : 'var(--red)';
           return (
-            <div key={key} className="text-xs">
-              <div className="flex justify-between text-[var(--color-text-muted)]">
-                <span>{label}</span>
-                <span>{v}</span>
+            <div key={c.name}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, marginBottom: 2 }}>
+                <span style={{ color: 'var(--text-1)' }}>{c.name}</span>
+                <span className="mono num" style={{ color: 'var(--text-0)' }}>
+                  {Math.round(c.score)}
+                </span>
               </div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded bg-white/5">
+              <div style={{ height: 3, background: 'var(--bg-3)', borderRadius: 2, overflow: 'hidden' }}>
                 <div
-                  className="h-full transition-all"
-                  style={{ width: `${v}%`, background: color }}
+                  style={{ width: `${c.score}%`, height: '100%', background: color, transition: 'width 400ms ease' }}
                 />
               </div>
             </div>
@@ -87,11 +133,40 @@ export default function ScorePanel({
         })}
       </div>
 
-      {narrative && (
-        <p className="mt-6 border-t border-[var(--color-border)] pt-4 text-sm leading-relaxed text-[var(--color-text-muted)]">
-          {narrative}
-        </p>
+      {moderatorNarrative && (
+        <div
+          style={{
+            padding: '8px 10px',
+            background: 'var(--bg-0)',
+            border: '1px solid var(--amber-ring)',
+            borderLeft: '3px solid var(--amber)',
+            borderRadius: 3,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <span className="chip amber" style={{ height: 16, fontSize: 9 }}>
+              HERMES-4-70B · SYNTHESIS
+            </span>
+          </div>
+          <div style={{ fontSize: 11, lineHeight: 1.45, color: 'var(--text-1)' }}>
+            {moderatorNarrative}
+          </div>
+        </div>
       )}
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
+        <button className="btn ghost sm" style={{ flex: 1 }} onClick={onExport} disabled={!onExport}>
+          Export
+        </button>
+        <button
+          className="btn primary sm"
+          style={{ flex: 1 }}
+          onClick={onAck}
+          disabled={!onAck || !v}
+        >
+          Acknowledge &amp; re-inspect
+        </button>
+      </div>
     </div>
   );
 }
