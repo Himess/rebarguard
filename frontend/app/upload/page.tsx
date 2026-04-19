@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { TopNav } from '@/components/TopNav';
 import { uploadProject } from '@/lib/api';
 
 export default function UploadPage() {
@@ -26,48 +27,183 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <Link href="/" className="text-xs text-[var(--color-text-muted)] hover:text-white">
-        ← home
-      </Link>
-      <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-        Upload the approved project PDF
-      </h1>
-      <p className="mt-2 text-sm text-[var(--color-text-muted)]">
-        Municipality-approved reinforced-concrete structural drawing. Kimi K2.5 will extract the
-        column schedule.
-      </p>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-1)' }}>
+      <TopNav projectContext="PROJ · NEW UPLOAD" />
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-panel)] px-6 py-12 hover:border-white/30">
-          <div className="text-sm">
-            {pdf ? pdf.name : 'Choose a PDF or drag it here'}
-          </div>
-          <div className="text-xs text-[var(--color-text-muted)]">
-            {pdf ? `${(pdf.size / 1024 / 1024).toFixed(1)} MB` : 'Max 25 MB'}
-          </div>
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={(e) => setPdf(e.target.files?.[0] ?? null)}
-            className="hidden"
-          />
-        </label>
+      {/* Breadcrumb */}
+      <div
+        style={{
+          height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 24px',
+          borderBottom: '1px solid var(--line-1)',
+          background: 'var(--bg-1)',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          letterSpacing: '0.06em',
+          color: 'var(--text-2)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link
+            href="/dashboard"
+            style={{
+              color: 'var(--text-2)',
+              textDecoration: 'none',
+              letterSpacing: '0.06em',
+            }}
+          >
+            PROJECTS
+          </Link>
+          <span style={{ color: 'var(--text-3)' }}>/</span>
+          <span style={{ color: 'var(--text-0)' }}>UPLOAD</span>
+        </div>
+        <div style={{ color: 'var(--text-3)' }}>ACCEPTS · PDF · DWG · MAX 25 MB</div>
+      </div>
 
-        {err && (
-          <div className="rounded border border-red-400/40 bg-red-500/10 p-3 text-sm text-red-300">
-            {err}
-          </div>
-        )}
+      <div
+        style={{
+          padding: 40,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 24,
+        }}
+      >
+        <div style={{ textAlign: 'center', maxWidth: 560 }}>
+          <span className="chip hazard">01 · PROJECT INGESTION</span>
+          <h1
+            style={{
+              margin: '14px 0 10px',
+              fontSize: 32,
+              fontWeight: 600,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Upload the approved project
+          </h1>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.55 }}>
+            Drop the municipality-approved structural drawing — PDF or DWG plot. Kimi K2.5
+            will extract metadata, column schedule, beams, walls and slabs in the next
+            ~30 seconds.
+          </p>
+        </div>
 
-        <button
-          type="submit"
-          disabled={!pdf || busy}
-          className="rounded bg-[var(--color-accent)] px-5 py-3 text-sm font-medium text-black disabled:opacity-40"
+        <form
+          onSubmit={onSubmit}
+          style={{ width: '100%', maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 14 }}
         >
-          {busy ? 'Parsing with Kimi K2.5...' : 'Upload and parse project'}
-        </button>
-      </form>
-    </main>
+          <label
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 10,
+              padding: '48px 32px',
+              border: '1px dashed var(--line-2)',
+              background: 'var(--bg-2)',
+              borderRadius: 6,
+              cursor: 'pointer',
+              textAlign: 'center',
+            }}
+          >
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path
+                d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"
+                stroke="var(--hazard)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div style={{ fontSize: 14, color: 'var(--text-0)' }}>
+              {pdf ? pdf.name : 'Drag & drop plan, or click to browse'}
+            </div>
+            <div className="mono" style={{ fontSize: 11, color: 'var(--text-3)', letterSpacing: '0.06em' }}>
+              {pdf ? `${(pdf.size / 1024 / 1024).toFixed(1)} MB` : 'PDF · DWG · MAX 25 MB'}
+            </div>
+            <input
+              type="file"
+              accept="application/pdf,.dwg"
+              onChange={(e) => setPdf(e.target.files?.[0] ?? null)}
+              style={{ display: 'none' }}
+            />
+          </label>
+
+          {err && (
+            <div
+              style={{
+                padding: '10px 14px',
+                border: '1px solid color-mix(in oklch, var(--red) 40%, var(--line-2))',
+                background: 'color-mix(in oklch, var(--red) 12%, var(--bg-2))',
+                color: 'var(--text-1)',
+                fontSize: 13,
+                borderRadius: 4,
+              }}
+            >
+              <span className="mono" style={{ color: 'var(--red)', letterSpacing: '0.06em' }}>
+                UPLOAD FAILED
+              </span>{' '}
+              — {err}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Link href="/dashboard" className="btn ghost" style={{ flex: 1, textDecoration: 'none' }}>
+              Back to dashboard
+            </Link>
+            <button
+              type="submit"
+              className="btn primary"
+              style={{ flex: 2 }}
+              disabled={!pdf || busy}
+            >
+              {busy ? 'Parsing with Kimi K2.5…' : 'Parse & continue →'}
+            </button>
+          </div>
+        </form>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: 12,
+            width: '100%',
+            maxWidth: 900,
+            marginTop: 40,
+          }}
+        >
+          {[
+            { step: '01', title: 'Ingest', body: 'PDF/DWG → Kimi K2.5 OCR → structured StructuralPlan' },
+            { step: '02', title: 'Inspect', body: 'Site photos → 7-agent debate → geometry / code / fraud / risk' },
+            { step: '03', title: 'Authorize', body: 'Moderator verdict → belediye agent → human pour-approval' },
+          ].map((s) => (
+            <div
+              key={s.step}
+              style={{
+                padding: '14px 16px',
+                background: 'var(--bg-2)',
+                border: '1px solid var(--line-1)',
+                borderRadius: 4,
+              }}
+            >
+              <div
+                className="mono"
+                style={{
+                  fontSize: 10,
+                  color: 'var(--hazard)',
+                  letterSpacing: '0.1em',
+                  marginBottom: 6,
+                }}
+              >
+                {s.step} · {s.title.toUpperCase()}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-1)', lineHeight: 1.5 }}>{s.body}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

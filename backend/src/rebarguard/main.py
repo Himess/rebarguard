@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from rebarguard.config import get_settings
-from rebarguard.routers import demo, inspections, projects
+from rebarguard.routers import demo, inspections, projects, quick
 
 
 @asynccontextmanager
@@ -38,4 +38,5 @@ async def health() -> dict[str, str]:
 
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 app.include_router(inspections.router, prefix="/api/inspections", tags=["inspections"])
+app.include_router(quick.router, prefix="/api/quick", tags=["quick"])
 app.include_router(demo.router, prefix="/api/demo", tags=["demo"])

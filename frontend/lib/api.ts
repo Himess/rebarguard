@@ -165,6 +165,28 @@ export async function listProjects(): Promise<Project[]> {
   return res.json();
 }
 
+export type QuickFinding = {
+  title: string;
+  severity: 'fail' | 'warn' | 'info';
+  bbox: { x: number; y: number; w: number; h: number };
+  detail: string;
+  ref: string | null;
+};
+
+export type QuickScanResult = {
+  findings: QuickFinding[];
+  elapsed_s: number;
+  model: string;
+};
+
+export async function analyzeQuickPhoto(photo: File): Promise<QuickScanResult> {
+  const fd = new FormData();
+  fd.append('photo', photo);
+  const res = await fetch(`${BACKEND_URL}/api/quick/analyze`, { method: 'POST', body: fd });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export type InspectionRequest = {
   projectId: string;
   elementId: string;

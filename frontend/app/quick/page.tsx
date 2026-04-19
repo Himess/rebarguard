@@ -1,51 +1,85 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { TopNav } from '@/components/TopNav';
-import { BACKEND_URL } from '@/lib/api';
+import { analyzeQuickPhoto, BACKEND_URL, type QuickFinding } from '@/lib/api';
 
-type Finding = {
-  id: string;
-  x: number;
-  y: number;
+type DisplayFinding = QuickFinding & {
+  cx: number;
+  cy: number;
   r: number;
-  severity: 'fail' | 'warn' | 'info';
-  title: string;
-  detail: string;
-  ref?: string;
 };
 
-const DEMO_FINDINGS: Finding[] = [
-  { id: 'f1', x: 0.28, y: 0.42, r: 48, severity: 'fail',  title: 'Cover < 25mm',         detail: '22mm measured at bottom-left corner. TS 500 minimum violated.',   ref: 'TBDY 7.3.4.2' },
-  { id: 'f2', x: 0.62, y: 0.34, r: 36, severity: 'warn',  title: 'Stirrup spacing drift', detail: 'Ø10 stirrup pitch 140mm, spec 100mm in confinement zone.',         ref: 'TBDY 7.3.6' },
-  { id: 'f3', x: 0.48, y: 0.72, r: 28, severity: 'info',  title: 'Splice length OK',      detail: '40Ø splice verified against S-04 sheet.',                           ref: 'TS 500 7.2' },
-  { id: 'f4', x: 0.78, y: 0.60, r: 32, severity: 'warn',  title: 'Spacer missing',        detail: 'No plastic spacer visible — potential cover drop.',                  ref: 'TS 500 7.4' },
+function bboxToCircle(f: QuickFinding): DisplayFinding {
+  const cx = f.bbox.x + f.bbox.w / 2;
+  const cy = f.bbox.y + f.bbox.h / 2;
+  const r = Math.max(20, Math.min(72, Math.max(f.bbox.w, f.bbox.h) * 100 * 4.5));
+  return { ...f, cx, cy, r };
+}
+
+const DEMO_FALLBACK: QuickFinding[] = [
+  { title: 'Cover < 25mm',         severity: 'fail', bbox: { x: 0.22, y: 0.36, w: 0.12, h: 0.10 }, detail: '22mm measured at bottom-left corner. TS 500 minimum violated.',   ref: 'TBDY 7.3.4.2' },
+  { title: 'Stirrup spacing drift', severity: 'warn', bbox: { x: 0.55, y: 0.28, w: 0.09, h: 0.08 }, detail: 'Ø10 stirrup pitch 140mm, spec 100mm in confinement zone.',          ref: 'TBDY 7.3.6' },
+  { title: 'Splice length OK',      severity: 'info', bbox: { x: 0.44, y: 0.68, w: 0.07, h: 0.06 }, detail: '40Ø splice verified against S-04 sheet.',                            ref: 'TS 500 7.2' },
+  { title: 'Spacer missing',        severity: 'warn', bbox: { x: 0.72, y: 0.55, w: 0.08, h: 0.07 }, detail: 'No plastic spacer visible — potential cover drop.',                   ref: 'TS 500 7.4' },
 ];
 
-const colorFor = (s: Finding['severity']) =>
+const colorFor = (s: QuickFinding['severity']) =>
   s === 'fail' ? 'var(--red)' : s === 'warn' ? 'var(--yellow)' : 'var(--blue)';
 
 export default function QuickScanPage() {
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
-  const findings = DEMO_FINDINGS; // TODO day 6: call POST /api/quick/analyze
-  const surfaceRef = useRef<HTMLDivElement>(null);
+  const [findings, setFindings] = useState<QuickFinding[]>(DEMO_FALLBACK);
+  const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState<number | null>(null);
+  const [model, setModel] = useState<string>('moonshotai/kimi-k2.5');
+  const [err, setErr] = useState<string | null>(null);
+  const [usingDemo, setUsingDemo] = useState(true);
 
-  const meta = useMemo(() => {
-    if (!file) return 'IMG_PLACEHOLDER · PRE-POUR · 3.2 MB';
-    return `${file.name.toUpperCase()} · ${(file.size / 1024 / 1024).toFixed(1)} MB`;
-  }, [file]);
+  const display: DisplayFinding[] = useMemo(
+    () => findings.map(bboxToCircle),
+    [findings],
+  );
 
-  function onPick(f: File | null) {
-    setFile(f);
+  async function onPick(f: File | null) {
     if (url) URL.revokeObjectURL(url);
+    setFile(f);
     setUrl(f ? URL.createObjectURL(f) : null);
+    setErr(null);
+    setHovered(null);
+    if (!f) {
+      setFindings(DEMO_FALLBACK);
+      setUsingDemo(true);
+      setElapsed(null);
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await analyzeQuickPhoto(f);
+      setFindings(result.findings.length > 0 ? result.findings : []);
+      setElapsed(result.elapsed_s);
+      setModel(result.model);
+      setUsingDemo(false);
+    } catch (e) {
+      setErr((e as Error).message);
+      setFindings(DEMO_FALLBACK);
+      setUsingDemo(true);
+    } finally {
+      setLoading(false);
+    }
   }
 
+  const meta = useMemo(() => {
+    if (!file) return 'NO PHOTO · DEMO DATA';
+    const sizeMb = (file.size / 1024 / 1024).toFixed(1);
+    return `${file.name.toUpperCase()} · ${sizeMb} MB`;
+  }, [file]);
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-0)' }}>
-      <TopNav />
+    <div style={{ minHeight: '100vh', background: 'var(--bg-1)' }}>
+      <TopNav projectContext="PROJ · QUICK SCAN" />
 
       <div
         style={{
@@ -77,7 +111,7 @@ export default function QuickScanPage() {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <label className="btn ghost sm" style={{ cursor: 'pointer' }}>
-                Replace photo
+                {file ? 'Replace photo' : 'Upload photo'}
                 <input
                   type="file"
                   accept="image/*"
@@ -85,7 +119,9 @@ export default function QuickScanPage() {
                   style={{ display: 'none' }}
                 />
               </label>
-              <button className="btn sm" disabled>Export report</button>
+              <button className="btn sm" disabled>
+                Export report
+              </button>
               <button className="btn primary sm" disabled={!file}>
                 Promote to full inspection →
               </button>
@@ -93,7 +129,6 @@ export default function QuickScanPage() {
           </div>
 
           <div
-            ref={surfaceRef}
             style={{
               flex: 1,
               position: 'relative',
@@ -125,76 +160,40 @@ export default function QuickScanPage() {
             <svg
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                pointerEvents: 'none',
-              }}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
             >
-              {findings.map((f) => {
+              {display.map((f, idx) => {
                 const c = colorFor(f.severity);
-                const active = hovered === f.id;
+                const active = hovered === `f${idx}`;
                 const rU = f.r / 10;
                 return (
                   <g
-                    key={f.id}
+                    key={idx}
                     style={{ pointerEvents: 'auto', cursor: 'pointer' }}
-                    onMouseEnter={() => setHovered(f.id)}
+                    onMouseEnter={() => setHovered(`f${idx}`)}
                     onMouseLeave={() => setHovered(null)}
                   >
-                    <circle
-                      cx={f.x * 100}
-                      cy={f.y * 100}
-                      r={rU * 1.4}
-                      fill={c}
-                      opacity={active ? 0.12 : 0.05}
-                    />
-                    <circle
-                      cx={f.x * 100}
-                      cy={f.y * 100}
-                      r={rU}
-                      fill="none"
-                      stroke={c}
-                      strokeWidth="0.25"
-                      opacity="0.9"
-                    />
-                    <circle cx={f.x * 100} cy={f.y * 100} r={rU * 0.35} fill={c} />
-                    <line
-                      x1={f.x * 100 - rU * 1.4}
-                      y1={f.y * 100}
-                      x2={f.x * 100 - rU * 0.7}
-                      y2={f.y * 100}
-                      stroke={c}
-                      strokeWidth="0.2"
-                    />
-                    <line
-                      x1={f.x * 100 + rU * 0.7}
-                      y1={f.y * 100}
-                      x2={f.x * 100 + rU * 1.4}
-                      y2={f.y * 100}
-                      stroke={c}
-                      strokeWidth="0.2"
-                    />
+                    <circle cx={f.cx * 100} cy={f.cy * 100} r={rU * 1.4} fill={c} opacity={active ? 0.14 : 0.06} />
+                    <circle cx={f.cx * 100} cy={f.cy * 100} r={rU} fill="none" stroke={c} strokeWidth="0.25" opacity="0.9" />
+                    <circle cx={f.cx * 100} cy={f.cy * 100} r={rU * 0.35} fill={c} />
+                    <line x1={f.cx * 100 - rU * 1.4} y1={f.cy * 100} x2={f.cx * 100 - rU * 0.7} y2={f.cy * 100} stroke={c} strokeWidth="0.2" />
+                    <line x1={f.cx * 100 + rU * 0.7} y1={f.cy * 100} x2={f.cx * 100 + rU * 1.4} y2={f.cy * 100} stroke={c} strokeWidth="0.2" />
                   </g>
                 );
               })}
             </svg>
 
-            {findings.map((f, idx) => {
+            {display.map((f, idx) => {
               const c = colorFor(f.severity);
-              const labelRight = f.x < 0.5;
+              const labelRight = f.cx < 0.5;
               return (
                 <div
-                  key={f.id}
+                  key={idx}
                   style={{
                     position: 'absolute',
-                    left: `calc(${f.x * 100}% + ${labelRight ? f.r : -f.r}px)`,
-                    top: `calc(${f.y * 100}% - ${f.r * 0.9}px)`,
-                    transform: labelRight
-                      ? 'translateX(8px)'
-                      : 'translateX(calc(-100% - 8px))',
+                    left: `calc(${f.cx * 100}% + ${labelRight ? f.r : -f.r}px)`,
+                    top: `calc(${f.cy * 100}% - ${f.r * 0.9}px)`,
+                    transform: labelRight ? 'translateX(8px)' : 'translateX(calc(-100% - 8px))',
                     pointerEvents: 'auto',
                   }}
                 >
@@ -233,21 +232,50 @@ export default function QuickScanPage() {
               }}
             >
               <span style={{ padding: '3px 6px', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                41.02°N 28.97°E
+                LIVE KIMI K2.5
               </span>
-              <span style={{ padding: '3px 6px', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                18 APR 14:22
-              </span>
-              <span style={{ padding: '3px 6px', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                MARKER OK
-              </span>
+              {elapsed != null && (
+                <span style={{ padding: '3px 6px', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {elapsed.toFixed(1)}s TOTAL
+                </span>
+              )}
+              {usingDemo && (
+                <span
+                  style={{
+                    padding: '3px 6px',
+                    background: 'rgba(0,0,0,0.6)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    color: 'var(--yellow)',
+                  }}
+                >
+                  DEMO DATA
+                </span>
+              )}
             </div>
 
             <div style={{ position: 'absolute', right: 12, top: 12 }}>
-              <span className="chip blue">KIMI-K2.5 · VISION</span>
+              <span className="chip blue">{model.toUpperCase()} · VISION</span>
             </div>
 
-            {!url && (
+            {loading && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.35)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 13,
+                  letterSpacing: '0.12em',
+                  color: 'var(--hazard)',
+                }}
+              >
+                KIMI K2.5 ANALYZING…
+              </div>
+            )}
+
+            {!url && !loading && (
               <label
                 style={{
                   position: 'absolute',
@@ -292,25 +320,32 @@ export default function QuickScanPage() {
               { label: 'WARN', c: 'var(--yellow)' },
               { label: 'INFO', c: 'var(--blue)' },
             ].map((l) => (
-              <span
-                key={l.label}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 999,
-                    background: l.c,
-                  }}
-                />
+              <span key={l.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: l.c }} />
                 {l.label}
               </span>
             ))}
             <span style={{ marginLeft: 'auto' }}>
-              {findings.length} FINDINGS · 1.8s TOTAL · VIA {BACKEND_URL.replace(/^https?:\/\//, '')}
+              {findings.length} FINDINGS{elapsed != null ? ` · ${elapsed.toFixed(1)}s` : ''} · VIA{' '}
+              {BACKEND_URL.replace(/^https?:\/\//, '')}
             </span>
           </div>
+
+          {err && (
+            <div
+              style={{
+                padding: '8px 12px',
+                background: 'color-mix(in oklch, var(--red) 10%, var(--bg-2))',
+                border: '1px solid color-mix(in oklch, var(--red) 40%, var(--line-2))',
+                color: 'var(--text-1)',
+                fontSize: 12,
+                borderRadius: 3,
+              }}
+            >
+              <span className="mono" style={{ color: 'var(--red)' }}>BACKEND UNAVAILABLE</span>{' '}
+              · {err} · Showing demo data.
+            </div>
+          )}
         </div>
 
         <div
@@ -326,13 +361,27 @@ export default function QuickScanPage() {
             <span style={{ color: 'var(--text-1)' }}>{findings.length}</span>
           </div>
           <div style={{ flex: 1, overflow: 'auto' }}>
+            {findings.length === 0 && (
+              <div
+                className="mono"
+                style={{
+                  padding: '30px 20px',
+                  textAlign: 'center',
+                  fontSize: 11,
+                  color: 'var(--text-3)',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                NO DEFECTS DETECTED
+              </div>
+            )}
             {findings.map((f, idx) => {
               const c = colorFor(f.severity);
-              const active = hovered === f.id;
+              const active = hovered === `f${idx}`;
               return (
                 <div
-                  key={f.id}
-                  onMouseEnter={() => setHovered(f.id)}
+                  key={idx}
+                  onMouseEnter={() => setHovered(`f${idx}`)}
                   onMouseLeave={() => setHovered(null)}
                   style={{
                     padding: '14px 16px',
@@ -349,32 +398,17 @@ export default function QuickScanPage() {
                       </span>
                       <span style={{ fontSize: 13, fontWeight: 600 }}>{f.title}</span>
                     </div>
-                    <span
-                      className="chip"
-                      style={{ color: c, borderColor: c, background: 'transparent' }}
-                    >
+                    <span className="chip" style={{ color: c, borderColor: c, background: 'transparent' }}>
                       {f.severity.toUpperCase()}
                     </span>
                   </div>
-                  <div
-                    style={{
-                      marginTop: 6,
-                      fontSize: 12,
-                      color: 'var(--text-2)',
-                      lineHeight: 1.45,
-                    }}
-                  >
+                  <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text-2)', lineHeight: 1.45 }}>
                     {f.detail}
                   </div>
                   {f.ref && (
                     <div
                       className="mono"
-                      style={{
-                        marginTop: 4,
-                        fontSize: 10,
-                        color: 'var(--text-3)',
-                        letterSpacing: '0.06em',
-                      }}
+                      style={{ marginTop: 4, fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.06em' }}
                     >
                       REF · {f.ref}
                     </div>
@@ -384,7 +418,7 @@ export default function QuickScanPage() {
             })}
           </div>
           <div style={{ padding: 12, borderTop: '1px solid var(--line-1)' }}>
-            <button className="btn" style={{ width: '100%' }} disabled={!file}>
+            <button className="btn" style={{ width: '100%' }} disabled={!file || usingDemo}>
               Add to inspection report
             </button>
           </div>
@@ -407,25 +441,12 @@ function PhotoPlaceholder() {
         `,
       }}
     >
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.35 }}
-      >
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.35 }}>
         {[...Array(8)].map((_, i) => (
           <line key={'v' + i} x1={12 + i * 11} y1="5" x2={12 + i * 11} y2="95" stroke="#8a9cb0" strokeWidth="0.4" />
         ))}
         {[...Array(6)].map((_, i) => (
-          <line
-            key={'h' + i}
-            x1="5"
-            y1={15 + i * 14}
-            x2="95"
-            y2={15 + i * 14}
-            stroke="#8a9cb0"
-            strokeWidth="0.3"
-            strokeDasharray="0.8 0.4"
-          />
+          <line key={'h' + i} x1="5" y1={15 + i * 14} x2="95" y2={15 + i * 14} stroke="#8a9cb0" strokeWidth="0.3" strokeDasharray="0.8 0.4" />
         ))}
       </svg>
       <div
@@ -441,7 +462,7 @@ function PhotoPlaceholder() {
           textTransform: 'uppercase',
         }}
       >
-        [ site photo · pre-pour ]
+        [ demo annotations · upload to run live ]
       </div>
     </div>
   );
