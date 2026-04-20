@@ -157,9 +157,13 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
 
 ## Current state (update every session)
 
-- **Last updated:** 2026-04-18 (Day 1 complete + Day 2 AM research spike complete)
-- **Current day:** 2 of 16
-- **Active task:** Day 2 PM — awaiting user to run `hermes login --provider nous` (OAuth), then refactor runtime to cli mode
+- **Last updated:** 2026-04-20 (Days 1–14 complete, frontend LIVE on Vercel, GPG history verified)
+- **Current day:** 15 of 16
+- **Active task:** Fly.io backend deploy (launch + OAuth + swap `NEXT_PUBLIC_BACKEND_URL`) → then Day 15 demo video + Day 16 submission
+- **Production URLs:**
+  - Frontend: **https://rebarguard.vercel.app** (prod, fra1, auto-deploys on push to `main`)
+  - Backend: **pending** — `fly.toml` + `Dockerfile` ready; `rebarguard-api.fly.dev` reserved as target URL
+  - GitHub: **https://github.com/Himess/rebarguard** (public, 33 commits, **100% GPG-verified**)
 
 ### Day 2 AM findings (Hermes Agent v0.10.0 on WSL2)
 
@@ -275,6 +279,107 @@ Validation:
 - `BuildingPane` toggle: "Inspected element" ↔ "Full building". Default is element mode
   so the first-paint is cheap.
 
+### Days 5–14 shipped summary (all executed in the 2026-04-19 / 04-20 push)
+
+Because the hackathon-budget burn rate was faster than originally planned, Days 5–14 all
+landed in a ~36-hour compressed session. Each day below is a real commit on `main` — see
+`git log` for exact SHAs and diffs.
+
+**Day 5 — GitHub + Claude Design adoption + 60% 3D hero layout**
+- Public repo created: `github.com/Himess/rebarguard`, first push.
+- Claude Design slides (01 landing / 02 quick / 03 building-3d) ported pixel-perfect.
+- `app/globals.css` rewritten with OKLCH palette from Claude Design tokens
+  (`--hazard #FF6A1F`, `--amber`, `--blue`, `--agent-1..9`, `--bg-0..4`, `--text-0..3`,
+  `--line-1..3`). IBM Plex Sans + Mono wired via `next/font/google`. `.btn/.chip/.panel/
+  .bp-grid/.hatch` utility classes + `fadeIn/slamDown/bp` keyframes.
+- `/inspection/new` refactored to the 60% 3D hero layout (320 px left rail → 3D centre
+  → debate + score split bottom). Old 3-pane layout retired.
+
+**Day 6 — Photo annotation overlay (Kimi bbox → SVG)**
+- `QUICK_SCAN_PROMPT_TEMPLATE` asks Kimi for up to 6 findings with normalized bbox
+  `{x, y, w, h}` in `[0, 1]`, severity (`fail|warn|info`), detail, ref, confidence.
+- `/quick` route: drop image → `POST /api/quick/analyze` → live SVG circle callouts
+  rendered via `bboxToCircle()`. Click a circle → side-panel detail with `ConfidenceChip`
+  and clickable REF badge.
+- Fallback `DEMO_FALLBACK` kicks in if backend offline (offline-friendly demo).
+
+**Day 7 — Stage-by-stage workflow**
+- `InspectionStage` enum added: `foundation | ground_floor | mid_floor | roof | other`.
+- `InspectionJob` / `/api/inspections/stream` / `InspectionRequest` accept `stage` param.
+- UI stage dropdown in `/inspection/new` left rail drives both the SSE stream param AND
+  the 3D highlight (via `stageToFloorIndex()`).
+
+**Day 8 — Belediye Agent (9th) + 2-step approval path**
+- New `agents/municipality.py` — Hermes 4 70B reviewer that re-verifies the Moderator
+  verdict as an independent municipal check. Hard safety rail: it **can never uphold** a
+  `REJECT` verdict (forced to `escalate_to_human` in that branch).
+- `AgentRole.MUNICIPALITY` added; orchestrator emits a 9th SSE bubble after Moderator.
+- Two-step gate: 7 agents → Moderator synthesis → Belediye counter-review → (manual
+  engineer signature step wired in UI, actual auth deferred).
+
+**Day 9 — Curated TBDY 2018 + TS 500 RAG + confidence + clickable REF**
+- `backend/src/rebarguard/rag/regulations.py` — 16 curated `Article` dataclass entries
+  (code, document, chapter, EN+TR title/text, source, tags). TBDY articles marked
+  `source="document"` (grounded in AFAD PDF); TS 500 entries marked `source="summary"`
+  (TSE paywall — academic summaries, flagged "NOT OFFICIAL TEXT" in UI).
+- `GET /api/regulations` (list) + `GET /api/regulations/{code:path}` (by code).
+- `QUICK_SCAN_PROMPT` now injects a **citation whitelist** — Kimi can **only** cite codes
+  in `REGULATIONS`, and `_validate_ref()` silently drops hallucinated refs.
+- `QuickFinding.confidence: float` added.
+- Frontend `ArticleModal` — click a REF badge → modal with EN/TR toggle, "SUMMARY · NOT
+  OFFICIAL TEXT" warning for TS 500, tags row.
+
+**Day 12 — Frontend polish**
+- `VerdictCinema` — full-screen modal on Moderator verdict arrival. Score counts up
+  0→overall over 1600 ms, critical issues fade in every 260 ms, Belediye recommendation
+  badge.
+- `/styleguide` — design system spec page documenting the OKLCH palette, typography,
+  components, motion.
+- Stage-driven 3D highlight: the building viewer reacts to the left-rail stage dropdown
+  (floor index maps via `stageToFloorIndex`).
+
+**Day 13 — Demo scenarios page + dashboard seed button**
+- `/demo` — 3 scenario cards (happy / conditional / reject) with `PatternSvg`
+  schematics (mat / column-cage / wall), expected verdicts, Kimi-anticipated findings
+  teaser, and a "Seed Fıstık into Dashboard" button that `POST /api/demo/fistik`s.
+- Fine-print stat row: `1340 ADA 43 PARSEL · BS30 466.75 m³ · B420C 58 514 kg · 2 280 m²`.
+- `components/SeedFistikButton.tsx` — client wrapper so the same seed action is
+  reachable from the `/dashboard` header (alongside Demo / Quick scan / Upload).
+- `TopNav` reorders to Home / Projects / Inspections / Quick / Demo / Agents.
+
+**Day 14 — Vercel deploy + Fly.io deploy scaffolding**
+- `frontend/vercel.json` — framework pin to Next.js, fra1 region, install/build via
+  `pnpm`, basic security headers.
+- Fixed a static-prerender crash: `/inspection/new`'s `useSearchParams()` is now wrapped
+  in a `<Suspense fallback={null}>` (split into outer `NewInspectionPage` + inner
+  `NewInspection`) — Next 16 Turbopack refuses to prerender client pages that read
+  search params without a boundary.
+- `vercel link` + `vercel --prod --yes` green. **`https://rebarguard.vercel.app` live.**
+- `backend/Dockerfile` — `python:3.11-slim` + `uv` + `poppler-utils` + Hermes Agent CLI
+  (`curl install.sh | bash`). Entrypoint shim symlinks `/root/.hermes → /data/hermes`
+  so the OAuth token persists on the mounted Fly volume across deploys.
+- `backend/fly.toml` — `rebarguard-api` app, 1 CPU / 1 GB, fra region, auto-suspend,
+  `hermes_data` volume mount, `/health` HTTP check, cors via secret.
+- `DEPLOY.md` — single-source deploy guide (Vercel + Fly + first-run OAuth flow +
+  smoke tests). **Backend not yet launched — user runs `fly launch --no-deploy --copy-
+  config`, `fly volumes create hermes_data ...`, `fly deploy`, then `fly ssh console`
+  once to complete the Hermes OAuth device flow.**
+
+**Day 14.5 — GPG history rewrite (100% verified on GitHub)**
+- 31 of 33 commits had been authored with a placeholder email (`noreply@example.com`) so
+  GitHub marked them "Unverified" despite the GPG signature being valid. Two-pass fix:
+  1. `git filter-branch --env-filter` to rewrite author + committer email to
+     `semihcvlk53@gmail.com` across all 33 commits.
+  2. `git filter-branch --commit-filter 'git commit-tree -S "$@"'` to re-sign every
+     commit with GPG key `4F75A83557AF759B` in a single tree-only pass (no working-tree
+     checkout — avoids merge conflicts the rebase approach hit).
+- `git push --force-with-lease origin main` → GitHub API confirms all 33 commits
+  `verification.verified=true, reason=valid`. Backup branch `backup-before-email-fix`
+  retained locally in case of regret.
+- Vercel picked up the force-push and redeployed automatically (same code, new SHAs).
+
+---
+
 ### Day 5 — MAJOR scope expansion (user-directed, locked)
 
 **User's vision shift after seeing the baseline working:**
@@ -341,18 +446,19 @@ Mobile stacks vertically.
 | 2 | 04-18 | Hermes Agent install + subscription OAuth + bridge E2E | ✅ |
 | 3 | 04-18 | Multi-element schema + auto-metadata + poppler | ✅ |
 | 4 | 04-18 | Full-building viewer + Fıstık seed + E2E 7-agent debate green | ✅ |
-| 5 | 04-19 | **GitHub push + layout refactor (60% 3D hero) + Claude Design brief** | 🔄 |
-| 6 | 04-20 | Photo annotation overlay (Kimi bbox → SVG circles + click-detail) | |
-| 7 | 04-21 | Stage-by-stage workflow (foundation → roof staged uploads) | |
-| 8 | 04-22 | Belediye Agent + 2-step approval gate | |
-| 9 | 04-23 | TBDY 2018 RAG (CodeAgent article-level narration) | |
-| 10 | 04-24 | Multi-round Moderator debate (challenge + rebuttal) | |
-| 11 | 04-25 | Supabase persistence + role-based dashboard views | |
-| 12 | 04-26 | Frontend polish (motion, verdict cinema, agent cards) | |
-| 13 | 04-27 | Demo scenarios curated with Ferhat Baş project | |
-| 14 | 04-28 | Vercel deploy (frontend + Modal/Fly for backend) | |
-| 15 | 04-29 | Demo video shoot + edit (3 min, @NousResearch tag prep) | |
-| 16 | 04-30 — 05-03 | Buffer + submission (Twitter + Discord) | |
+| 5 | 04-19 | GitHub push + layout refactor (60% 3D hero) + Claude Design adoption | ✅ |
+| 6 | 04-19 | Photo annotation overlay (Kimi bbox → SVG circles + click-detail) | ✅ |
+| 7 | 04-19 | Stage-by-stage workflow (foundation → roof staged uploads) | ✅ |
+| 8 | 04-19 | Belediye Agent (9th) + 2-step approval gate | ✅ |
+| 9 | 04-19 | TBDY + TS 500 curated RAG + confidence + clickable REF modal | ✅ |
+| 10 | — | Multi-round Moderator debate (challenge + rebuttal) | ⏭️ DEFERRED (single-round sufficient for demo) |
+| 11 | — | Supabase persistence + role-based dashboard views | ⏭️ DEFERRED to post-hackathon (task #27) |
+| 12 | 04-19 | Frontend polish — verdict cinema + /styleguide + stage-driven 3D highlight | ✅ |
+| 13 | 04-19 | Demo scenarios `/demo` + dashboard Seed Fıstık button | ✅ |
+| 14 | 04-19/20 | **Vercel frontend LIVE** · Fly `Dockerfile`+`fly.toml`+`DEPLOY.md` written · backend launch **pending** | 🔄 |
+| 14.5 | 04-20 | GPG re-sign all 33 commits + fix author email → 100% verified on GitHub | ✅ |
+| 15 | 05-01/02 | Fly deploy + smoke test + 3-min demo video shoot + edit | ⏳ |
+| 16 | 05-03 | Buffer + submission (Twitter @NousResearch + Nous Discord `creative-hackathon-submissions`) | ⏳ |
 
 ### Deferred / cut (to absorb Day 5-8 scope)
 
@@ -364,9 +470,10 @@ Mobile stacks vertically.
 
 ### Publish state
 
-- GitHub: `github.com/Himess/rebarguard` — created + pushed public on Day 5
-- Vercel: pending Day 14
-- Current runtime: WSL-local backend (`http://localhost:8000`) + Next.js dev (`http://localhost:3000`)
+- **GitHub:** `github.com/Himess/rebarguard` — public, 33 commits, 100% GPG-verified (every commit badge-green after Day-14.5 history rewrite).
+- **Vercel:** `https://rebarguard.vercel.app` — prod deploy live (fra1 region). Auto-deploys on `git push origin main` via GitHub integration. `himess-projects/rebarguard` project. Env: `NEXT_PUBLIC_BACKEND_URL=http://localhost:8000` (placeholder; swap to Fly URL after backend deploy).
+- **Fly.io:** not yet launched. `backend/Dockerfile`, `backend/fly.toml`, `DEPLOY.md` all written and committed. Target app name: `rebarguard-api` (region `fra`, 1 CPU / 1 GB, auto-suspend, `hermes_data` volume for OAuth persistence).
+- **Current runtime for dev:** WSL-local backend (`http://localhost:8000`) + Vercel prod frontend (which currently points to localhost because no public backend exists yet).
 
 ### Completed in Day 1
 
@@ -401,22 +508,64 @@ Mobile stacks vertically.
 - `.gitignore`, `.env.example` (both backend and frontend)
 - Git initialized, first commit: `71148a5 init: RebarGuard scaffold — backend agents + frontend shell + docs`
 
+### What's left before submission (the only remaining critical path)
+
+**Day 15 — Backend deploy + demo video (HIGHEST PRIORITY)**
+1. **Fly.io backend launch** (~15 min, mostly interactive):
+   - `cd backend && fly launch --no-deploy --copy-config` (keeps checked-in `fly.toml`)
+   - `fly volumes create hermes_data --size 1 --region fra`
+   - `fly secrets set APP_CORS_ORIGINS=https://rebarguard.vercel.app`
+   - `fly deploy`
+   - `fly ssh console` → `hermes auth add nous --type oauth --no-browser` → paste URL
+     to browser → approve → token persisted to `/data/hermes` volume.
+   - Smoke test: `curl https://rebarguard-api.fly.dev/health`, `POST /api/demo/fistik`,
+     `GET /api/regulations/TBDY%207.3.4.2`.
+2. **Swap frontend env**:
+   - Vercel dashboard → Settings → Env Vars → update `NEXT_PUBLIC_BACKEND_URL` to
+     `https://rebarguard-api.fly.dev`.
+   - Trigger redeploy (empty commit or redeploy button).
+3. **Full-flow live test**: open `https://rebarguard.vercel.app/demo` → seed Fıstık →
+   open `/inspection/new?project=<id>` → upload a site photo → watch the SSE 9-agent
+   debate stream against the **public** backend.
+
+**Day 15 PM / 16 — Demo video shoot + submission**
+4. **Shoot the 3-min demo video** — script outline:
+   - 0:00–0:15: hook — "Once concrete pours, the rebar is invisible" + Kahramanmaraş frame
+   - 0:15–0:45: 1340 Ada 43 Parsel PDF upload → metadata auto-extract → 3D building reveal
+   - 0:45–1:45: site-photo upload → live 9-agent debate (model badges visible, Hermes + Kimi on screen) → verdict cinema
+   - 1:45–2:30: `/quick` one-shot scan → annotated bounding boxes → click REF badge → TBDY article modal
+   - 2:30–3:00: `/demo` scenario grid (happy/conditional/reject) + outro "Hermes Agent + Kimi K2.5 via Nous Portal"
+   - Recording: OBS, 1080p, include terminal overlay showing `hermes chat ...` for Hermes track proof.
+5. **Submit**:
+   - Tweet demo video tagging `@NousResearch` + include link to `github.com/Himess/rebarguard` + brief writeup.
+   - Post in Nous Discord `#creative-hackathon-submissions` channel with same content.
+   - Deadline: **2026-05-03 EOD**.
+
 ### Blocked / waiting on user
 
-- **Nous Portal API key** — put in `backend/.env` as `NOUS_PORTAL_API_KEY=sk-...` (user has $10 free tier)
-- **Moonshot API key** — get at https://platform.moonshot.ai, put in `backend/.env` as `MOONSHOT_API_KEY=sk-...`
-- **Roboflow account** (optional) — if downloading the rebar datasets programmatically; else manual download
-- **GitHub repo** — decide name (`rebarguard` vs Turkish alt) and create `github.com/Himess/<name>`, then `git remote add origin ...`
-- **Poppler for Windows** — PlanParserAgent uses `pdf2image` which needs poppler. Install: https://github.com/oschwartz10612/poppler-windows/releases and add to PATH
-- **Real Turkish betonarme project PDFs** (3-4) — user can provide, else I'll search academic / open portfolio
+- **Nothing critical** — we have everything we need for Day 15.
+- Optional: Moonshot API key (only if subscription vision fails during stress test — fallback path `VISION_BACKEND=moonshot` costs ~$5).
 
-### Known TODOs to close in Day 2-10
+### Deferred (post-hackathon or cut)
 
-- `pdf2image` import is lazy in `plan_parser.py` — needs poppler on host
-- RAG is stubbed in `CodeAgent` — deterministic rule engine runs + Hermes 4 70B narrative; pgvector RAG hooked Day 7
-- AFAD in `RiskAgent` is hardcoded for demo — replace with live API Day 8 if accessible
-- Supabase persistence not wired — in-memory `_STORE` dict in `routers/projects.py` — Day 11
-- Hermes Agent framework CLI not yet wrapped — current implementation uses bare `HermesClient` talking to Nous Portal directly. Day 2 decision: either adopt full framework (install via `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash`) or keep bare client. Bare is simpler for SSE streaming; framework helps if we want skills/memory surfaced in UI and gives stronger hackathon alignment
+- **Supabase persistence** (task #27) — in-memory `_STORE` dict is fine for demo + judges.
+  Plan exists in `routers/projects.py` for Postgres swap post-submission.
+- **Real auth / role gating** — global public dashboard is the current demo UX.
+- **Live AFAD API** — hardcoded table is accurate enough; AFAD doesn't publish a clean REST endpoint.
+- **Multi-round Moderator debate (challenge + rebuttal)** — single-round synthesis is
+  already compelling on video; extra rounds just add latency.
+- **DWG reader** — user plots DWG → PDF manually via Autodesk DWG TrueView; our
+  existing PDF pipeline then reads it. No native `.dwg` parse required.
+
+### Known warts (acceptable for demo)
+
+- Kimi calls ~60–90 s each on Nous Portal free tier. Mitigation: demo video uses time-lapse
+  between "upload" and "verdict" moments. Live judging will cold-start Fly (+2–3 s resume).
+- `QUICK_SCAN_PROMPT` variable `QUICK_SCAN_PROMPT` is left as the raw template (no
+  whitelist substitution) for backwards compatibility with older imports — callers must use
+  `build_quick_scan_prompt()` instead. Not a correctness issue, just a footgun.
+- Fly `auto_stop_machines = "suspend"` means first request after idle takes ~2–3 s to
+  resume. Warm with `curl /health` right before the demo video shoot.
 
 ## Environment setup (for future Claude / future me)
 
@@ -478,11 +627,14 @@ cd frontend && pnpm dev
 
 ## Open questions (track here, close as decided)
 
-- [ ] GitHub repo name final: `rebarguard` or something Turkish (`donatibekci`, `demirdenetci`)?
-- [ ] Demo video hosting: raw Twitter/X upload or YouTube link?
-- [ ] Deploy destination for demo: self-hosted backend or Modal/Fly.io?
-- [ ] TS 500 source — paid TSE version vs. open academic summary?
-- [ ] Name for demo building/project in walkthrough?
+- [x] GitHub repo name final: **`rebarguard`** (public, Himess/rebarguard).
+- [x] Deploy destination: **Vercel + Fly.io** (Vercel live; Fly pending launch).
+- [x] TS 500 source — **academic summaries marked "NOT OFFICIAL TEXT"** (TSE paywall
+      acknowledged in UI; 16 curated articles cover the demo findings).
+- [x] Name for demo building/project: **1340 Ada 43 Parsel** (Ferhat Baş, Istanbul).
+- [ ] Demo video hosting: raw Twitter/X upload (1080p) vs YouTube unlisted + Twitter link?
+      Default plan: upload to Twitter directly to maximize judging visibility, YouTube
+      mirror as backup.
 
 ## Research findings (reference)
 
