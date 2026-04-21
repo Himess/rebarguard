@@ -4,6 +4,45 @@
 
 ---
 
+## ⚡ IF YOU'RE A NEW CLAUDE SESSION, START HERE
+
+**Snapshot (2026-04-21):** Days 1–14.5 of 16 shipped. 12 days to deadline
+(2026-05-03 EOD). Frontend live on Vercel. Backend NOT yet deployed. Demo video and
+submission are the only remaining critical path.
+
+**Exact next three actions in order:**
+
+1. **Fly.io backend launch** (~15 min, interactive):
+   ```bash
+   cd C:/Users/USER/Desktop/RebarGuard/backend
+   fly launch --no-deploy --copy-config
+   fly volumes create hermes_data --size 1 --region fra
+   fly secrets set APP_CORS_ORIGINS=https://rebarguard.vercel.app
+   fly deploy
+   fly ssh console
+     # inside: hermes auth add nous --type oauth --no-browser
+     # open the printed URL on laptop, approve, exit
+   curl https://rebarguard-api.fly.dev/health
+   ```
+2. **Swap Vercel env var** `NEXT_PUBLIC_BACKEND_URL` → `https://rebarguard-api.fly.dev`
+   (Vercel dashboard → Settings → Env Vars → edit all three scopes → redeploy).
+3. **Record 3-min demo video** (see script outline below) → tweet tagging
+   `@NousResearch` + post in Nous Discord `#creative-hackathon-submissions`.
+
+Full deploy commands: see `DEPLOY.md`. Outstanding tasks: #40 (Fly), #41 (video),
+#42 (submit).
+
+**User is Turkish-speaking. Reply in Turkish.** Project code/UI/docs are English.
+Never add "Claude AI / Co-Authored-By" to commits. Every commit should be
+GPG-signed (global config already set: `user.email=semihcvlk53@gmail.com`,
+`commit.gpgsign=true`, `user.signingkey=4F75A83557AF759B`) — if a commit lands
+unsigned or with the wrong email, we redo the `filter-branch` pass from Day 14.5.
+
+Parked second-project idea (football VAR agents) — see the "Parked ideas"
+subsection below. Do NOT start it until RebarGuard is shipped.
+
+---
+
 ## Mission (1-sentence)
 
 **RebarGuard** is a multi-agent AI inspector for reinforced-concrete construction sites that analyzes rebar workmanship from photos + approved structural drawings, scores compliance with Turkish codes (TBDY 2018 / TS 500), and gates the concrete-pour approval — built on **Hermes Agent (Nous Research) + Kimi-VL (Moonshot)** for the **Hermes Agent Creative Hackathon 2026**.
@@ -157,13 +196,63 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
 
 ## Current state (update every session)
 
-- **Last updated:** 2026-04-20 (Days 1–14 complete, frontend LIVE on Vercel, GPG history verified)
-- **Current day:** 15 of 16
-- **Active task:** Fly.io backend deploy (launch + OAuth + swap `NEXT_PUBLIC_BACKEND_URL`) → then Day 15 demo video + Day 16 submission
+- **Last updated:** 2026-04-21 (Days 1–14.5 complete, user on pause, Fly deploy is next
+  active task, user floated a second-project idea on 2026-04-21 — see below).
+- **Current day:** 15 of 16 (12 days remain until 2026-05-03 EOD deadline).
+- **Active task:** Fly.io backend launch + OAuth + swap `NEXT_PUBLIC_BACKEND_URL` on
+  Vercel → then Day 15 demo video (Task #41) → Day 16 submission (Task #42).
 - **Production URLs:**
   - Frontend: **https://rebarguard.vercel.app** (prod, fra1, auto-deploys on push to `main`)
-  - Backend: **pending** — `fly.toml` + `Dockerfile` ready; `rebarguard-api.fly.dev` reserved as target URL
-  - GitHub: **https://github.com/Himess/rebarguard** (public, 33 commits, **100% GPG-verified**)
+  - Backend: **pending launch** — `backend/Dockerfile` + `backend/fly.toml` + `DEPLOY.md`
+    ready; target app name `rebarguard-api`, target URL `rebarguard-api.fly.dev`
+  - GitHub: **https://github.com/Himess/rebarguard** (public, 34 commits, **100% GPG-verified**)
+- **Runtime state right now (2026-04-21):**
+  - WSL uvicorn: **stopped** (user asked to kill it because idle; restart with
+    `wsl -d Ubuntu-22.04 -- bash -c "cd /mnt/c/Users/USER/Desktop/RebarGuard/backend && uv run uvicorn rebarguard.main:app --reload --host 0.0.0.0 --port 8000"`)
+  - Next.js dev: **not running** (restart with `cd frontend && pnpm dev`)
+  - Vercel prod: live (cloud-side, no local cost)
+
+### Parked ideas / decisions to resume
+
+**Second submission: Football VAR / match analysis (floated 2026-04-21, NOT STARTED)**
+
+User proposed a second hackathon project idea on 2026-04-21:
+- Feed a controversial match clip → Hermes + Kimi agents debate like VAR
+  (offside / handball / foul specialists), or score a 90-min match 0–10 across
+  categories (pass accuracy, distance covered, 1v1 won, aerial duels, missed calls).
+- Rationale from user: "ikinci proje gibi çalışabilirim" — additional submission, not
+  replacement.
+
+My recommendation to user (on the record):
+- **Idea is strong** for the hackathon's "creative domains: video, image, audio, 3D"
+  framing. Better creative-axis fit than RebarGuard's civic-engineering angle.
+- **DO NOT replace RebarGuard.** Ship it first (Fly deploy → video → submit) — it's 95%
+  done, guaranteed to land.
+- **Only add football as a 2nd submission if Fly deploy + video are locked by ~Apr 29.**
+  Nous hackathon likely permits multiple submissions (need to confirm in Discord).
+- **Scope narrow if pursued:** single 10–15 s controversial clip → 4–5 agents (offside /
+  foul / handball / play direction + moderator-referee). Ground in IFAB "Laws of the
+  Game" PDF as RAG (free, public) — TBDY analog. Kimi K2.5 Jan 2026 added video so
+  technically feasible; watch subscription rate limits on heavy video tokens.
+- **DO NOT attempt 90-min match analysis** — 5400 s × 25 fps = frame volume kills
+  latency + subscription quota. Start with the single-play VAR framing.
+- **Footage rights:** amateur clip user shoots + eFootball/FIFA screencap is safe;
+  Süper Lig / UEFA broadcast footage is takedown risk.
+
+If the user comes back and greenlights the football project, the scaffold plan is:
+1. New repo `github.com/Himess/varagent` (or sub-directory of this repo? — ask user)
+2. Reuse `backend/src/rebarguard/hermes_runtime/bridge.py` — proven, copy-paste ready
+3. RAG: scrape IFAB "Laws of the Game" into the same `Article` dataclass shape we
+   already have in `backend/src/rebarguard/rag/regulations.py`
+4. Frontend: fork the `/quick` page pattern — replace image dropzone with video dropzone,
+   replace SVG bbox callouts with temporal-marker overlay (play the clip with agent
+   utterances timestamped).
+
+**Expected prize math (if both submitted):**
+- RebarGuard: Kimi Track 1st ($3.5K) + Main 3rd ($1.5K) realistic, Main 1st ($10K)
+  stretch.
+- Football VAR: Main 1st ($10K) realistic stretch (video-domain fit), Kimi eligible too.
+- Two submissions = two seats at both tables. Pursue only if RebarGuard ships clean.
 
 ### Day 2 AM findings (Hermes Agent v0.10.0 on WSL2)
 
