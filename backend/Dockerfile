@@ -41,7 +41,7 @@ rm -rf /root/.hermes 2>/dev/null || true
 ln -sf /data/hermes /root/.hermes
 exec "$@"
 EOF
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 EXPOSE 8000
 

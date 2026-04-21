@@ -2,7 +2,6 @@
 name = "rebarguard"
 version = "0.1.0"
 description = "Multi-agent AI inspector for reinforced-concrete construction (Hermes + Kimi-VL)"
-readme = "../README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115.0",

@@ -1,0 +1,6 @@
+# Keep shell scripts + Dockerfiles as LF so they run correctly on Linux containers
+# regardless of the OS that authored them.
+*.sh         text eol=lf
+Dockerfile   text eol=lf
+*.Dockerfile text eol=lf
+fly.toml     text eol=lf
