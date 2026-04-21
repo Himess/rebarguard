@@ -6,9 +6,9 @@
 
 ## ⚡ IF YOU'RE A NEW CLAUDE SESSION, START HERE
 
-**Snapshot (2026-04-21):** Days 1–14.5 of 16 shipped. 12 days to deadline
-(2026-05-03 EOD). Frontend live on Vercel. Backend NOT yet deployed. Demo video and
-submission are the only remaining critical path.
+**Snapshot (2026-04-21):** Days 1–14.6 of 16 shipped. Audit (`AUDIT.md`) P0+P1+P2 all
+applied. 12 days to deadline (2026-05-03 EOD). Frontend live on Vercel. Backend NOT
+yet deployed. Demo video and submission are the only remaining critical path.
 
 **Exact next three actions in order:**
 
@@ -454,6 +454,44 @@ landed in a ~36-hour compressed session. Each day below is a real commit on `mai
   config`, `fly volumes create hermes_data ...`, `fly deploy`, then `fly ssh console`
   once to complete the Hermes OAuth device flow.**
 
+**Day 14.6 — Pre-submission audit + P0/P1/P2 fixes**
+- `AUDIT.md` (303 lines) — full repo audit driven by four parallel Explore agents
+  (backend / frontend / deploy+tests / docs+hackathon fit). Scores + prioritized
+  actionable list.
+- **P0 applied:** `LICENSE` file added (MIT — README now honest); `/agents` route
+  built (9 agent cards + 6-step debate-flow chart, kills the TopNav dead link);
+  README fully rewritten with live URL, badges, screenshots grid, run-locally
+  block, repo map, and Turkish-context gloss; prominent `MODEL · moonshotai/kimi-k2.5`
+  chip added to the `/quick` top bar (Kimi-track proof visible in <3 s of camera
+  time).
+- **P1 applied:** deleted three dead components (`ThreeOverlay`, `BuildingPane`,
+  `FullBuildingViewer` — all superseded by `ClaudeBuildingViewer`), dropped three
+  unused deps (`motion`, `lucide-react`, `clsx`), fixed `<img alt>` on `/quick`,
+  made `ArticleModal` actually render its error state (with `role="alert"` +
+  whitelist vs. offline hint), wrapped `ClaudeBuildingViewer` in `React.memo` +
+  hand-written propsEqual so Three.js canvas no longer re-mounts per SSE message,
+  added mobile media queries to `globals.css` (`.landing-hero` stacks <900 px),
+  deduped `moderator._clip()`, removed stale `QUICK_SCAN_PROMPT` alias, and made
+  `/health` report `hermes_runtime` + `vision_backend` + model tags.
+- **P2 applied:** upload size limits (50 MB PDFs, 20 MB photos, max 12 per
+  inspection) via 1 MB streaming reads; tempfile names use `uuid4().hex`, no more
+  user-supplied filenames on disk; image suffix whitelist; `_STORE_LOCK`
+  `asyncio.Lock` guards every mutation of the in-memory store from `projects` +
+  `inspections` + `demo` routers; inspections router cleans up temp dir after SSE
+  stream drains; Kimi `"error"`-shaped responses now degrade to empty findings
+  instead of 500-ing.
+- **Tests:** `backend/tests/test_rag_whitelist.py` (6 tests — articles grounded,
+  cheatsheet injection, `_validate_ref` case/dash tolerant + drops hallucinations)
+  and `backend/tests/test_routes_smoke.py` (10 tests — FastAPI TestClient covers
+  `/health`, `/api/regulations`, `/api/projects`, `/api/demo/fistik`, `/api/quick`
+  + `/api/inspections` 4xx paths). Total pytest: **6 → 21 green**.
+- **CI:** `.github/workflows/ci.yml` runs ruff + pytest on the backend and
+  typecheck + build on the frontend for every push + PR.
+- **Verification:** `HERMES_RUNTIME=direct pytest -q` → 21/21 green,
+  `pnpm typecheck` clean, `pnpm build` green (9 routes prerendered including
+  `/agents`).
+- Commit: `01cb4e9 chore(audit-fixes): apply P0+P1+P2 pre-submission audit findings`.
+
 **Day 14.5 — GPG history rewrite (100% verified on GitHub)**
 - 31 of 33 commits had been authored with a placeholder email (`noreply@example.com`) so
   GitHub marked them "Unverified" despite the GPG signature being valid. Two-pass fix:
@@ -546,6 +584,7 @@ Mobile stacks vertically.
 | 13 | 04-19 | Demo scenarios `/demo` + dashboard Seed Fıstık button | ✅ |
 | 14 | 04-19/20 | **Vercel frontend LIVE** · Fly `Dockerfile`+`fly.toml`+`DEPLOY.md` written · backend launch **pending** | 🔄 |
 | 14.5 | 04-20 | GPG re-sign all 33 commits + fix author email → 100% verified on GitHub | ✅ |
+| 14.6 | 04-21 | Full audit (`AUDIT.md`) + P0+P1+P2 fixes: LICENSE, `/agents` page, README rewrite, Kimi model chip, dead-code deletion, upload size limits, uuid filenames, `_STORE_LOCK`, RAG whitelist tests, HTTP smoke tests, GitHub Actions CI — 21/21 pytest + build green | ✅ |
 | 15 | 05-01/02 | Fly deploy + smoke test + 3-min demo video shoot + edit | ⏳ |
 | 16 | 05-03 | Buffer + submission (Twitter @NousResearch + Nous Discord `creative-hackathon-submissions`) | ⏳ |
 
