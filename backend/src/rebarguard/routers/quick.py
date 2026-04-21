@@ -12,6 +12,7 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any, Literal
+from uuid import uuid4
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
@@ -89,15 +90,34 @@ def _coerce_finding(raw: dict[str, Any]) -> QuickFinding | None:
         return None
 
 
+_MAX_PHOTO_BYTES = 20 * 1024 * 1024  # 20 MB per photo
+
+
 @router.post("/analyze", response_model=QuickScanResult)
 async def analyze(photo: UploadFile = File(...)) -> QuickScanResult:
     if not photo.filename:
         raise HTTPException(400, "photo required")
 
+    suffix = Path(photo.filename).suffix.lower() or ".jpg"
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".heic"}:
+        raise HTTPException(400, f"unsupported image type: {suffix}")
+
     tmp_dir = Path(tempfile.mkdtemp(prefix="rebarguard-quick-"))
-    tmp_path = tmp_dir / photo.filename
+    tmp_path = tmp_dir / f"{uuid4().hex}{suffix}"
+    total = 0
     with tmp_path.open("wb") as f:
-        shutil.copyfileobj(photo.file, f)
+        while True:
+            chunk = await photo.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > _MAX_PHOTO_BYTES:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                raise HTTPException(
+                    413,
+                    f"photo exceeds {_MAX_PHOTO_BYTES // (1024 * 1024)} MB upload limit",
+                )
+            f.write(chunk)
 
     settings = get_settings()
     kimi = get_kimi_client()
@@ -108,6 +128,8 @@ async def analyze(photo: UploadFile = File(...)) -> QuickScanResult:
         parsed = await kimi.analyze_image(tmp_path, prompt, max_tokens=1400)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, f"Kimi call failed: {e}") from e
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
     raw_list: list[dict[str, Any]] = []
     if isinstance(parsed, dict):
@@ -115,9 +137,12 @@ async def analyze(photo: UploadFile = File(...)) -> QuickScanResult:
         if isinstance(items, list):
             raw_list = [x for x in items if isinstance(x, dict)]
         elif "error" in parsed:
-            raise HTTPException(
-                500,
-                f"Kimi returned an error: {parsed.get('error')} — raw: {str(parsed.get('raw'))[:200]}",
+            # Graceful degradation: return empty findings instead of 500-ing so the UI can
+            # still render the photo with a "no findings / retry" state.
+            return QuickScanResult(
+                findings=[],
+                elapsed_s=round(time.perf_counter() - t0, 2),
+                model=settings.hermes_agentic_model,
             )
 
     findings = [f for f in (_coerce_finding(r) for r in raw_list) if f is not None]

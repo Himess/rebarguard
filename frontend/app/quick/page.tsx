@@ -112,7 +112,24 @@ export default function QuickScanPage() {
                 {meta}
               </span>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span
+                className="mono"
+                title="Vision model used for this scan"
+                style={{
+                  padding: '4px 8px',
+                  fontSize: 10,
+                  letterSpacing: '0.08em',
+                  color: 'var(--blue)',
+                  background: 'color-mix(in oklch, var(--blue) 12%, transparent)',
+                  border: '1px solid color-mix(in oklch, var(--blue) 40%, var(--line-2))',
+                  borderRadius: 2,
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                MODEL · {model}
+              </span>
               <label className="btn ghost sm" style={{ cursor: 'pointer' }}>
                 {file ? 'Replace photo' : 'Upload photo'}
                 <input
@@ -145,7 +162,7 @@ export default function QuickScanPage() {
             {url ? (
               <img
                 src={url}
-                alt=""
+                alt={file ? `Site photo ${file.name}` : 'Uploaded site photo'}
                 style={{
                   position: 'absolute',
                   inset: 0,

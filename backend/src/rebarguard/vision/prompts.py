@@ -192,12 +192,12 @@ can actually see. Never invent measurements. Only cite codes on the whitelist.
 
 
 def build_quick_scan_prompt() -> str:
-    """Materializes the QUICK_SCAN_PROMPT with the current regulation whitelist."""
+    """Materializes the quick-scan prompt with the current regulation whitelist.
+
+    Callers must use this function (not the bare template) — the template's
+    `{cheatsheet}` placeholder must be substituted with the runtime regulation list so
+    Kimi only cites codes in `REGULATIONS`.
+    """
     from rebarguard.rag import cheatsheet_for_prompt
 
     return QUICK_SCAN_PROMPT_TEMPLATE.format(cheatsheet=cheatsheet_for_prompt())
-
-
-# Kept as module-level for compatibility with older imports. Materialized lazily so we
-# don't import rag before the module finishes loading.
-QUICK_SCAN_PROMPT = QUICK_SCAN_PROMPT_TEMPLATE  # stale without cheatsheet substitution

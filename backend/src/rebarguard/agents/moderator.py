@@ -143,5 +143,5 @@ def _clip(v, *, fallback: float) -> float:
     try:
         f = float(v)
     except (TypeError, ValueError):
-        return max(0.0, min(100.0, float(fallback)))
+        f = float(fallback)
     return max(0.0, min(100.0, f))

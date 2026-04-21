@@ -122,6 +122,7 @@ export function ArticleModal({
 
         {err && (
           <div
+            role="alert"
             style={{
               padding: '12px 14px',
               background: 'color-mix(in oklch, var(--red) 12%, var(--bg-2))',
@@ -130,12 +131,25 @@ export function ArticleModal({
               fontSize: 12,
               borderRadius: 3,
               margin: '10px 0',
+              lineHeight: 1.55,
             }}
           >
-            <span className="mono" style={{ color: 'var(--red)' }}>
+            <div
+              className="mono"
+              style={{
+                color: 'var(--red)',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                fontSize: 10,
+                marginBottom: 4,
+              }}
+            >
               LOOKUP FAILED
-            </span>
-            — {err}
+            </div>
+            <div style={{ color: 'var(--text-1)' }}>{err}</div>
+            <div style={{ marginTop: 6, color: 'var(--text-3)', fontSize: 11 }}>
+              The code may be outside the curated RAG whitelist, or the backend is offline.
+            </div>
           </div>
         )}
 

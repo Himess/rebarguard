@@ -170,3 +170,24 @@ html, body {
 .typing-dots { letter-spacing: 2px; animation: bp 1.2s infinite; color: var(--text-2); }
 .bubble-fadein { animation: fadeIn 360ms cubic-bezier(.2,.8,.2,1); }
 .slam-down { animation: slamDown 520ms cubic-bezier(.2,1.2,.3,1) both; }
+
+/* Mobile responsive — stack hero vertically, relax padding, allow 3D viewer to shrink. */
+@media (max-width: 900px) {
+  .landing-hero {
+    grid-template-columns: 1fr !important;
+    padding: 48px 22px !important;
+  }
+  .landing-hero h1 {
+    font-size: 44px !important;
+    line-height: 1.02 !important;
+  }
+}
+@media (max-width: 520px) {
+  .landing-hero {
+    padding: 32px 16px !important;
+  }
+  .landing-hero h1 {
+    font-size: 34px !important;
+  }
+}
+

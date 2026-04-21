@@ -8,7 +8,7 @@
  * render identically.
  */
 
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 export function stageToFloorIndex(
@@ -33,7 +33,7 @@ type Props = {
   cagePosition?: [number, number, number];
 };
 
-export function ClaudeBuildingViewer({
+function ClaudeBuildingViewerInner({
   highlightFloorIndex = 2,
   cagePosition = [1.8, 0, 1.2],
 }: Props) {
@@ -166,3 +166,12 @@ export function ClaudeBuildingViewer({
     />
   );
 }
+
+export const ClaudeBuildingViewer = memo(
+  ClaudeBuildingViewerInner,
+  (prev, next) =>
+    prev.highlightFloorIndex === next.highlightFloorIndex &&
+    prev.cagePosition?.[0] === next.cagePosition?.[0] &&
+    prev.cagePosition?.[1] === next.cagePosition?.[1] &&
+    prev.cagePosition?.[2] === next.cagePosition?.[2],
+);

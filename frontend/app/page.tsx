@@ -20,6 +20,7 @@ export default function LandingPage() {
       />
 
       <div
+        className="landing-hero"
         style={{
           position: 'relative',
           display: 'grid',

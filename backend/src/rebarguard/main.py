@@ -32,8 +32,22 @@ app.add_middleware(
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok", "service": "rebarguard", "version": "0.1.0"}
+async def health() -> dict[str, object]:
+    """Lightweight liveness probe used by Fly.io's HTTP check.
+
+    Also reports the active Hermes runtime + vision backend so an on-call or the
+    judging audience can tell at a glance whether the subscription path is in play.
+    No LLM calls are made — token validity is surfaced at first-request time.
+    """
+    return {
+        "status": "ok",
+        "service": "rebarguard",
+        "version": "0.1.0",
+        "hermes_runtime": settings.hermes_runtime,
+        "vision_backend": settings.vision_backend,
+        "agentic_model": settings.hermes_agentic_model,
+        "reasoning_model": settings.hermes_reasoning_model,
+    }
 
 
 app.include_router(projects.router, prefix="/api/projects", tags=["projects"])

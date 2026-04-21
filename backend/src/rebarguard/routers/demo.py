@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from rebarguard.routers.projects import _STORE
+from rebarguard.routers.projects import _STORE, _STORE_LOCK
 from rebarguard.schemas import (
     BeamSchema,
     ColumnSchema,
@@ -157,7 +157,8 @@ async def seed_fistik() -> Project:
     )
 
     proj = Project(plan=plan)
-    _STORE[str(proj.id)] = proj
+    async with _STORE_LOCK:
+        _STORE[str(proj.id)] = proj
     return proj
 
 

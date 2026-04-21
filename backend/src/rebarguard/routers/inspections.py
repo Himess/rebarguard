@@ -1,4 +1,4 @@
-"""Inspections API — site photos in, 7-agent debate streamed over SSE."""
+"""Inspections API — site photos in, 9-agent debate streamed over SSE."""
 
 from __future__ import annotations
 
@@ -7,25 +7,53 @@ import shutil
 import tempfile
 from pathlib import Path
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from sse_starlette.sse import EventSourceResponse
 
-from rebarguard.routers.projects import _STORE
+from rebarguard.routers.projects import _STORE, _STORE_LOCK
 from rebarguard.schemas import AgentMessage, ElementType, InspectionPhase
 from rebarguard.services.inspection import InspectionJob, InspectionOrchestrator
 
 router = APIRouter()
 
+_MAX_PHOTO_BYTES = 20 * 1024 * 1024  # 20 MB per photo
+_MAX_PHOTOS = 12
 
-async def _stream(job: InspectionJob):
-    orchestrator = InspectionOrchestrator()
-    async for msg in orchestrator.run(job):
-        yield {"event": msg.agent.value, "data": _serialize(msg)}
+
+async def _stream(job: InspectionJob, tmp_dir: Path):
+    try:
+        orchestrator = InspectionOrchestrator()
+        async for msg in orchestrator.run(job):
+            yield {"event": msg.agent.value, "data": _serialize(msg)}
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def _serialize(m: AgentMessage) -> str:
     return json.dumps(m.model_dump(mode="json"), ensure_ascii=False)
+
+
+async def _save_upload(src: UploadFile, dest_dir: Path) -> Path:
+    suffix = Path(src.filename or "photo.jpg").suffix.lower() or ".jpg"
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp", ".heic"}:
+        raise HTTPException(400, f"unsupported image type: {suffix}")
+    dest = dest_dir / f"{uuid4().hex}{suffix}"
+    total = 0
+    with dest.open("wb") as f:
+        while True:
+            chunk = await src.read(1024 * 1024)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > _MAX_PHOTO_BYTES:
+                raise HTTPException(
+                    413,
+                    f"photo exceeds {_MAX_PHOTO_BYTES // (1024 * 1024)} MB upload limit",
+                )
+            f.write(chunk)
+    return dest
 
 
 @router.post("/stream")
@@ -38,7 +66,8 @@ async def inspect_stream(
     closeup: UploadFile | None = File(None),
     cover: UploadFile | None = File(None),
 ):
-    project = _STORE.get(project_id)
+    async with _STORE_LOCK:
+        project = _STORE.get(project_id)
     if not project:
         raise HTTPException(404, "project not found")
 
@@ -56,25 +85,23 @@ async def inspect_stream(
     if element is None:
         raise HTTPException(404, f"element {element_id} not in project")
 
+    if not photos:
+        raise HTTPException(400, "at least one photo required")
+    if len(photos) > _MAX_PHOTOS:
+        raise HTTPException(413, f"too many photos ({len(photos)} > {_MAX_PHOTOS})")
+
     tmp_dir = Path(tempfile.mkdtemp(prefix="rebarguard-insp-"))
-    photo_paths: list[Path] = []
-    for up in photos:
-        dest = tmp_dir / (up.filename or "photo.jpg")
-        with dest.open("wb") as f:
-            shutil.copyfileobj(up.file, f)
-        photo_paths.append(dest)
-
-    closeup_path: Path | None = None
-    if closeup and closeup.filename:
-        closeup_path = tmp_dir / closeup.filename
-        with closeup_path.open("wb") as f:
-            shutil.copyfileobj(closeup.file, f)
-
-    cover_path: Path | None = None
-    if cover and cover.filename:
-        cover_path = tmp_dir / cover.filename
-        with cover_path.open("wb") as f:
-            shutil.copyfileobj(cover.file, f)
+    try:
+        photo_paths = [await _save_upload(p, tmp_dir) for p in photos]
+        closeup_path = (
+            await _save_upload(closeup, tmp_dir) if closeup and closeup.filename else None
+        )
+        cover_path = (
+            await _save_upload(cover, tmp_dir) if cover and cover.filename else None
+        )
+    except HTTPException:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise
 
     job = InspectionJob(
         plan=project.plan,
@@ -85,4 +112,4 @@ async def inspect_stream(
         closeup_photo=closeup_path,
         cover_photo=cover_path,
     )
-    return EventSourceResponse(_stream(job))
+    return EventSourceResponse(_stream(job, tmp_dir))
