@@ -1,60 +1,53 @@
-# Fly.io app config for RebarGuard backend.
-# Deploy:
-#   fly launch --no-deploy --copy-config   # first time only — keeps this file
-#   fly volumes create hermes_data --size 1 --region fra
-#   fly secrets set CORS_ORIGINS=https://rebarguard.vercel.app
-#   fly deploy
+# fly.toml app configuration file generated for rebarguard-api on 2026-04-21T17:25:46+03:00
 #
-# After first deploy, complete Hermes OAuth inside the container:
-#   fly ssh console
-#   hermes auth add nous --type oauth --no-browser
-#   # open the printed URL locally, paste the code, token saves to /data/hermes
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "rebarguard-api"
-primary_region = "fra"
+app = 'rebarguard-api'
+primary_region = 'fra'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  PORT = "8000"
-  HERMES_RUNTIME = "cli"
-  HERMES_CLI_VIA_WSL = "false"
-  VISION_BACKEND = "nous_portal"
+  HERMES_CLI_VIA_WSL = 'false'
+  HERMES_RUNTIME = 'cli'
+  PORT = '8000'
+  VISION_BACKEND = 'nous_portal'
 
-[mounts]
-  source = "hermes_data"
-  destination = "/data"
+[[mounts]]
+  source = 'hermes_data'
+  destination = '/data'
 
 [[services]]
+  protocol = 'tcp'
   internal_port = 8000
-  protocol = "tcp"
-  auto_stop_machines = "suspend"
+  auto_stop_machines = 'suspend'
   auto_start_machines = true
   min_machines_running = 0
 
   [[services.ports]]
     port = 80
-    handlers = ["http"]
+    handlers = ['http']
     force_https = true
 
   [[services.ports]]
     port = 443
-    handlers = ["tls", "http"]
+    handlers = ['tls', 'http']
 
   [services.concurrency]
-    type = "requests"
-    soft_limit = 20
+    type = 'requests'
     hard_limit = 40
+    soft_limit = 20
 
   [[services.http_checks]]
-    interval = "30s"
-    timeout = "5s"
-    grace_period = "15s"
-    method = "get"
-    path = "/health"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '15s'
+    method = 'get'
+    path = '/health'
 
 [[vm]]
-  cpu_kind = "shared"
+  cpu_kind = 'shared'
   cpus = 1
   memory_mb = 1024
