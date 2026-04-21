@@ -9,9 +9,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     HERMES_CLI_VIA_WSL=false \
     HERMES_HOME=/data/hermes
 
-# System deps: poppler for pdf2image, curl/ca-certs for Hermes Agent install
+# System deps: poppler for pdf2image, curl/ca-certs for Hermes Agent install,
+# git for the Hermes installer which clones NousResearch/hermes-agent at build time.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates poppler-utils libpq5 build-essential bash \
+    curl ca-certificates git poppler-utils libpq5 build-essential bash \
     && rm -rf /var/lib/apt/lists/*
 
 # uv for fast deps
@@ -26,9 +27,23 @@ RUN uv sync --frozen --no-dev
 # App
 COPY src ./src
 
-# Hermes Agent CLI — subscription-backed model access
-RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash \
-    && ln -sf /root/.local/bin/hermes /usr/local/bin/hermes || true
+# Hermes Agent CLI — subscription-backed model access.
+#
+# IMPORTANT: the install MUST go somewhere that the runtime entrypoint does NOT
+# clobber. The entrypoint symlinks /root/.hermes to the Fly volume at /data/hermes
+# so the OAuth token persists across deploys — but that symlink also shadows
+# anything the installer put under /root/.hermes (default). Install to
+# /opt/hermes-agent instead: the binary + venv survive container restarts, and
+# the OAuth state (which hermes writes to $HOME/.hermes at run time) still lands
+# on the volume via the entrypoint symlink.
+#
+# DO NOT append `|| true` here — a silent install failure leaves the runtime
+# without a working CLI, which only surfaces as 500s on /api/quick and
+# /api/inspections under live demo pressure.
+RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh \
+    | bash -s -- --skip-setup --dir /opt/hermes-agent \
+    && ln -sf /opt/hermes-agent/venv/bin/hermes /usr/local/bin/hermes \
+    && /usr/local/bin/hermes --version
 
 # Entrypoint symlinks /root/.hermes -> /data/hermes (Fly volume) so the OAuth
 # token persists across deploys. Symlink is created at run time because the
