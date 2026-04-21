@@ -6,9 +6,10 @@
 
 ## ⚡ IF YOU'RE A NEW CLAUDE SESSION, START HERE
 
-**Snapshot (2026-04-21):** Days 1–14.6 of 16 shipped. Audit (`AUDIT.md`) P0+P1+P2 all
-applied. 12 days to deadline (2026-05-03 EOD). Frontend live on Vercel. Backend NOT
-yet deployed. Demo video and submission are the only remaining critical path.
+**Snapshot (2026-04-21 evening):** Days 1–15 of 16 shipped. Audit (`AUDIT.md`)
+P0+P1+P2 all applied. Fly backend LIVE with Hermes OAuth saved on volume. Vercel
+env swapped to Fly URL. 12 days to deadline (2026-05-03 EOD). Only remaining
+critical path: **demo video shoot + Twitter/Discord submit**.
 
 **Exact next three actions in order:**
 
@@ -199,13 +200,22 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
 - **Last updated:** 2026-04-21 (Days 1–14.5 complete, user on pause, Fly deploy is next
   active task, user floated a second-project idea on 2026-04-21 — see below).
 - **Current day:** 15 of 16 (12 days remain until 2026-05-03 EOD deadline).
-- **Active task:** Fly.io backend launch + OAuth + swap `NEXT_PUBLIC_BACKEND_URL` on
-  Vercel → then Day 15 demo video (Task #41) → Day 16 submission (Task #42).
+- **Active task:** Demo video shoot (Task #41) → Twitter + Discord submit (Task #42).
 - **Production URLs:**
-  - Frontend: **https://rebarguard.vercel.app** (prod, fra1, auto-deploys on push to `main`)
-  - Backend: **pending launch** — `backend/Dockerfile` + `backend/fly.toml` + `DEPLOY.md`
-    ready; target app name `rebarguard-api`, target URL `rebarguard-api.fly.dev`
-  - GitHub: **https://github.com/Himess/rebarguard** (public, 34 commits, **100% GPG-verified**)
+  - Frontend: **https://rebarguard.vercel.app** (prod, fra1, auto-deploys on push
+    to `main`). Env var `NEXT_PUBLIC_BACKEND_URL=https://rebarguard-api.fly.dev`.
+  - Backend: **https://rebarguard-api.fly.dev** (Fly.io fra, 1 CPU / 1 GB,
+    auto-suspend, `hermes_data` volume mounted at `/data`, OAuth token saved at
+    `/data/hermes/auth.json` — survives redeploys).
+  - GitHub: **https://github.com/Himess/rebarguard** (public, 38 commits,
+    **100% GPG-verified**).
+- **Live E2E verified (2026-04-21 17:32 UTC):**
+  - `GET /health` → `{"status":"ok","hermes_runtime":"cli","vision_backend":"nous_portal","agentic_model":"moonshotai/kimi-k2.5","reasoning_model":"Hermes-4-70B"}`
+  - `POST /api/demo/fistik` seeds 1340 Ada 43 Parsel.
+  - `GET /api/regulations` returns 10 KB of curated articles.
+  - `hermes chat -m moonshotai/kimi-k2.5 --provider nous` on Fly returned a valid
+    JSON response → subscription path is green, no direct-API charges.
+  - CORS from `https://rebarguard.vercel.app` echoes back correctly.
 - **Runtime state right now (2026-04-21):**
   - WSL uvicorn: **stopped** (user asked to kill it because idle; restart with
     `wsl -d Ubuntu-22.04 -- bash -c "cd /mnt/c/Users/USER/Desktop/RebarGuard/backend && uv run uvicorn rebarguard.main:app --reload --host 0.0.0.0 --port 8000"`)
@@ -454,6 +464,51 @@ landed in a ~36-hour compressed session. Each day below is a real commit on `mai
   config`, `fly volumes create hermes_data ...`, `fly deploy`, then `fly ssh console`
   once to complete the Hermes OAuth device flow.**
 
+**Day 15 — Fly backend launched + Hermes OAuth + Vercel swap (2026-04-21 evening)**
+- `fly launch --copy-config --no-deploy --name rebarguard-api --region fra
+  --org personal --yes` created the app. `fly volumes create hermes_data --size
+  1 --region fra` provisioned the persistent volume. `fly secrets set
+  APP_CORS_ORIGINS=https://rebarguard.vercel.app,https://rebarguard-ih0djvog4-himess-projects.vercel.app`
+  locked CORS. `fly deploy --remote-only` built + deployed from the remote
+  builder. Machine `d8d2369b2ddd08` runs in fra.
+- **Three build-breakers hit and fixed in-flight:**
+  1. `backend/pyproject.toml` had `readme = "../README.md"` which hatchling
+     can't resolve inside the `backend/` Docker context. Dropped the field.
+  2. Dockerfile heredoc writing `/entrypoint.sh` preserved CRLF from Windows
+     autocrlf. Container booted into a reboot loop with `env: 'bash\r': No
+     such file or directory`. Added `sed -i 's/\r$//'` before `chmod +x` and
+     committed a `.gitattributes` pinning `*.sh`, `Dockerfile`, `fly.toml` to
+     LF so this can't regress on the next Windows clone.
+  3. Hermes Agent CLI install silently failed: `git` was missing from
+     apt-get, and `|| true` masked the failure so `hermes` binary was never
+     present. Also the installer's default `/root/.hermes` install path got
+     shadowed at runtime by the entrypoint symlink to `/data/hermes`. Fix:
+     install git, call installer with `--dir /opt/hermes-agent` so the
+     binary lives outside the volume mount path, drop `|| true`, and assert
+     `hermes --version` at build time so future install regressions fail
+     loudly.
+- **Hermes OAuth device flow on Fly:** `flyctl ssh console -a rebarguard-api
+  -C "hermes auth add nous --type oauth --no-browser"` printed a portal URL
+  + device code, user approved in browser, token saved to
+  `/data/hermes/auth.json` (persistent on the Fly volume). First device
+  code timed out after ~60 s; retried with a second code (`4GN6-HKFN`) and
+  it worked.
+- **Vercel env swap:** `vercel env rm NEXT_PUBLIC_BACKEND_URL production` +
+  `vercel env add NEXT_PUBLIC_BACKEND_URL production` (new value
+  `https://rebarguard-api.fly.dev`) + `vercel --prod --yes` redeploy. Prod
+  site now talks to Fly.
+- **Live E2E proof:**
+  - `hermes chat -q "reply with the json {\"ok\": true}" -m moonshotai/kimi-k2.5
+    --provider nous` run inside the Fly container returned `{"ok": true}` —
+    subscription path is alive, no direct-API charges.
+  - `POST /api/demo/fistik` on the live backend seeds the 1340 Ada 43
+    Parsel project correctly.
+  - `GET /api/regulations` returns 10 KB of curated articles.
+  - CORS header from `https://rebarguard.vercel.app` origin is echoed
+    correctly.
+- Commits: `3b69202` (CRLF + pyproject), `cda0cd0` (fly.toml reformat),
+  `d5428db` (Docker install path fix).
+
 **Day 14.6 — Pre-submission audit + P0/P1/P2 fixes**
 - `AUDIT.md` (303 lines) — full repo audit driven by four parallel Explore agents
   (backend / frontend / deploy+tests / docs+hackathon fit). Scores + prioritized
@@ -585,6 +640,7 @@ Mobile stacks vertically.
 | 14 | 04-19/20 | **Vercel frontend LIVE** · Fly `Dockerfile`+`fly.toml`+`DEPLOY.md` written · backend launch **pending** | 🔄 |
 | 14.5 | 04-20 | GPG re-sign all 33 commits + fix author email → 100% verified on GitHub | ✅ |
 | 14.6 | 04-21 | Full audit (`AUDIT.md`) + P0+P1+P2 fixes: LICENSE, `/agents` page, README rewrite, Kimi model chip, dead-code deletion, upload size limits, uuid filenames, `_STORE_LOCK`, RAG whitelist tests, HTTP smoke tests, GitHub Actions CI — 21/21 pytest + build green | ✅ |
+| 15 | 04-21 | **Fly backend LIVE** at `rebarguard-api.fly.dev` · Hermes OAuth completed + token persisted to `/data/hermes/auth.json` · Vercel env swapped to Fly URL · live E2E Kimi call via subscription green · two Docker build-breakers fixed (CRLF entrypoint, missing `git`, installer location clobber) | ✅ |
 | 15 | 05-01/02 | Fly deploy + smoke test + 3-min demo video shoot + edit | ⏳ |
 | 16 | 05-03 | Buffer + submission (Twitter @NousResearch + Nous Discord `creative-hackathon-submissions`) | ⏳ |
 
