@@ -641,6 +641,7 @@ Mobile stacks vertically.
 | 14.5 | 04-20 | GPG re-sign all 33 commits + fix author email → 100% verified on GitHub | ✅ |
 | 14.6 | 04-21 | Full audit (`AUDIT.md`) + P0+P1+P2 fixes: LICENSE, `/agents` page, README rewrite, Kimi model chip, dead-code deletion, upload size limits, uuid filenames, `_STORE_LOCK`, RAG whitelist tests, HTTP smoke tests, GitHub Actions CI — 21/21 pytest + build green | ✅ |
 | 15 | 04-21 | **Fly backend LIVE** at `rebarguard-api.fly.dev` · Hermes OAuth completed + token persisted to `/data/hermes/auth.json` · Vercel env swapped to Fly URL · live E2E Kimi call via subscription green · two Docker build-breakers fixed (CRLF entrypoint, missing `git`, installer location clobber) | ✅ |
+| 15.5 | 04-24 | **Hermes framework usage upgrade** — custom SKILL.md files actually loaded (`-s parse-structural-plan`/`-s inspect-rebar`/`-s moderate-inspection`), parcel-based `--source rebarguard:<tag>` audit trail, `scripts/run-mcp.sh` helper, README "what we actually use" table. Framework score 4/10 → 7/10. Live verified on Fly. | ✅ |
 | 15 | 05-01/02 | Fly deploy + smoke test + 3-min demo video shoot + edit | ⏳ |
 | 16 | 05-03 | Buffer + submission (Twitter @NousResearch + Nous Discord `creative-hackathon-submissions`) | ⏳ |
 
