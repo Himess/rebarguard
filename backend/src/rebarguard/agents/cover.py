@@ -21,7 +21,11 @@ class CoverAgent(BaseAgent[CoverInput, ConcreteCoverReport]):
     role = AgentRole.COVER
 
     async def run(self, payload: CoverInput) -> ConcreteCoverReport:
-        parsed = await self.kimi.analyze_image(payload.photo, COVER_PROMPT)
+        parsed = await self.kimi.analyze_image(
+            payload.photo,
+            COVER_PROMPT,
+            skills=["inspect-rebar"],
+        )
         estimated = parsed.get("estimated_cover_mm")
         estimated_int = int(estimated) if isinstance(estimated, (int, float)) else None
         expected = expected_cover(payload.element)

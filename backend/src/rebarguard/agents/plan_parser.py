@@ -37,7 +37,11 @@ class PlanParserAgent(BaseAgent[Path, PlanParseResult]):
 
         for i, img_path in enumerate(image_paths):
             try:
-                parsed = await self.kimi.analyze_image(img_path, PLAN_PARSE_PROMPT)
+                parsed = await self.kimi.analyze_image(
+                    img_path,
+                    PLAN_PARSE_PROMPT,
+                    skills=["parse-structural-plan"],
+                )
             except Exception as e:
                 warnings.append(f"page {i + 1} failed: {e}")
                 continue

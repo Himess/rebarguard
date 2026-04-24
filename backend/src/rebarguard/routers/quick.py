@@ -125,7 +125,9 @@ async def analyze(photo: UploadFile = File(...)) -> QuickScanResult:
 
     try:
         prompt = build_quick_scan_prompt()
-        parsed = await kimi.analyze_image(tmp_path, prompt, max_tokens=1400)
+        parsed = await kimi.analyze_image(
+            tmp_path, prompt, max_tokens=1400, skills=["inspect-rebar"]
+        )
     except Exception as e:
         raise HTTPException(500, f"Kimi call failed: {e}") from e
     finally:

@@ -187,6 +187,11 @@ class InspectionOrchestrator:
             evidence=cover.model_dump(mode="json"),
         )
 
+        # Session tag groups every Moderator + Municipality call for this parcel under
+        # a single --source rebarguard:<parcel> tag so `hermes sessions list` can filter
+        # the full inspection history for one building.
+        session_tag = _session_tag_for(job)
+
         moderator_report = await self.moderator.run(
             ModeratorInput(
                 geometry=geom,
@@ -195,6 +200,7 @@ class InspectionOrchestrator:
                 risk=risk,
                 material=material,
                 cover=cover,
+                session_tag=session_tag,
             )
         )
         yield AgentMessage(
@@ -216,6 +222,7 @@ class InspectionOrchestrator:
                     risk=risk,
                     material=material,
                     cover=cover,
+                    session_tag=session_tag,
                 )
             )
             yield AgentMessage(
@@ -236,7 +243,9 @@ class InspectionOrchestrator:
         self, photos: list[Path], element_type: ElementType
     ) -> list[RebarDetection]:
         async def one(p: Path) -> RebarDetection:
-            parsed = await self.kimi.analyze_image(p, REBAR_DETECT_PROMPT)
+            parsed = await self.kimi.analyze_image(
+                p, REBAR_DETECT_PROMPT, skills=["inspect-rebar"]
+            )
             return RebarDetection(
                 photo_path=str(p),
                 element_type=element_type,
@@ -286,3 +295,19 @@ async def _noop_cover(element: StructuralElement):
         severity="medium",
         summary="No concrete-cover photo provided — estimation skipped.",
     )
+
+
+def _session_tag_for(job: InspectionJob) -> str:
+    """Build a filesystem-safe session tag from the plan's parcel number.
+
+    Used as `--source rebarguard:<tag>` on every Hermes CLI call for this inspection
+    so the audit trail groups Moderator + Municipality + future re-inspection verdicts
+    for the same parcel under one searchable tag.
+    """
+    meta = job.plan.metadata
+    raw = meta.parcel_no or meta.project_name or "unknown"
+    # Normalise to a tag-safe slug: lowercase, spaces → -, drop anything else.
+    safe = "".join(
+        c if (c.isalnum() or c in {"-", "_"}) else "-" for c in raw.lower()
+    ).strip("-")
+    return safe or "unknown"

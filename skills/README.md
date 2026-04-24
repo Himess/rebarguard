@@ -1,40 +1,44 @@
 # RebarGuard — Custom Hermes Agent Skills
 
-Three `SKILL.md` files following the [agentskills.io](https://agentskills.io) standard
-used by Hermes Agent. They provide domain instructions to the LLM when invoked via:
+> **Canonical location:** `backend/skills/rebarguard/`
+> These `SKILL.md` files used to live at `skills/rebarguard/` but were moved under
+> `backend/` so they ship inside the Fly Docker image (build context is `backend/`).
+> See `backend/Dockerfile` — the image copies them to `/opt/hermes-skills/` and
+> the entrypoint symlinks `/root/.hermes/skills → /opt/hermes-skills` so
+> `hermes chat -s <skill-name>` resolves at runtime.
 
-```bash
-hermes chat -q "<prompt>" -s parse-structural-plan --image path/to.jpg
+Three skills ship with RebarGuard, following the
+[agentskills.io](https://agentskills.io) standard that Hermes Agent consumes:
+
+```
+backend/skills/rebarguard/
+  parse-structural-plan/SKILL.md     # Phase 1: PDF drawing → StructuralPlan JSON
+  inspect-rebar/SKILL.md             # Phase 2: site photo → RebarDetection JSON
+  moderate-inspection/SKILL.md       # Post-debate: 6 reports → final verdict
 ```
 
-## Layout
+## How the skills are invoked at runtime
 
-```
-skills/
-  rebarguard/
-    parse-structural-plan/SKILL.md     # Phase 1: PDF drawing → StructuralPlan JSON
-    inspect-rebar/SKILL.md             # Phase 2: site photo → RebarDetection JSON
-    moderate-inspection/SKILL.md       # Post-debate: 6 reports → final verdict
-```
+Every agent that calls into Kimi / Hermes threads a `skills=[...]` argument to the
+`HermesCLIBridge`, which appends `-s <skill-name>` to the spawned `hermes chat`
+subprocess:
 
-## Installing these skills into Hermes Agent
-
-After `hermes login` succeeds, copy them into the CLI's skill directory:
-
-```bash
-# from WSL, at project root
-cp -r skills/rebarguard ~/.hermes/skills/rebarguard
-hermes skills list | grep rebarguard
-```
-
-Or, since Hermes loads skills by `-s <name>`, we pass `-s parse-structural-plan` and the
-CLI resolves it by name.
+| Python call site | Skill |
+|---|---|
+| `agents/plan_parser.py` — `kimi.analyze_image(...)` | `parse-structural-plan` |
+| `agents/material.py` — `kimi.analyze_image(...)` | `inspect-rebar` |
+| `agents/cover.py` — `kimi.analyze_image(...)` | `inspect-rebar` |
+| `services/inspection.py` — `kimi.analyze_image(REBAR_DETECT_PROMPT, ...)` | `inspect-rebar` |
+| `routers/quick.py` — `kimi.analyze_image(...)` | `inspect-rebar` |
+| `agents/moderator.py` — `hermes.json_complete(...)` | `moderate-inspection` |
+| `agents/municipality.py` — `hermes.json_complete(...)` | `moderate-inspection` |
+| `agents/code_compliance.py` — `hermes.complete(...)` | `moderate-inspection` |
 
 ## Notes
 
 - These skills are **prompts, not code.** The LLM reads them as instructions and follows
-  them. Our deterministic agents (Geometry, Fraud, Risk, etc.) stay as Python in the
-  backend — they don't need SKILL.md files.
+  them. Our deterministic agents (Geometry, Fraud, Risk) stay as Python in the backend —
+  they don't need SKILL.md files.
 - Each SKILL.md's frontmatter `description` field is what `hermes skills search` indexes
   for discovery.
 - Keep these files under version control alongside the backend — the skill contract and

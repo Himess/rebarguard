@@ -173,6 +173,7 @@ class CodeAgent(BaseAgent[CodeInput, ComplianceReport]):
             model=self.hermes.reasoning_model,
             max_tokens=220,
             temperature=0.3,
+            skills=["moderate-inspection"],
         )
         text = (resp.get("content") or "").strip()
         return text or None

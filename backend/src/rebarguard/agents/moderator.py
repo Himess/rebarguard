@@ -63,6 +63,7 @@ class ModeratorInput:
     risk: RiskReport
     material: MaterialReport
     cover: ConcreteCoverReport
+    session_tag: str | None = None
 
 
 class ModeratorAgent(BaseAgent[ModeratorInput, ModeratorReport]):
@@ -78,13 +79,17 @@ class ModeratorAgent(BaseAgent[ModeratorInput, ModeratorReport]):
             "cover": payload.cover.model_dump(),
         }
         user = _USER_TEMPLATE.format(reports=json.dumps(reports, ensure_ascii=False, indent=2))
-        # Use Hermes 4 70B reasoning model for verdict synthesis (hybrid thinking strength)
+        # Use Hermes 4 70B reasoning model for verdict synthesis (hybrid thinking strength).
+        # session_tag groups all sessions for one parcel under a single --source tag so the
+        # audit trail is filterable (e.g., "give me every Moderator verdict for parcel X").
         raw = await self.hermes.json_complete(
             _SYSTEM,
             user,
             model=self.hermes.reasoning_model,
             max_tokens=1500,
             temperature=0.2,
+            skills=["moderate-inspection"],
+            session_tag=payload.session_tag,
         )
 
         verdict = self._parse_verdict(raw.get("verdict"))

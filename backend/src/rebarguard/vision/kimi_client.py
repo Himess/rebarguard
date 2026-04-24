@@ -81,9 +81,10 @@ class KimiVisionClient:
         json_mode: bool = True,
         max_tokens: int = 2048,
         temperature: float = 0.1,
+        skills: list[str] | None = None,
     ) -> dict[str, Any]:
         if self._mode == "cli":
-            return await self._cli_call(image_path, prompt, json_mode=json_mode)
+            return await self._cli_call(image_path, prompt, json_mode=json_mode, skills=skills)
         return await self._direct_call(
             image_path, prompt, json_mode=json_mode, max_tokens=max_tokens, temperature=temperature
         )
@@ -96,19 +97,25 @@ class KimiVisionClient:
         json_mode: bool = True,
         max_tokens: int = 4096,
         temperature: float = 0.1,
+        skills: list[str] | None = None,
     ) -> dict[str, Any]:
         # `hermes chat --image` accepts a single image per call; fan out sequentially in cli mode.
         if self._mode == "cli":
             results: list[Any] = []
             for p in image_paths:
-                results.append(await self._cli_call(p, prompt, json_mode=json_mode))
+                results.append(await self._cli_call(p, prompt, json_mode=json_mode, skills=skills))
             return {"images": results}
         return await self._direct_multi_call(
             image_paths, prompt, json_mode=json_mode, max_tokens=max_tokens, temperature=temperature
         )
 
     async def _cli_call(
-        self, image_path: str | Path, prompt: str, *, json_mode: bool
+        self,
+        image_path: str | Path,
+        prompt: str,
+        *,
+        json_mode: bool,
+        skills: list[str] | None = None,
     ) -> dict[str, Any]:
         from rebarguard.hermes_runtime import get_runtime
         from rebarguard.hermes_runtime.bridge import HermesCLIBridge, _extract_json
@@ -124,6 +131,7 @@ class KimiVisionClient:
             model=self._settings.hermes_agentic_model,
             image=image_path,
             json_mode=json_mode,
+            skills=skills,
         )
         if json_mode:
             return _extract_json(result.content)

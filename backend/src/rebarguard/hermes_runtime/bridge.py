@@ -139,9 +139,15 @@ class HermesCLIBridge(HermesRuntime):
         max_tokens: int = 2048,
         temperature: float = 0.3,
         skills: list[str] | None = None,
+        session_tag: str | None = None,
     ) -> BridgeResult:
         chosen_model = model or self._settings.hermes_agentic_model
         prompt = _messages_to_prompt(messages, json_mode=json_mode)
+        # `--source` tags sessions so they're filterable in `hermes sessions list`.
+        # Default "tool" keeps programmatic calls out of the user's session history.
+        # When a caller passes `session_tag`, we override with `rebarguard:<tag>` so
+        # every session tied to the same parcel shares an audit trail on the volume.
+        source = f"rebarguard:{session_tag}" if session_tag else "tool"
         cmd = [
             *self._base_cmd(),
             "chat",
@@ -153,7 +159,7 @@ class HermesCLIBridge(HermesRuntime):
             "--provider",
             "nous",
             "--source",
-            "tool",
+            source,
             "--max-turns",
             str(self._settings.hermes_cli_max_turns),
         ]

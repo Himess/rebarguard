@@ -21,7 +21,11 @@ class MaterialAgent(BaseAgent[MaterialInput, MaterialReport]):
     role = AgentRole.MATERIAL
 
     async def run(self, payload: MaterialInput) -> MaterialReport:
-        parsed = await self.kimi.analyze_image(payload.closeup_photo, MATERIAL_PROMPT)
+        parsed = await self.kimi.analyze_image(
+            payload.closeup_photo,
+            MATERIAL_PROMPT,
+            skills=["inspect-rebar"],
+        )
         detected_class = parsed.get("detected_steel_class")
         corrosion = int(parsed.get("corrosion_level", 0) or 0)
         surface = parsed.get("surface_condition", "clean")

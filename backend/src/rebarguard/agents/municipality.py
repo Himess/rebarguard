@@ -74,6 +74,7 @@ class MunicipalityInput:
     risk: RiskReport
     material: MaterialReport
     cover: ConcreteCoverReport
+    session_tag: str | None = None
 
 
 class MunicipalityAgent(BaseAgent[MunicipalityInput, MunicipalityReport]):
@@ -97,6 +98,8 @@ class MunicipalityAgent(BaseAgent[MunicipalityInput, MunicipalityReport]):
             model=self.hermes.reasoning_model,
             max_tokens=900,
             temperature=0.2,
+            skills=["moderate-inspection"],
+            session_tag=payload.session_tag,
         )
 
         recommendation = raw.get("recommendation")

@@ -135,6 +135,18 @@ DEPLOY.md             Vercel + Fly.io deploy runbook
 AUDIT.md              Pre-submission audit (backend, frontend, deploy, docs)
 ```
 
+## Hermes Agent framework — what we actually use
+
+RebarGuard is not a thin OpenAI wrapper — it threads four real Hermes Agent
+primitives through a Python orchestrator:
+
+| Primitive | How we use it |
+|---|---|
+| **Custom `SKILL.md` files** | Three skills ship in the Docker image at `/opt/hermes-skills/`: `parse-structural-plan`, `inspect-rebar`, `moderate-inspection`. The entrypoint symlinks them under `~/.hermes/skills/` so every `hermes chat -s <name>` call at runtime preloads the skill's instructions. Skills are repo-versioned at [`backend/skills/rebarguard/`](./backend/skills/rebarguard). |
+| **Nous Portal subscription path** | All 9 agents route through `hermes chat --provider nous -m moonshotai/kimi-k2.5` or `-m Hermes-4-70B`. $0 incremental cost via the Basic plan. No direct API keys in the live container. |
+| **Session `--source` tagging** | Moderator and Belediye Agent calls for the same parcel share `--source rebarguard:<parcel_no>`. `hermes sessions list --source rebarguard:1340-ada-43-parsel` filters every prior verdict for the building — audit trail that persists on the Fly volume. |
+| **MCP server mode** | `bash scripts/run-mcp.sh` exposes our skill-loaded Hermes backend as a Model Context Protocol server. Any MCP-capable client (Claude Desktop, Cursor, Zed, custom) can drive the same orchestration without going through the FastAPI REST surface. |
+
 ## Hackathon tracks
 
 - **Main Track** — Hermes Agent orchestrating a 9-agent debate on real structural-engineering

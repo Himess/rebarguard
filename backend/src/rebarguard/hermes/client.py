@@ -55,11 +55,19 @@ class HermesClient:
         json_mode: bool = False,
         max_tokens: int = 2048,
         temperature: float = 0.3,
+        skills: list[str] | None = None,
+        session_tag: str | None = None,
     ) -> dict[str, Any]:
         chosen = model or self._agentic_model
         if self._mode == "cli":
             return await self._complete_cli(
-                messages, model=chosen, json_mode=json_mode, max_tokens=max_tokens, temperature=temperature
+                messages,
+                model=chosen,
+                json_mode=json_mode,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                skills=skills,
+                session_tag=session_tag,
             )
         return await self._complete_direct(
             messages,
@@ -78,6 +86,8 @@ class HermesClient:
         json_mode: bool,
         max_tokens: int,
         temperature: float,
+        skills: list[str] | None = None,
+        session_tag: str | None = None,
     ) -> dict[str, Any]:
         from rebarguard.hermes_runtime import get_runtime
 
@@ -88,6 +98,8 @@ class HermesClient:
             json_mode=json_mode,
             max_tokens=max_tokens,
             temperature=temperature,
+            skills=skills,
+            session_tag=session_tag,
         )
         return {
             "content": result.content,
@@ -144,6 +156,8 @@ class HermesClient:
         model: str | None = None,
         max_tokens: int = 2048,
         temperature: float = 0.2,
+        skills: list[str] | None = None,
+        session_tag: str | None = None,
     ) -> dict[str, Any]:
         result = await self.complete(
             [{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -151,6 +165,8 @@ class HermesClient:
             json_mode=True,
             max_tokens=max_tokens,
             temperature=temperature,
+            skills=skills,
+            session_tag=session_tag,
         )
         content = result.get("content") or "{}"
         # In cli mode, prose may wrap the JSON — extract tolerantly

@@ -27,6 +27,13 @@ RUN uv sync --frozen --no-dev
 # App
 COPY src ./src
 
+# Custom Hermes Agent skills (parse-structural-plan, inspect-rebar, moderate-inspection).
+# Shipped inside the image at /opt/hermes-skills so deploys always carry the latest
+# SKILL.md definitions. The entrypoint symlinks them under the runtime HERMES_HOME
+# (= /data/hermes via the OAuth-persistence symlink) where `hermes chat -s <name>`
+# looks for them.
+COPY skills /opt/hermes-skills
+
 # Hermes Agent CLI — subscription-backed model access.
 #
 # IMPORTANT: the install MUST go somewhere that the runtime entrypoint does NOT
@@ -51,9 +58,20 @@ RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh \
 COPY <<'EOF' /entrypoint.sh
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Mount OAuth state on the Fly volume so tokens survive redeploys.
 mkdir -p /data/hermes
 rm -rf /root/.hermes 2>/dev/null || true
 ln -sf /data/hermes /root/.hermes
+
+# Install our custom Hermes skills into the runtime HERMES_HOME. We symlink
+# (rather than copy) so a fresh `fly deploy` always surfaces the latest SKILL.md
+# from the shipped image, while OAuth state in /data/hermes stays intact.
+if [ ! -L /root/.hermes/skills ]; then
+  rm -rf /root/.hermes/skills 2>/dev/null || true
+  ln -sf /opt/hermes-skills /root/.hermes/skills
+fi
+
 exec "$@"
 EOF
 RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
