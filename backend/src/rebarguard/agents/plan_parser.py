@@ -38,7 +38,7 @@ class PlanParserAgent(BaseAgent[Path, PlanParseResult]):
         for i, img_path in enumerate(image_paths):
             try:
                 parsed = await self.kimi.analyze_image(img_path, PLAN_PARSE_PROMPT)
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 warnings.append(f"page {i + 1} failed: {e}")
                 continue
             if isinstance(parsed, dict) and "error" in parsed and "raw" not in parsed:

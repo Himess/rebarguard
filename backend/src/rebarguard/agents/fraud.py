@@ -67,14 +67,14 @@ class FraudAgent(BaseAgent[FraudInput, FraudReport]):
     def _read_exif(path: Path) -> tuple[datetime | None, tuple[float, float] | None]:
         try:
             exif = piexif.load(str(path))
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None, None
         ts: datetime | None = None
         raw = exif.get("Exif", {}).get(piexif.ExifIFD.DateTimeOriginal)
         if raw:
             try:
                 ts = datetime.strptime(raw.decode(), "%Y:%m:%d %H:%M:%S")
-            except Exception:  # noqa: BLE001
+            except Exception:
                 ts = None
         gps = exif.get("GPS") or {}
         if gps:
@@ -86,7 +86,7 @@ class FraudAgent(BaseAgent[FraudInput, FraudReport]):
                     gps[piexif.GPSIFD.GPSLongitude], gps[piexif.GPSIFD.GPSLongitudeRef].decode()
                 )
                 return ts, (lat, lon)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
         return ts, None
 

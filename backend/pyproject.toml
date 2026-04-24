@@ -46,7 +46,19 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "A", "C4", "SIM", "RUF"]
-ignore = ["E501"]
+ignore = [
+    "E501",  # line length — we already set line-length=100 elsewhere, long narrative strings are fine
+    # Ambiguous unicode characters — our prompts, regulation articles, and comments
+    # intentionally contain Turkish orthography (curly quotes, em-dashes) and
+    # engineering notation (×, Ø, °). Flagging these is noise.
+    "RUF001", "RUF002", "RUF003",
+    # FastAPI idiom: `photo: UploadFile = File(...)`, `Depends(...)`. ruff's B008 is
+    # wrong for FastAPI/Pydantic where the call is the dependency injection marker.
+    "B008",
+    # str + Enum double inheritance is the idiomatic way for Pydantic models, UP042
+    # recommends collapsing to StrEnum which changes wire behavior.
+    "UP042",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

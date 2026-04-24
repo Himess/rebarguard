@@ -21,7 +21,6 @@ from rebarguard.agents import (
     MunicipalityAgent,
     RiskAgent,
 )
-from rebarguard.agents.municipality import MunicipalityInput
 from rebarguard.agents._element_utils import element_label
 from rebarguard.agents.code_compliance import CodeInput
 from rebarguard.agents.cover import CoverInput
@@ -29,6 +28,7 @@ from rebarguard.agents.fraud import FraudInput
 from rebarguard.agents.geometry import GeometryInput
 from rebarguard.agents.material import MaterialInput
 from rebarguard.agents.moderator import ModeratorInput
+from rebarguard.agents.municipality import MunicipalityInput
 from rebarguard.agents.risk import RiskInput
 from rebarguard.config import get_settings
 from rebarguard.schemas import (
@@ -225,7 +225,7 @@ class InspectionOrchestrator:
                 model=self.settings.hermes_reasoning_model,
                 evidence=municipality_report.model_dump(mode="json"),
             )
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             yield AgentMessage(
                 agent=AgentRole.MUNICIPALITY,
                 kind="observation",

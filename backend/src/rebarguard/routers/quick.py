@@ -86,7 +86,7 @@ def _coerce_finding(raw: dict[str, Any]) -> QuickFinding | None:
             ref=_validate_ref(raw.get("ref")),
             confidence=conf,
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
 
 
@@ -126,7 +126,7 @@ async def analyze(photo: UploadFile = File(...)) -> QuickScanResult:
     try:
         prompt = build_quick_scan_prompt()
         parsed = await kimi.analyze_image(tmp_path, prompt, max_tokens=1400)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         raise HTTPException(500, f"Kimi call failed: {e}") from e
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)

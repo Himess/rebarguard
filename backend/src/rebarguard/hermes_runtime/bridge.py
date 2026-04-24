@@ -142,7 +142,8 @@ class HermesCLIBridge(HermesRuntime):
     ) -> BridgeResult:
         chosen_model = model or self._settings.hermes_agentic_model
         prompt = _messages_to_prompt(messages, json_mode=json_mode)
-        cmd = self._base_cmd() + [
+        cmd = [
+            *self._base_cmd(),
             "chat",
             "-q",
             prompt,
@@ -170,7 +171,7 @@ class HermesCLIBridge(HermesRuntime):
             stdout, stderr = await asyncio.wait_for(
                 proc.communicate(), timeout=self._timeout
             )
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             proc.kill()
             raise RuntimeError(
                 f"hermes CLI timed out after {self._timeout}s"
@@ -236,4 +237,4 @@ def get_runtime() -> HermesRuntime:
     return _NullRuntime()
 
 
-__all__ = ["HermesRuntime", "HermesCLIBridge", "BridgeResult", "get_runtime"]
+__all__ = ["BridgeResult", "HermesCLIBridge", "HermesRuntime", "get_runtime"]

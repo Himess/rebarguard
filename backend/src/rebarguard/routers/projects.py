@@ -56,7 +56,7 @@ async def create_project(pdf: UploadFile = File(...)) -> Project:
     try:
         agent = PlanParserAgent()
         result: PlanParseResult = await agent.run(tmp_path)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         raise HTTPException(500, f"plan parse failed: {e}") from e
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
