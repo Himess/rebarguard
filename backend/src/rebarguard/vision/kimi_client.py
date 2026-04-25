@@ -98,13 +98,28 @@ class KimiVisionClient:
         max_tokens: int = 4096,
         temperature: float = 0.1,
         skills: list[str] | None = None,
+        max_concurrency: int = 5,
     ) -> dict[str, Any]:
-        # `hermes chat --image` accepts a single image per call; fan out sequentially in cli mode.
+        """Kimi K2.5 'agent swarm' fan-out: one isolated subprocess per photo, in
+        parallel up to `max_concurrency`. Each call ships its own `--image` + the
+        same skill, so we get N independent Kimi responses we can aggregate.
+        Mirrors Moonshot's K2.5 Agent Swarm pattern at the orchestration level
+        without needing the closed-source SDK.
+        """
+        # `hermes chat --image` accepts a single image per call; fan out concurrently
+        # in cli mode using a bounded semaphore so we don't blow the subscription
+        # rate limit when a stage uploads 19 photos at once.
         if self._mode == "cli":
-            results: list[Any] = []
-            for p in image_paths:
-                results.append(await self._cli_call(p, prompt, json_mode=json_mode, skills=skills))
-            return {"images": results}
+            import asyncio as _asyncio
+
+            sem = _asyncio.Semaphore(max(1, max_concurrency))
+
+            async def _one(p: str | Path) -> dict[str, Any]:
+                async with sem:
+                    return await self._cli_call(p, prompt, json_mode=json_mode, skills=skills)
+
+            results = await _asyncio.gather(*[_one(p) for p in image_paths])
+            return {"images": list(results), "count": len(results), "concurrency": max_concurrency}
         return await self._direct_multi_call(
             image_paths, prompt, json_mode=json_mode, max_tokens=max_tokens, temperature=temperature
         )

@@ -100,6 +100,7 @@ class MunicipalityAgent(BaseAgent[MunicipalityInput, MunicipalityReport]):
             temperature=0.2,
             skills=["moderate-inspection"],
             session_tag=payload.session_tag,
+            resume_from_memory=True,
         )
 
         recommendation = raw.get("recommendation")

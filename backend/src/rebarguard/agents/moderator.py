@@ -82,6 +82,10 @@ class ModeratorAgent(BaseAgent[ModeratorInput, ModeratorReport]):
         # Use Hermes 4 70B reasoning model for verdict synthesis (hybrid thinking strength).
         # session_tag groups all sessions for one parcel under a single --source tag so the
         # audit trail is filterable (e.g., "give me every Moderator verdict for parcel X").
+        # resume_from_memory=True picks up the prior session_id for this parcel from
+        # /data/hermes/rebarguard-sessions.json and passes --resume <id> so Hermes loads
+        # the previous Moderator turn into context. If a parcel was rejected last week,
+        # this verdict starts with that history — repeat-offender awareness baked in.
         raw = await self.hermes.json_complete(
             _SYSTEM,
             user,
@@ -90,6 +94,7 @@ class ModeratorAgent(BaseAgent[ModeratorInput, ModeratorReport]):
             temperature=0.2,
             skills=["moderate-inspection"],
             session_tag=payload.session_tag,
+            resume_from_memory=True,
         )
 
         verdict = self._parse_verdict(raw.get("verdict"))

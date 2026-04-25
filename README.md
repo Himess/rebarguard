@@ -137,15 +137,26 @@ AUDIT.md              Pre-submission audit (backend, frontend, deploy, docs)
 
 ## Hermes Agent framework — what we actually use
 
-RebarGuard is not a thin OpenAI wrapper — it threads four real Hermes Agent
+RebarGuard is not a thin OpenAI wrapper — it threads six real Hermes Agent
 primitives through a Python orchestrator:
 
 | Primitive | How we use it |
 |---|---|
-| **Custom `SKILL.md` files** | Three skills ship in the Docker image at `/opt/hermes-skills/`: `parse-structural-plan`, `inspect-rebar`, `moderate-inspection`. The entrypoint symlinks them under `~/.hermes/skills/` so every `hermes chat -s <name>` call at runtime preloads the skill's instructions. Skills are repo-versioned at [`backend/skills/rebarguard/`](./backend/skills/rebarguard). |
-| **Nous Portal subscription path** | All 9 agents route through `hermes chat --provider nous -m moonshotai/kimi-k2.5` or `-m Hermes-4-70B`. $0 incremental cost via the Basic plan. No direct API keys in the live container. |
+| **Custom `SKILL.md` files** (`-s`) | Three skills ship in the Docker image at `/opt/hermes-skills/`: `parse-structural-plan`, `inspect-rebar`, `moderate-inspection`. The entrypoint symlinks them under `~/.hermes/skills/` so every `hermes chat -s <name>` call at runtime preloads the skill's instructions. Skills are repo-versioned at [`backend/skills/rebarguard/`](./backend/skills/rebarguard). |
+| **Nous Portal subscription path** (`--provider nous`) | All 9 agents route through `hermes chat --provider nous -m moonshotai/kimi-k2.5` or `-m Hermes-4-70B`. $0 incremental cost via the Basic plan. No direct API keys in the live container. |
 | **Session `--source` tagging** | Moderator and Belediye Agent calls for the same parcel share `--source rebarguard:<parcel_no>`. `hermes sessions list --source rebarguard:1340-ada-43-parsel` filters every prior verdict for the building — audit trail that persists on the Fly volume. |
+| **Session `--resume <id>` memory** | After every Moderator + Belediye call we persist the emitted `session_id` to `/data/hermes/rebarguard-sessions.json`. Next time the same parcel comes up, we pass `--resume <id>` so Hermes literally loads the prior verdict into context — repeat-offender awareness baked in. |
+| **Subagent parallelism** | The 4-way `geometry/code/fraud/risk` step and the 2-way `material/cover` step both fan out parallel `hermes chat` subprocesses. Each one runs in its own isolated process with its own session, exactly the framework's subagent primitive. The bridge also wires `--worktree` for git-worktree isolation when an agent ever needs to mutate the repo. |
 | **MCP server mode** | `bash scripts/run-mcp.sh` exposes our skill-loaded Hermes backend as a Model Context Protocol server. Any MCP-capable client (Claude Desktop, Cursor, Zed, custom) can drive the same orchestration without going through the FastAPI REST surface. |
+
+## Kimi K2.5 — what we actually use
+
+| Surface | How we use it |
+|---|---|
+| Native `--image` vision | Five vision tasks: `parse-structural-plan` (PDF pages), `inspect-rebar` (site photos), material close-up, cover estimation, `/quick` one-shot scan. Strict JSON output; bbox + confidence per finding. |
+| **Agent-swarm fan-out** | `KimiVisionClient.analyze_images()` runs N concurrent `hermes chat --image` subprocesses (bounded `Semaphore`, default 4-5). PlanParser uses it to process every PDF page in parallel; the orchestrator's `_detect_all` does the same for site photos. 19-photo Fıstık stage drops from ~25 min sequential to ~5 min parallel. |
+| Curated RAG whitelist | Quick-scan prompt injects the 16 curated TBDY/TS 500 codes; `_validate_ref()` silently drops any citation Kimi invents that's not on the whitelist. |
+| Subscription path | Every Kimi call goes through Hermes Agent CLI via Nous Portal Basic ($0/M tokens). Direct Moonshot API kept as a hot-swap fallback (`VISION_BACKEND=moonshot`). |
 
 ## Hackathon tracks
 

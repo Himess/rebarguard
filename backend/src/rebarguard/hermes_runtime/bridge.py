@@ -35,6 +35,7 @@ class BridgeResult:
     content: str
     model: str
     raw: str
+    session_id: str | None = None
 
 
 class HermesRuntime:
@@ -87,6 +88,17 @@ def _win_to_wsl(path: Path | str) -> str:
 
 
 _JSON_OBJECT_RE = re.compile(r"\{[\s\S]*\}")
+_SESSION_ID_RE = re.compile(r"^\s*session_id:\s*([\w\-]+)\s*$", re.MULTILINE)
+
+
+def _extract_session_id(text: str) -> tuple[str | None, str]:
+    """Pull the `session_id: <id>` trailer that hermes -Q emits, return (id, body)."""
+    m = _SESSION_ID_RE.search(text)
+    if not m:
+        return None, text
+    sid = m.group(1)
+    body = _SESSION_ID_RE.sub("", text).strip()
+    return sid, body
 
 
 def _extract_json(text: str) -> dict[str, Any]:
@@ -139,7 +151,10 @@ class HermesCLIBridge(HermesRuntime):
         max_tokens: int = 2048,
         temperature: float = 0.3,
         skills: list[str] | None = None,
+        toolsets: list[str] | None = None,
         session_tag: str | None = None,
+        resume_session_id: str | None = None,
+        worktree: bool = False,
     ) -> BridgeResult:
         chosen_model = model or self._settings.hermes_agentic_model
         prompt = _messages_to_prompt(messages, json_mode=json_mode)
@@ -167,6 +182,16 @@ class HermesCLIBridge(HermesRuntime):
             cmd.extend(["--image", self._translate_image_path(image)])
         if skills:
             cmd.extend(["-s", ",".join(skills)])
+        if toolsets:
+            cmd.extend(["-t", ",".join(toolsets)])
+        if resume_session_id:
+            # Resume the prior session for this parcel — Moderator literally sees the
+            # last verdict in its system context. Hermes Agent's memory primitive.
+            cmd.extend(["--resume", resume_session_id])
+        if worktree:
+            # Subagent isolation: run in a temporary git worktree so parallel agents
+            # working on the same repo don't fight over file state. Framework primitive.
+            cmd.append("--worktree")
 
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -190,7 +215,10 @@ class HermesCLIBridge(HermesRuntime):
                 f"hermes CLI failed (rc={proc.returncode}). stderr: {err} | stdout: {out}"
             )
         text = stdout.decode("utf-8", "replace").strip()
-        return BridgeResult(content=text, model=chosen_model, raw=text)
+        # Hermes -Q mode appends `session_id: <id>` after the response so we can resume
+        # the same chain on the next call to this parcel. Strip it from `content`.
+        session_id, content = _extract_session_id(text)
+        return BridgeResult(content=content, model=chosen_model, raw=text, session_id=session_id)
 
     async def chat_json(
         self,

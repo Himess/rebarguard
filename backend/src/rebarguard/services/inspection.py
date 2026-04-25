@@ -242,6 +242,10 @@ class InspectionOrchestrator:
     async def _detect_all(
         self, photos: list[Path], element_type: ElementType
     ) -> list[RebarDetection]:
+        # Kimi K2.5 agent-swarm fan-out: each photo gets its own isolated Hermes
+        # subprocess running in parallel via asyncio.gather. For a stage with 19
+        # site photos (Fıstık Ağacı), this drops wall-clock from ~25 min to ~5 min
+        # at default concurrency.
         async def one(p: Path) -> RebarDetection:
             parsed = await self.kimi.analyze_image(
                 p, REBAR_DETECT_PROMPT, skills=["inspect-rebar"]

@@ -56,7 +56,10 @@ class HermesClient:
         max_tokens: int = 2048,
         temperature: float = 0.3,
         skills: list[str] | None = None,
+        toolsets: list[str] | None = None,
         session_tag: str | None = None,
+        resume_from_memory: bool = False,
+        worktree: bool = False,
     ) -> dict[str, Any]:
         chosen = model or self._agentic_model
         if self._mode == "cli":
@@ -67,7 +70,10 @@ class HermesClient:
                 max_tokens=max_tokens,
                 temperature=temperature,
                 skills=skills,
+                toolsets=toolsets,
                 session_tag=session_tag,
+                resume_from_memory=resume_from_memory,
+                worktree=worktree,
             )
         return await self._complete_direct(
             messages,
@@ -87,9 +93,17 @@ class HermesClient:
         max_tokens: int,
         temperature: float,
         skills: list[str] | None = None,
+        toolsets: list[str] | None = None,
         session_tag: str | None = None,
+        resume_from_memory: bool = False,
+        worktree: bool = False,
     ) -> dict[str, Any]:
         from rebarguard.hermes_runtime import get_runtime
+        from rebarguard.hermes_runtime.memory import get_last_session, remember_session
+
+        resume_session_id = (
+            get_last_session(session_tag) if (resume_from_memory and session_tag) else None
+        )
 
         runtime = get_runtime()
         result = await runtime.chat(  # type: ignore[attr-defined]
@@ -99,8 +113,15 @@ class HermesClient:
             max_tokens=max_tokens,
             temperature=temperature,
             skills=skills,
+            toolsets=toolsets,
             session_tag=session_tag,
+            resume_session_id=resume_session_id,
+            worktree=worktree,
         )
+        # Persist the new session id so the next inspection of the same parcel can
+        # resume from this verdict's context.
+        if session_tag and getattr(result, "session_id", None):
+            remember_session(session_tag, result.session_id)  # type: ignore[arg-type]
         return {
             "content": result.content,
             "tool_calls": [],
@@ -157,7 +178,10 @@ class HermesClient:
         max_tokens: int = 2048,
         temperature: float = 0.2,
         skills: list[str] | None = None,
+        toolsets: list[str] | None = None,
         session_tag: str | None = None,
+        resume_from_memory: bool = False,
+        worktree: bool = False,
     ) -> dict[str, Any]:
         result = await self.complete(
             [{"role": "system", "content": system}, {"role": "user", "content": user}],
@@ -166,7 +190,10 @@ class HermesClient:
             max_tokens=max_tokens,
             temperature=temperature,
             skills=skills,
+            toolsets=toolsets,
             session_tag=session_tag,
+            resume_from_memory=resume_from_memory,
+            worktree=worktree,
         )
         content = result.get("content") or "{}"
         # In cli mode, prose may wrap the JSON — extract tolerantly
