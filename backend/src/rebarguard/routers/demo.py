@@ -29,7 +29,7 @@ router = APIRouter()
 async def seed_fistik() -> Project:
     """Build a realistic StructuralPlan for Ferhat Baş's 1340 Ada 43 Parsel project.
 
-    Metadata is taken from Kimi K2.5's real extraction on 1340.pdf (ideCAD metraj).
+    Metadata is taken from Kimi K2.6's real extraction on 1340.pdf (ideCAD metraj).
     Columns + beams + shear walls are typical for a 6+2 floor apartment on a 7.95×15 m
     footprint — realistic but hand-crafted because the original DWG hasn't been plotted
     to PDF yet.

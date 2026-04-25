@@ -9,13 +9,13 @@ out. Gates concrete-pour approval against Turkish seismic codes (TBDY 2018 —
 
 Built for the [Hermes Agent Creative Hackathon 2026](https://x.com/NousResearch) on
 **[Hermes Agent](https://github.com/NousResearch/hermes-agent)** (Nous Research) +
-**[Kimi K2.5](https://platform.moonshot.ai/)** (Moonshot).
+**[Kimi K2.6](https://platform.moonshot.ai/)** (Moonshot).
 
 [![MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](./LICENSE)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square)
 ![FastAPI](https://img.shields.io/badge/FastAPI-async-009485?style=flat-square)
 ![Hermes Agent](https://img.shields.io/badge/Hermes%20Agent-v0.10-FF6A1F?style=flat-square)
-![Kimi K2.5](https://img.shields.io/badge/Kimi%20K2.5-vision-3B9EFF?style=flat-square)
+![Kimi K2.6](https://img.shields.io/badge/Kimi%20K2.6-vision-3B9EFF?style=flat-square)
 ![GPG](https://img.shields.io/badge/commits-100%25%20verified-2ea44f?style=flat-square)
 
 ---
@@ -32,10 +32,10 @@ that never made it into the mold.
 
 ## The system
 
-1. Municipality-approved structural drawing (PDF) → **Kimi K2.5** parses → structured plan JSON
+1. Municipality-approved structural drawing (PDF) → **Kimi K2.6** parses → structured plan JSON
    with columns, beams, slabs, shear walls, stairs, and all metadata (city, soil class, seismic
    zone, floor count, footprint).
-2. Contractor uploads site photos **before each pour** → **Kimi K2.5** detects the rebar layout,
+2. Contractor uploads site photos **before each pour** → **Kimi K2.6** detects the rebar layout,
    measures cover, reads steel class from rib pattern, counts stirrups.
 3. **Nine Hermes-orchestrated agents debate in real time** (SSE-streamed to the browser):
    - `PlanParser` · `GeometryAgent` · `CodeAgent` · `FraudAgent` · `SeismicRiskAgent`
@@ -50,7 +50,7 @@ that never made it into the mold.
 | Layer | Choice |
 |-------|--------|
 | Orchestration | **Hermes Agent** (Python CLI, subprocess bridge) |
-| Vision + agentic | **Kimi K2.5** via Nous Portal subscription ($0/1M on Basic plan) |
+| Vision + agentic | **Kimi K2.6** via Nous Portal subscription ($0/1M on Basic plan) |
 | Reasoning synthesis | **Hermes 4 70B** (Moderator + Belediye narrative) |
 | Backend | FastAPI + SSE (`sse-starlette`) + Pydantic v2 |
 | Frontend | Next.js 16 (App Router) + React 19 + Three.js + Tailwind v4 (OKLCH) |
@@ -104,7 +104,7 @@ backend/
     routers/          /api/projects · /api/inspections · /api/quick · /api/regulations · /api/demo
     schemas/          Pydantic v2 models (StructuralPlan, AgentMessage, …)
     services/         InspectionOrchestrator (SSE-streamed 9-agent debate)
-    vision/           Kimi K2.5 client + prompts
+    vision/           Kimi K2.6 client + prompts
   tests/              Schema + geometry unit tests + HTTP smoke tests + RAG whitelist tests
   Dockerfile          Python 3.11 + uv + poppler + Hermes Agent CLI (Fly target)
   fly.toml            fra region · 1 CPU / 1 GB · auto-suspend · hermes_data volume
@@ -143,13 +143,16 @@ primitives through a Python orchestrator:
 | Primitive | How we use it |
 |---|---|
 | **Custom `SKILL.md` files** (`-s`) | Three skills ship in the Docker image at `/opt/hermes-skills/`: `parse-structural-plan`, `inspect-rebar`, `moderate-inspection`. The entrypoint symlinks them under `~/.hermes/skills/` so every `hermes chat -s <name>` call at runtime preloads the skill's instructions. Skills are repo-versioned at [`backend/skills/rebarguard/`](./backend/skills/rebarguard). |
-| **Nous Portal subscription path** (`--provider nous`) | All 9 agents route through `hermes chat --provider nous -m moonshotai/kimi-k2.5` or `-m Hermes-4-70B`. $0 incremental cost via the Basic plan. No direct API keys in the live container. |
+| **Nous Portal subscription path** (`--provider nous`) | All 9 agents route through `hermes chat --provider nous -m moonshotai/kimi-k2.6` or `-m Hermes-4-70B`. $0 incremental cost via the Basic plan. No direct API keys in the live container. |
 | **Session `--source` tagging** | Moderator and Belediye Agent calls for the same parcel share `--source rebarguard:<parcel_no>`. `hermes sessions list --source rebarguard:1340-ada-43-parsel` filters every prior verdict for the building — audit trail that persists on the Fly volume. |
 | **Session `--resume <id>` memory** | After every Moderator + Belediye call we persist the emitted `session_id` to `/data/hermes/rebarguard-sessions.json`. Next time the same parcel comes up, we pass `--resume <id>` so Hermes literally loads the prior verdict into context — repeat-offender awareness baked in. |
 | **Subagent parallelism** | The 4-way `geometry/code/fraud/risk` step and the 2-way `material/cover` step both fan out parallel `hermes chat` subprocesses. Each one runs in its own isolated process with its own session, exactly the framework's subagent primitive. The bridge also wires `--worktree` for git-worktree isolation when an agent ever needs to mutate the repo. |
+| **Lifecycle hooks** | `backend/hermes-config/cli-config.yaml` declares three hooks (`on_session_start`, `on_session_finalize`, `post_llm_call`) that fire shell scripts on every Hermes Agent call. The scripts append a tamper-evident JSONL row to `/data/hermes/audit-log.jsonl` on the Fly volume — every Moderator verdict is auditable end-to-end without changing a line of Python. Verified live: `hermes hooks doctor` reports all three allowlisted + firing. |
+| **Scheduled jobs (cron)** | `bash scripts/install-cron.sh` (also at `/opt/hermes-config/install-cron.sh` inside the container) registers two recurring Hermes Agent jobs: a daily 03:00 UTC audit-log digest summarising the past 24 h of verdicts, and a weekly Sunday 02:00 UTC AFAD seismic-feed probe that flags new high-PGA events near seeded parcels. Both jobs reuse the `moderate-inspection` skill and run with `--workdir /data/hermes` so they have direct access to the persistent state. |
+| **Plugins (catalog hook)** | `bash scripts/install-plugins.sh` is the registrar where third-party Hermes Agent plugins (Git-installed CLI extensions) get pinned. The framework supports it; we ship the helper but no third-party plugins are hard-coded so the trust surface stays minimal. |
 | **MCP server mode** | `bash scripts/run-mcp.sh` exposes our skill-loaded Hermes backend as a Model Context Protocol server. Any MCP-capable client (Claude Desktop, Cursor, Zed, custom) can drive the same orchestration without going through the FastAPI REST surface. |
 
-## Kimi K2.5 — what we actually use
+## Kimi K2.6 — what we actually use
 
 | Surface | How we use it |
 |---|---|
@@ -162,9 +165,9 @@ primitives through a Python orchestrator:
 
 - **Main Track** — Hermes Agent orchestrating a 9-agent debate on real structural-engineering
   data, SSE-streamed to a Three.js building viewer.
-- **Kimi Track** — Kimi K2.5 handles every vision call (plan parsing, rebar detection, material
+- **Kimi Track** — Kimi K2.6 handles every vision call (plan parsing, rebar detection, material
   class, concrete cover). Every `AgentMessage.evidence.model` field carries
-  `moonshotai/kimi-k2.5` or `Hermes-4-70B` so the demo video is self-documenting proof.
+  `moonshotai/kimi-k2.6` or `Hermes-4-70B` so the demo video is self-documenting proof.
 
 ## Judging criteria self-assessment
 

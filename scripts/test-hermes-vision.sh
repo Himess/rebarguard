@@ -25,10 +25,10 @@ hermes --version || { echo "hermes not on PATH"; exit 1; }
 echo "==> 2/4: Authentication status"
 hermes status 2>&1 | head -10 || true
 
-echo "==> 3/4: Text-only smoke test (should cost \$0 — Kimi K2.5)"
+echo "==> 3/4: Text-only smoke test (should cost \$0 — Kimi K2.6)"
 hermes chat \
-    -q "Respond with valid JSON only: {\"hello\": \"world\", \"model\": \"kimi-k2.5\"}" \
-    -m "moonshotai/kimi-k2.5" \
+    -q "Respond with valid JSON only: {\"hello\": \"world\", \"model\": \"kimi-k2.6\"}" \
+    -m "moonshotai/kimi-k2.6" \
     --provider nous \
     -Q \
     --source tool \
@@ -38,7 +38,7 @@ echo
 echo "==> 4/4: Multimodal smoke test (vision via subscription)"
 OUT=$(hermes chat \
     -q "Respond with valid JSON only: count the rebars visible in this image. Schema: {\"count\": int, \"confidence\": 0-1}" \
-    -m "moonshotai/kimi-k2.5" \
+    -m "moonshotai/kimi-k2.6" \
     --image "$SAMPLE" \
     --provider nous \
     -Q \

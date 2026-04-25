@@ -85,7 +85,7 @@ export default function UploadPage() {
             Upload the approved project
           </h1>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.55 }}>
-            Drop the municipality-approved structural drawing — PDF or DWG plot. Kimi K2.5
+            Drop the municipality-approved structural drawing — PDF or DWG plot. Kimi K2.6
             will extract metadata, column schedule, beams, walls and slabs in the next
             ~30 seconds.
           </p>
@@ -159,7 +159,7 @@ export default function UploadPage() {
               style={{ flex: 2 }}
               disabled={!pdf || busy}
             >
-              {busy ? 'Parsing with Kimi K2.5…' : 'Parse & continue →'}
+              {busy ? 'Parsing with Kimi K2.6…' : 'Parse & continue →'}
             </button>
           </div>
         </form>
@@ -175,7 +175,7 @@ export default function UploadPage() {
           }}
         >
           {[
-            { step: '01', title: 'Ingest', body: 'PDF/DWG → Kimi K2.5 OCR → structured StructuralPlan' },
+            { step: '01', title: 'Ingest', body: 'PDF/DWG → Kimi K2.6 OCR → structured StructuralPlan' },
             { step: '02', title: 'Inspect', body: 'Site photos → 7-agent debate → geometry / code / fraud / risk' },
             { step: '03', title: 'Authorize', body: 'Moderator verdict → belediye agent → human pour-approval' },
           ].map((s) => (

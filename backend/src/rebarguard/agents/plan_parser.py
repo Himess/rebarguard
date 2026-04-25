@@ -2,7 +2,7 @@
 
 Pipeline:
 1. Rasterize each PDF page to PNG via pdf2image (needs poppler-utils).
-2. Kimi K2.5 (via Hermes Agent CLI) reads each page with PLAN_PARSE_PROMPT.
+2. Kimi K2.6 (via Hermes Agent CLI) reads each page with PLAN_PARSE_PROMPT.
 3. Merge per-page outputs into a single StructuralPlan with metadata + all elements.
 """
 
@@ -35,7 +35,7 @@ class PlanParserAgent(BaseAgent[Path, PlanParseResult]):
         warnings: list[str] = []
         merged = self._empty_plan_dict(pdf_path.stem)
 
-        # Kimi K2.5 'agent swarm' fan-out: each PDF page goes to its own isolated
+        # Kimi K2.6 'agent swarm' fan-out: each PDF page goes to its own isolated
         # Hermes subprocess in parallel (bounded by max_concurrency). For a 20-page
         # drawing this drops wall-clock time from ~30 min to ~6 min on Nous Portal.
         swarm = await self.kimi.analyze_images(

@@ -39,7 +39,7 @@ nail Day-15 polish + video. Biggest lever is creative framing in the first 10 se
 | 4 | `NEXT_PUBLIC_BACKEND_URL` still placeholder `http://localhost:8000` on Vercel | Vercel dashboard env vars | 1 min after Fly deploy |
 | 5 | Fly backend not deployed yet | `backend/fly.toml` + user action | 15 min interactive |
 | 6 | Video script opens with PDF upload, not the Kahramanmaraş hook | Day-15 video shoot | script rewrite |
-| 7 | Kimi model tag (`moonshotai/kimi-k2.5`) isn't visually prominent anywhere reviewers will see in under 3 seconds | `frontend/app/quick/page.tsx`, debate bubbles | 10 min (add a chip near upload zone) |
+| 7 | Kimi model tag (`moonshotai/kimi-k2.6`) isn't visually prominent anywhere reviewers will see in under 3 seconds | `frontend/app/quick/page.tsx`, debate bubbles | 10 min (add a chip near upload zone) |
 | 8 | Hermes CLI is never shown in-UI — video must include a terminal overlay | video only | shoot-time |
 | 9 | CORS secret must actually be set: `fly secrets set APP_CORS_ORIGINS=https://rebarguard.vercel.app` | Fly | 30 s during deploy |
 
@@ -148,7 +148,7 @@ If P0 items 1-4 are done before the video shoots, you're golden.
 
 **Hackathon visibility (model attribution)**
 - Every agent attaches `model` to its `AgentMessage.evidence`. Kimi vision agents attach
-  `moonshotai/kimi-k2.5`. Moderator + Belediye attach `Hermes-4-70B`. The frontend's `ModelBadge`
+  `moonshotai/kimi-k2.6`. Moderator + Belediye attach `Hermes-4-70B`. The frontend's `ModelBadge`
   component renders it. So the video recording of the debate feed is self-documenting proof of
   dual-track usage.
 
@@ -223,7 +223,7 @@ If P0 items 1-4 are done before the video shoots, you're golden.
 - **Presentation** (9/10) — `/styleguide` documents the design system; motion on `VerdictCinema`,
   `AgentRing`, `/demo` PatternSvgs are television-quality. 3D viewer rotates a 6-floor building
   with rebar highlights.
-- **Kimi-track proof** — backend already tags every vision call with `moonshotai/kimi-k2.5` and
+- **Kimi-track proof** — backend already tags every vision call with `moonshotai/kimi-k2.6` and
   the `ModelBadge` renders it on every debate bubble. Video only needs to linger on a debate feed
   for 2-3 seconds for automatic proof. Consider also adding a prominent model chip near the
   upload zone on `/quick`.
@@ -246,7 +246,7 @@ If P0 items 1-4 are done before the video shoots, you're golden.
 **Hour 1 — Repo polish (can do in any order, batched)**
 - Add `LICENSE` file (MIT).
 - Rewrite `README.md`: live URL, 3 screenshots, 6-line "Run locally" block, Turkish-context
-  gloss for TBDY/TS 500, badges (Next 16, FastAPI, Hermes Agent, Kimi K2.5, MIT).
+  gloss for TBDY/TS 500, badges (Next 16, FastAPI, Hermes Agent, Kimi K2.6, MIT).
 - Delete `frontend/components/ThreeOverlay.tsx`.
 - Remove `/agents` from `TopNav` OR build a minimal `/agents` showcase page.
 - Fix `<img alt>` in `/quick`.
@@ -273,12 +273,12 @@ If P0 items 1-4 are done before the video shoots, you're golden.
 **Hour 4-5 — Demo video shoot (OBS 1080p, ~4-5 takes)**
 1. 0:00-0:10 Kahramanmaraş framing + title card
 2. 0:10-0:25 Landing hero + "Once concrete pours, the rebar is invisible"
-3. 0:25-0:45 Terminal overlay of `hermes chat -q ... --image ... --provider nous -m moonshotai/kimi-k2.5`
+3. 0:25-0:45 Terminal overlay of `hermes chat -q ... --image ... --provider nous -m moonshotai/kimi-k2.6`
 4. 0:45-1:05 PDF upload → metadata auto-extract → 3D building reveal
 5. 1:05-2:00 Site-photo upload → live debate (model badges visible) → VerdictCinema reveal
 6. 2:00-2:30 `/quick` annotated scan → click REF badge → TBDY article modal (EN+TR toggle)
 7. 2:30-2:50 `/demo` scenarios grid (approve / conditional / reject)
-8. 2:50-3:00 Outro: "Hermes Agent + Kimi K2.5 · github.com/Himess/rebarguard"
+8. 2:50-3:00 Outro: "Hermes Agent + Kimi K2.6 · github.com/Himess/rebarguard"
 
 **Hour 6 — Submit**
 - Tweet video tagging `@NousResearch`, repo link, 3-sentence writeup.

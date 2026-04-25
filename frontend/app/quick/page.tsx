@@ -36,7 +36,7 @@ export default function QuickScanPage() {
   const [findings, setFindings] = useState<QuickFinding[]>(DEMO_FALLBACK);
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
-  const [model, setModel] = useState<string>('moonshotai/kimi-k2.5');
+  const [model, setModel] = useState<string>('moonshotai/kimi-k2.6');
   const [err, setErr] = useState<string | null>(null);
   const [usingDemo, setUsingDemo] = useState(true);
 
@@ -252,7 +252,7 @@ export default function QuickScanPage() {
               }}
             >
               <span style={{ padding: '3px 6px', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                LIVE KIMI K2.5
+                LIVE KIMI K2.6
               </span>
               {elapsed != null && (
                 <span style={{ padding: '3px 6px', background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.1)' }}>
@@ -291,7 +291,7 @@ export default function QuickScanPage() {
                   color: 'var(--hazard)',
                 }}
               >
-                KIMI K2.5 ANALYZING…
+                KIMI K2.6 ANALYZING…
               </div>
             )}
 

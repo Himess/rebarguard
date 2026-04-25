@@ -22,9 +22,9 @@ echo "   A URL + code will print — open it in Windows browser, paste the code,
 hermes login --provider nous
 
 echo
-echo "==> 3/4: Set Kimi K2.5 as the default agentic model"
+echo "==> 3/4: Set Kimi K2.6 as the default agentic model"
 hermes setup model --non-interactive || true
-hermes config set agent.model moonshotai/kimi-k2.5 2>/dev/null \
+hermes config set agent.model moonshotai/kimi-k2.6 2>/dev/null \
     || echo "   (set the model interactively via 'hermes model' if needed)"
 
 echo
@@ -37,7 +37,7 @@ cat <<EOF
 Setup complete. Next:
 
   1. From this SAME WSL shell, try a text call:
-       hermes chat -q "say hi as JSON {\"hi\": true}" -m moonshotai/kimi-k2.5 --provider nous -Q
+       hermes chat -q "say hi as JSON {\"hi\": true}" -m moonshotai/kimi-k2.6 --provider nous -Q
 
   2. Place a sample rebar JPG at  data/rebar_photos/smoke-test.jpg
 

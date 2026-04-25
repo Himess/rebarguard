@@ -29,7 +29,7 @@ framing, cold-start warming, Kimi latency hiding), not technical.
 
 **Realistic prize lanes:**
 - **Main Track:** top-3 realistic (8.1/10 composite creativity × presentation); 1st is stretch if the Kahramanmaraş hook + Hermes CLI terminal overlay both land in the video.
-- **Kimi Track:** 1st ($3.5K) realistic — `moonshotai/kimi-k2.5` is visible on every vision call, `ModelBadge` renders automatically on the debate feed, `/quick` top bar shows the chip.
+- **Kimi Track:** 1st ($3.5K) realistic — `moonshotai/kimi-k2.6` is visible on every vision call, `ModelBadge` renders automatically on the debate feed, `/quick` top bar shows the chip.
 
 ---
 
@@ -188,7 +188,7 @@ above; none will manifest in a 3-minute video.
 **Frontend strengths (keep intact):**
 - OKLCH design system applied 100% consistently; no hardcoded colors in any `style={{}}`
   block audited.
-- `ModelBadge` renders on every debate bubble with `kimi-k2.5` → blue pill,
+- `ModelBadge` renders on every debate bubble with `kimi-k2.6` → blue pill,
   `hermes-4-70b` → amber pill. Kimi-track proof is automatic.
 - All dialogs (`VerdictCinema`, `ArticleModal`) have `role="dialog"` + `aria-modal` +
   Escape-to-close + backdrop dismiss.
@@ -217,10 +217,10 @@ stakes."
 Hermes Agent is invisible in the UI itself. Include a 10-second terminal shot:
 ```bash
 hermes chat -q "analyze rebar against TBDY 7.3.4.2" \
-  --image fistik-01.jpg --provider nous -m moonshotai/kimi-k2.5 -Q
+  --image fistik-01.jpg --provider nous -m moonshotai/kimi-k2.6 -Q
 ```
 This simultaneously proves (a) Hermes Agent framework is orchestrating, (b) Nous Portal
-subscription path is live, (c) Kimi K2.5 is the vision model. Single shot, triple-duty.
+subscription path is live, (c) Kimi K2.6 is the vision model. Single shot, triple-duty.
 
 **Usefulness axis (9/10).** Fully grounded:
 - README:31 cites "58,500 buildings collapsed" (Kahramanmaraş)
@@ -240,14 +240,14 @@ subscription path is live, (c) Kimi K2.5 is the vision model. Single shot, tripl
   keyframes (`fadeIn`, `slamDown`, `bp`) in `globals.css`
 
 **Kimi-Track eligibility (guaranteed).**
-`moonshotai/kimi-k2.5` appears:
+`moonshotai/kimi-k2.6` appears:
 - `ModelBadge` on every PlanParser / MaterialAgent / CoverAgent debate bubble
   (`frontend/components/ModelBadge.tsx` + `lib/agents.ts:31,37,38`)
 - `/quick` top bar MODEL chip (`frontend/app/quick/page.tsx:115-132`)
 - `/health` JSON (`backend/src/rebarguard/main.py:46`)
 
 **Hermes Agent visibility (weak in-UI).**
-Current surface area: README + landing-page footer ("HERMES AGENT · KIMI K2.5 · HACKATHON
+Current surface area: README + landing-page footer ("HERMES AGENT · KIMI K2.6 · HACKATHON
 2026" at `frontend/app/page.tsx:169`) + `/health` reporting `hermes_runtime: cli`. Not
 visually prominent. **The terminal overlay in the video is the single fix.**
 
@@ -257,7 +257,7 @@ visually prominent. **The terminal overlay in the video is the single fix.**
 
 | # | Edit | Time | Impact |
 |---|------|------|--------|
-| 1 | Record a 10-second terminal overlay of `hermes chat --provider nous --image fistik-01.jpg -m moonshotai/kimi-k2.5 -Q` | 5 min shoot | +1.5 pt creativity, +0.5 Hermes visibility |
+| 1 | Record a 10-second terminal overlay of `hermes chat --provider nous --image fistik-01.jpg -m moonshotai/kimi-k2.6 -Q` | 5 min shoot | +1.5 pt creativity, +0.5 Hermes visibility |
 | 2 | Open video with 3-5 s Kahramanmaraş AFAD footage + title card "Once concrete pours, the rebar is invisible" | 5 min edit | +1.0 pt creativity (narrative reframe) |
 | 3 | Warm Fly backend (`curl /health`) 60 s before recording; re-run `hermes auth add nous` via `fly ssh` if token is >12 h old | 3 min | Eliminates cold-start + expired-token risk during demo |
 | 4 | Record `/inspection/new` with `fistik-01.jpg` (retaining wall) → live REJECT verdict in VerdictCinema — not just happy path | 10 min shoot | +1 pt usefulness (shows the system catches problems) |
@@ -307,7 +307,7 @@ Up from 8.1 at V1. The one-point gap is:
   - 1:05-2:00 site-photo upload → live 9-agent debate (model badges) → VerdictCinema
   - 2:00-2:30 `/quick` annotated scan → REF badge → TBDY article modal
   - 2:30-2:50 `/demo` grid (happy / conditional / reject)
-  - 2:50-3:00 outro: Hermes Agent + Kimi K2.5 + github.com/Himess/rebarguard
+  - 2:50-3:00 outro: Hermes Agent + Kimi K2.6 + github.com/Himess/rebarguard
 - [ ] **Edit:** 1.5-2× playback over the Kimi agent debate; leave VerdictCinema at 1×
 - [ ] **Edit:** captions for any Turkish technical terms (TBDY, TS 500, paspayı, donatı)
 - [ ] **Upload:** 1080p Twitter-native video (not YouTube link if judges may skim)

@@ -18,7 +18,7 @@ Provided to us as:
 | Attic | `çatı arası.pdf` | |
 | Site photos (×19) | `C:/Users/USER/Downloads/Telegram Desktop/İnşaat foto/photo_*.jpg` | Real construction photos from various pour phases |
 
-## Extracted project metadata (via Kimi K2.5 on 1340.pdf)
+## Extracted project metadata (via Kimi K2.6 on 1340.pdf)
 
 | Field | Value |
 |-------|-------|
@@ -34,7 +34,7 @@ Provided to us as:
 | Rebar steel class | B420C (58,514.02 kg ≈ 58.5 tons) |
 | Formwork | 2,280.25 m² |
 
-## Kimi K2.5 rebar-detection on real photos — validated
+## Kimi K2.6 rebar-detection on real photos — validated
 
 ### `fistik-01.jpg` (retaining wall with timber formwork)
 
@@ -100,7 +100,7 @@ Notes even the **elevation markings** (`+0.95`, `2.90`) painted on formwork.
    - Moderator: Hermes 4 70B synthesizes → CONDITIONAL
 5. **Second run (30s):** upload `fistik-10.jpg`. Kimi counts 8 columns, reads elevation
    markings, flags safety notes. Verdict.
-6. **Outro (15s):** "Public at rebarguard.app. Open-source. Built on Hermes Agent + Kimi K2.5
+6. **Outro (15s):** "Public at rebarguard.app. Open-source. Built on Hermes Agent + Kimi K2.6
    for the Hermes Creative Hackathon 2026."
 
 ## Next steps with this project

@@ -71,17 +71,17 @@
 3. Each stage emits an `AgentMessage` through the async generator.
 4. FastAPI SSE endpoint forwards each message to the frontend.
 
-## Why Hermes Agent + Kimi K2.5 + Hermes 4 (hybrid)
+## Why Hermes Agent + Kimi K2.6 + Hermes 4 (hybrid)
 
 | Role | Model | Why |
 |------|-------|-----|
-| Agentic orchestration, vision (PDF + site photos + material + cover) | **Kimi K2.5** via Nous Portal (`moonshotai/kimi-k2.5`) | $0 on Nous Portal free tier. Native vision (MoonViT). Explicitly recommended by Nous Portal as an agentic model. Kimi-track eligibility. |
+| Agentic orchestration, vision (PDF + site photos + material + cover) | **Kimi K2.6** via Nous Portal (`moonshotai/kimi-k2.6`) | $0 on Nous Portal free tier. Native vision (MoonViT). Explicitly recommended by Nous Portal as an agentic model. Kimi-track eligibility. |
 | Deep reasoning: Moderator verdict synthesis + CodeAgent violation narrative | **Hermes-4-70B** via Nous Portal ($0.05 in / $0.20 out per 1M) | Hybrid-thinking reasoning model, Nous-branded. Single-shot synthesis is its sweet spot. Moderator is where verdict correctness matters most. |
 | Orchestration glue | **Hermes Agent** framework (Nous) | Skill system, FTS5 memory, subagent parallelism. Hackathon host's own product. |
 | Reasoning fallback | Hermes-4-405B ($0.09/$0.37) | Optional — switch via `HERMES_REASONING_MODEL` env for frontier-depth demo scenario. |
 | Vision fallback | Moonshot direct API | Set `VISION_BACKEND=moonshot` if Nous Portal multimodal proves unreliable. |
 
-**Design principle:** agentic models (Kimi K2.5) run in loops with tools; reasoning models (Hermes 4) think deeply in one shot. Use each for what it's best at. Nous Portal's UI explicitly warns against using Hermes 4 as the main agentic loop — we follow that guidance.
+**Design principle:** agentic models (Kimi K2.6) run in loops with tools; reasoning models (Hermes 4) think deeply in one shot. Use each for what it's best at. Nous Portal's UI explicitly warns against using Hermes 4 as the main agentic loop — we follow that guidance.
 
 ## Scoring algorithm
 

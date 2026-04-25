@@ -1,6 +1,6 @@
 """Quick-scan API — single-photo analysis without a project plan.
 
-Sends the uploaded image to Kimi K2.5 via the subscription-backed Hermes Agent CLI
+Sends the uploaded image to Kimi K2.6 via the subscription-backed Hermes Agent CLI
 (or Moonshot fallback) with `QUICK_SCAN_PROMPT`, returns a normalized findings list with
 bounding boxes for the UI to annotate.
 """

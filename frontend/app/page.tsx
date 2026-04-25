@@ -167,7 +167,7 @@ export default function LandingPage() {
         }}
       >
         <span>TBDY 2018 · TS 500 · AFAD-compatible</span>
-        <span>HERMES AGENT · KIMI K2.5 · HACKATHON 2026</span>
+        <span>HERMES AGENT · KIMI K2.6 · HACKATHON 2026</span>
         <span>41.02°N 28.97°E · IST</span>
       </div>
     </div>

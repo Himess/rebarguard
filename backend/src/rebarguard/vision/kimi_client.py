@@ -65,7 +65,7 @@ class KimiVisionClient:
             self._direct = AsyncOpenAI(
                 api_key=settings.nous_portal_api_key, base_url=settings.nous_portal_base_url
             )
-            self._direct_model = settings.hermes_agentic_model  # kimi-k2.5 via Nous
+            self._direct_model = settings.hermes_agentic_model  # kimi-k2.6 via Nous
             self._mode = "direct"
 
     @property
@@ -100,10 +100,10 @@ class KimiVisionClient:
         skills: list[str] | None = None,
         max_concurrency: int = 5,
     ) -> dict[str, Any]:
-        """Kimi K2.5 'agent swarm' fan-out: one isolated subprocess per photo, in
+        """Kimi K2.6 'agent swarm' fan-out: one isolated subprocess per photo, in
         parallel up to `max_concurrency`. Each call ships its own `--image` + the
         same skill, so we get N independent Kimi responses we can aggregate.
-        Mirrors Moonshot's K2.5 Agent Swarm pattern at the orchestration level
+        Mirrors Moonshot's K2.6 Agent Swarm pattern at the orchestration level
         without needing the closed-source SDK.
         """
         # `hermes chat --image` accepts a single image per call; fan out concurrently

@@ -74,9 +74,9 @@ subsection below. Do NOT start it until RebarGuard is shipped.
 | Layer | Tech | Why |
 |-------|------|-----|
 | Orchestrator framework | **Hermes Agent** (Python, Nous Research) | Multi-agent native, model-agnostic, skill system, memory; install `curl -fsSL https://hermes-agent.nousresearch.com/install.sh \| bash` |
-| Agentic + Vision model | **Kimi K2.5** (`moonshotai/kimi-k2.5`) via **Nous Portal** | **$0 / 1M tokens on Nous Portal free tier.** Vision-capable (K2.5 adds image+video). Covers BOTH Main and Kimi tracks. Nous Portal explicitly recommends agentic models (Kimi K2.5 / GPT-5.4 / GLM 5 / Claude) over Hermes 4 for Hermes Agent |
-| Reasoning fallback | **Hermes-4-70B** via Nous Portal ($0.05 in / $0.20 out per 1M) | Dedicated reasoning when Kimi K2.5 orchestration needs a hybrid-thinking boost |
-| Vision fallback | **Kimi K2.5** direct via Moonshot API | If Nous Portal multimodal proves unreliable — set `VISION_BACKEND=moonshot` |
+| Agentic + Vision model | **Kimi K2.6** (`moonshotai/kimi-k2.6`) via **Nous Portal** | **$0 / 1M tokens on Nous Portal free tier.** Vision-capable (K2.6 adds image+video). Covers BOTH Main and Kimi tracks. Nous Portal explicitly recommends agentic models (Kimi K2.6 / GPT-5.4 / GLM 5 / Claude) over Hermes 4 for Hermes Agent |
+| Reasoning fallback | **Hermes-4-70B** via Nous Portal ($0.05 in / $0.20 out per 1M) | Dedicated reasoning when Kimi K2.6 orchestration needs a hybrid-thinking boost |
+| Vision fallback | **Kimi K2.6** direct via Moonshot API | If Nous Portal multimodal proves unreliable — set `VISION_BACKEND=moonshot` |
 | Backend | **FastAPI** (Python 3.11+) | Async-first, SSE streaming |
 | Frontend | **Next.js 16** (App Router, React 19) | Modern, Vercel deploy |
 | 3D viewer | **Three.js** + react-three-fiber | Rebar schematic vs. site-photo overlay |
@@ -88,12 +88,12 @@ subsection below. Do NOT start it until RebarGuard is shipped.
 | Deploy | Vercel (frontend) + Modal or Fly.io (backend) | |
 
 ### Why NOT Hermes 4 as primary model
-Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Hermes Agent. Use an agentic model from the list above."* Hermes 4 is a frontier reasoning model; the Hermes Agent framework is tuned for tool-calling agentic models (Kimi K2.5, GPT-5.4, GLM 5, Claude). We follow the sanctioned path.
+Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Hermes Agent. Use an agentic model from the list above."* Hermes 4 is a frontier reasoning model; the Hermes Agent framework is tuned for tool-calling agentic models (Kimi K2.6, GPT-5.4, GLM 5, Claude). We follow the sanctioned path.
 
 ## User decisions (recorded verbatim)
 
 - Target: hackathon 1st place. "Won't finish in time" is not an acceptable answer.
-- Nous Portal subscription acquired by user (free tier available). **Kimi K2.5 via Nous Portal is $0/1M — use as primary model for both agentic orchestration and vision.**
+- Nous Portal subscription acquired by user (free tier available). **Kimi K2.6 via Nous Portal is $0/1M — use as primary model for both agentic orchestration and vision.**
 - Kahramanmaraş framing belongs in the demo video intro only, NOT as a core feature.
 - Rebar dataset: open-source (Roboflow Universe) + Kahramanmaraş open data + user-supplied photos.
 - TBDY 2018 + TS 500: downloaded by Claude (TBDY done, TS 500 deferred to academic fallback).
@@ -156,16 +156,16 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
 
 | # | Agent | Phase | Model | Role |
 |---|-------|-------|-------|------|
-| 1 | **PlanParserAgent** | 1 | `moonshotai/kimi-k2.5` | Reads approved PDF drawing → structured column schedule JSON |
+| 1 | **PlanParserAgent** | 1 | `moonshotai/kimi-k2.6` | Reads approved PDF drawing → structured column schedule JSON |
 | 2 | **GeometryAgent** | 2 | deterministic (no LLM) | Plan vs. site detection diff (count, spacing, diameter, stirrups) |
 | 3 | **CodeAgent** | 2 | rule engine + **Hermes 4 70B** narrative | TBDY 2018 / TS 500 compliance (Day 7 adds RAG). Hermes 4 generates the violation-narrative when there are failures |
 | 4 | **FraudAgent** | 2 | deterministic | EXIF timestamp, geolocation, reference marker, hash-dup |
 | 5 | **RiskAgent** | 2 | deterministic (AFAD table) | Zone × soil × floors → risk multiplier |
-| 6 | **MaterialAgent** | 2 | `moonshotai/kimi-k2.5` | Rebar class (S420, B500C), corrosion, surface condition from close-up |
-| 7 | **CoverAgent** | 2 | `moonshotai/kimi-k2.5` | Concrete cover (paspayı) estimation from site photo with reference marker |
+| 6 | **MaterialAgent** | 2 | `moonshotai/kimi-k2.6` | Rebar class (S420, B500C), corrosion, surface condition from close-up |
+| 7 | **CoverAgent** | 2 | `moonshotai/kimi-k2.6` | Concrete cover (paspayı) estimation from site photo with reference marker |
 | — | **ModeratorAgent** | post | **Hermes 4 70B** | Synthesizes 6 reports → final verdict (approve/conditional/reject) + score + narrative |
 
-**Why Hermes 4 70B on Moderator + CodeAgent narrative:** these are deep-reasoning, single-shot synthesis tasks — the `hybrid-thinking` strength of Hermes 4. Kimi K2.5 is the agentic (tool-calling) model, Hermes 4 is the reasoner. Both visible on screen = triple Nous showcase (Hermes Agent framework + Hermes 4 model + Nous Portal provider) + Kimi K2.5 for Kimi track.
+**Why Hermes 4 70B on Moderator + CodeAgent narrative:** these are deep-reasoning, single-shot synthesis tasks — the `hybrid-thinking` strength of Hermes 4. Kimi K2.6 is the agentic (tool-calling) model, Hermes 4 is the reasoner. Both visible on screen = triple Nous showcase (Hermes Agent framework + Hermes 4 model + Nous Portal provider) + Kimi K2.6 for Kimi track.
 
 ## Data assets
 
@@ -210,10 +210,10 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
   - GitHub: **https://github.com/Himess/rebarguard** (public, 38 commits,
     **100% GPG-verified**).
 - **Live E2E verified (2026-04-21 17:32 UTC):**
-  - `GET /health` → `{"status":"ok","hermes_runtime":"cli","vision_backend":"nous_portal","agentic_model":"moonshotai/kimi-k2.5","reasoning_model":"Hermes-4-70B"}`
+  - `GET /health` → `{"status":"ok","hermes_runtime":"cli","vision_backend":"nous_portal","agentic_model":"moonshotai/kimi-k2.6","reasoning_model":"Hermes-4-70B"}`
   - `POST /api/demo/fistik` seeds 1340 Ada 43 Parsel.
   - `GET /api/regulations` returns 10 KB of curated articles.
-  - `hermes chat -m moonshotai/kimi-k2.5 --provider nous` on Fly returned a valid
+  - `hermes chat -m moonshotai/kimi-k2.6 --provider nous` on Fly returned a valid
     JSON response → subscription path is green, no direct-API charges.
   - CORS from `https://rebarguard.vercel.app` echoes back correctly.
 - **Runtime state right now (2026-04-21):**
@@ -242,7 +242,7 @@ My recommendation to user (on the record):
   Nous hackathon likely permits multiple submissions (need to confirm in Discord).
 - **Scope narrow if pursued:** single 10–15 s controversial clip → 4–5 agents (offside /
   foul / handball / play direction + moderator-referee). Ground in IFAB "Laws of the
-  Game" PDF as RAG (free, public) — TBDY analog. Kimi K2.5 Jan 2026 added video so
+  Game" PDF as RAG (free, public) — TBDY analog. Kimi K2.6 Jan 2026 added video so
   technically feasible; watch subscription rate limits on heavy video tokens.
 - **DO NOT attempt 90-min match analysis** — 5400 s × 25 fps = frame volume kills
   latency + subscription quota. Start with the single-play VAR framing.
@@ -293,7 +293,7 @@ If the user comes back and greenlights the football project, the scaffold plan i
 ### Day 2 PM — Hermes Agent CLI wired end-to-end (SUBSCRIPTION CONFIRMED WORKING)
 
 - **OAuth login succeeded.** `hermes auth add nous --type oauth --no-browser` printed the device-code URL; user approved in browser; token stored at `/root/.hermes/`. Subscription plan label: **Basic** (that's Nous's name for the $10/mo tier).
-- **Text smoke test: PASS.** `hermes chat -q ... -m moonshotai/kimi-k2.5 --provider nous -Q` returned valid JSON `{"hello": "world", "model": "kimi-k2.5"}` at $0 cost.
+- **Text smoke test: PASS.** `hermes chat -q ... -m moonshotai/kimi-k2.6 --provider nous -Q` returned valid JSON `{"hello": "world", "model": "kimi-k2.6"}` at $0 cost.
 - **Vision smoke test: PASS.** `--image` flag works with subscription. Synthetic 800×800 test JPG (6 vertical + 3 horizontal lines) → Kimi returned `{"count": 9, "confidence": 1.0}`. Max-turns=3 (1 was too low when Kimi internally dispatched its vision-tool).
 - **`HermesClient` and `KimiVisionClient` refactored** to branch on `HERMES_RUNTIME`:
   - `cli` (new default): calls route through `HermesCLIBridge` → WSL `hermes chat` → subscription
@@ -302,7 +302,7 @@ If the user comes back and greenlights the football project, the scaffold plan i
 
 ### Path B is validated — $0 target achievable
 
-- Kimi K2.5 (vision + agentic): FREE via subscription
+- Kimi K2.6 (vision + agentic): FREE via subscription
 - Hermes 4 70B (Moderator, CodeAgent narrative): subscription includes this too (subscription covers all `--provider nous` traffic)
 - **Worst case**: if subscription has a hidden rate limit we hit during stress testing, fall back to `VISION_BACKEND=moonshot` (~$5 direct) — not expected
 
@@ -358,7 +358,7 @@ Validation:
 - `pnpm typecheck`: clean
 - `curl GET /health` → 200, `curl localhost:3000` → full HTML
 - `POST /api/projects` with a 3-page TBDY 2018 sample:
-  - Kimi K2.5 reads Turkish technical content correctly
+  - Kimi K2.6 reads Turkish technical content correctly
   - Correctly identifies "not a construction drawing", returns empty element lists
   - Confidence 0.99, cost $0 via subscription
 
@@ -367,7 +367,7 @@ Validation:
 - Full 7-agent debate ran via `POST /api/inspections/stream` against `fistik-01.jpg` and the
   seeded 1340 Ada 43 Parsel project. Moderator (Hermes 4 70B) synthesized a REJECT verdict
   with narrative + critical issues + recommendations. Every message carries a model tag in
-  its `evidence`: `moonshotai/kimi-k2.5` for vision, `Hermes-4-70B` for the verdict.
+  its `evidence`: `moonshotai/kimi-k2.6` for vision, `Hermes-4-70B` for the verdict.
 - `POST /api/demo/fistik` seeds a realistic plan in memory (engineer, parcel, 6+2 floors,
   B420C / BS30, 6 columns × 8 floors + 2 shear walls + 6 beams) matching Kimi's metadata
   extraction from `1340.pdf`. Remove before production.
@@ -498,7 +498,7 @@ landed in a ~36-hour compressed session. Each day below is a real commit on `mai
   `https://rebarguard-api.fly.dev`) + `vercel --prod --yes` redeploy. Prod
   site now talks to Fly.
 - **Live E2E proof:**
-  - `hermes chat -q "reply with the json {\"ok\": true}" -m moonshotai/kimi-k2.5
+  - `hermes chat -q "reply with the json {\"ok\": true}" -m moonshotai/kimi-k2.6
     --provider nous` run inside the Fly container returned `{"ok": true}` —
     subscription path is alive, no direct-API charges.
   - `POST /api/demo/fistik` on the live backend seeds the 1340 Ada 43
@@ -516,7 +516,7 @@ landed in a ~36-hour compressed session. Each day below is a real commit on `mai
 - **P0 applied:** `LICENSE` file added (MIT — README now honest); `/agents` route
   built (9 agent cards + 6-step debate-flow chart, kills the TopNav dead link);
   README fully rewritten with live URL, badges, screenshots grid, run-locally
-  block, repo map, and Turkish-context gloss; prominent `MODEL · moonshotai/kimi-k2.5`
+  block, repo map, and Turkish-context gloss; prominent `MODEL · moonshotai/kimi-k2.6`
   chip added to the `/quick` top bar (Kimi-track proof visible in <3 s of camera
   time).
 - **P1 applied:** deleted three dead components (`ThreeOverlay`, `BuildingPane`,
@@ -720,7 +720,7 @@ Mobile stacks vertically.
    - 0:15–0:45: 1340 Ada 43 Parsel PDF upload → metadata auto-extract → 3D building reveal
    - 0:45–1:45: site-photo upload → live 9-agent debate (model badges visible, Hermes + Kimi on screen) → verdict cinema
    - 1:45–2:30: `/quick` one-shot scan → annotated bounding boxes → click REF badge → TBDY article modal
-   - 2:30–3:00: `/demo` scenario grid (happy/conditional/reject) + outro "Hermes Agent + Kimi K2.5 via Nous Portal"
+   - 2:30–3:00: `/demo` scenario grid (happy/conditional/reject) + outro "Hermes Agent + Kimi K2.6 via Nous Portal"
    - Recording: OBS, 1080p, include terminal overlay showing `hermes chat ...` for Hermes track proof.
 5. **Submit**:
    - Tweet demo video tagging `@NousResearch` + include link to `github.com/Himess/rebarguard` + brief writeup.
@@ -773,13 +773,13 @@ pnpm install
 # Hermes Agent framework (official installer)
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 hermes setup
-hermes model  # select moonshotai/kimi-k2.5 (free)
+hermes model  # select moonshotai/kimi-k2.6 (free)
 ```
 
 ### Env vars (create `backend/.env`)
 ```
 NOUS_PORTAL_API_KEY=sk-...
-HERMES_AGENTIC_MODEL=moonshotai/kimi-k2.5      # $0 on Nous Portal
+HERMES_AGENTIC_MODEL=moonshotai/kimi-k2.6      # $0 on Nous Portal
 HERMES_REASONING_MODEL=Hermes-4-70B            # optional, $0.05/$0.20
 
 # Optional direct Moonshot fallback
@@ -806,8 +806,8 @@ cd frontend && pnpm dev
 - **No Claude AI / Co-Authored-By in commits or PRs.** User's standing preference.
 - **English UI and code.** Docs too. Domain terms may keep Turkish names (TBDY 2018, TS 500 — these are proper-noun regulations) but explained in English.
 - **Hermes Agent must be visibly center-stage** in the demo video — we're in their hackathon. Show the `hermes` CLI, model picker, or Hermes Agent branding on screen.
-- **Kimi K2.5 usage must be provable** in the demo video for Kimi-track eligibility (show model name `moonshotai/kimi-k2.5` in logs / on screen).
-- **No mocks in final demo** — real Nous Portal calls, real Kimi K2.5, real debate. Happy path + fraud case must both run live.
+- **Kimi K2.6 usage must be provable** in the demo video for Kimi-track eligibility (show model name `moonshotai/kimi-k2.6` in logs / on screen).
+- **No mocks in final demo** — real Nous Portal calls, real Kimi K2.6, real debate. Happy path + fraud case must both run live.
 - **Time is the scarcest resource.** Scope creep = death. If a feature isn't in the timeline table, don't build it.
 - **Billing model: Path B — Hermes Agent framework via subscription.** The Nous Portal subscription ($10/mo Nous Chat + Hermes Agent plan) covers model calls made BY the Hermes Agent CLI/runtime. Direct API access is a separate pay-per-token tier and is AVOIDED. All LLM work routes through `hermes` (subprocess or Python SDK). Verified vs. unverified in Day 2 morning research spike. Best case: $0 total spend. Worst case: ~$5 Moonshot direct if framework lacks multimodal via subscription — vision-only fallback.
 
@@ -838,10 +838,10 @@ cd frontend && pnpm dev
 - Training: ~5M samples / ~60B tokens, mostly agentic traces, 40+ tools
 - VLLM built-in tool parser `hermes`; SGLang `qwen25`
 
-### Kimi-VL + Kimi K2.5
+### Kimi-VL + Kimi K2.6
 - **Kimi-VL-A3B-Instruct:** MoE, 2.8B active, 128K context, MoonViT native-res encoder
 - Strong OCR: InfoVQA 83.2, ScreenSpot-Pro 34.5
-- **Kimi K2.5** (Jan 2026): adds video + Agent Swarm (100 parallel agents)
+- **Kimi K2.6** (Jan 2026): adds video + Agent Swarm (100 parallel agents)
 - API: `platform.moonshot.ai`, OpenAI/Anthropic-compatible
 - Pricing: $0.60/M input, $2.50/M output
 

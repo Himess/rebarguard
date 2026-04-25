@@ -18,7 +18,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: 'RebarGuard — Pre-pour Inspection',
   description:
-    'Once concrete pours, the rebar is invisible. RebarGuard runs 8 AI agents against the approved structural plan before each pour. Hermes Agent + Kimi K2.5.',
+    'Once concrete pours, the rebar is invisible. RebarGuard runs 8 AI agents against the approved structural plan before each pour. Hermes Agent + Kimi K2.6.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

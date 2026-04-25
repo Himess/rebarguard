@@ -7,7 +7,7 @@ On Windows this invokes WSL2: `wsl -d Ubuntu-22.04 -- hermes ...`.
 
 Discovered via Day 2 research spike (Hermes Agent v0.10.0):
 - `-q QUERY`   single non-interactive query
-- `-m MODEL`   model selection (e.g. `moonshotai/kimi-k2.5`)
+- `-m MODEL`   model selection (e.g. `moonshotai/kimi-k2.6`)
 - `--image P`  attach a local image to the query (native vision support!)
 - `-Q`         quiet mode — only final response to stdout
 - `--provider nous`  route through Nous Portal subscription
@@ -177,6 +177,10 @@ class HermesCLIBridge(HermesRuntime):
             source,
             "--max-turns",
             str(self._settings.hermes_cli_max_turns),
+            # Auto-approve any new shell hooks declared in cli-config.yaml.
+            # Belt-and-braces alongside HERMES_ACCEPT_HOOKS=1 — without one or
+            # the other, hooks register but never fire under headless run.
+            "--accept-hooks",
         ]
         if image is not None:
             cmd.extend(["--image", self._translate_image_path(image)])

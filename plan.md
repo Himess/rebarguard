@@ -25,20 +25,20 @@ Ship a working end-to-end demo where:
 - [x] Frontend scaffold: Next.js 16 + Tailwind v4 + landing/upload/dashboard/inspection pages + agent debate feed + score panel + Three.js overlay
 - [x] `.env.example`, `.gitignore`, `data/README.md`, `docs/ARCHITECTURE.md`
 - [x] **English localization** — all UI + agent summaries + prompts
-- [x] **Hybrid model architecture** — Kimi K2.5 agentic/vision + Hermes 4 70B reasoning + model badges in UI
+- [x] **Hybrid model architecture** — Kimi K2.6 agentic/vision + Hermes 4 70B reasoning + model badges in UI
 
 ### Day 2 (Apr 19) — **PIVOT: full Hermes Agent framework adoption (Path B)**
 
-> **Decision (recorded):** Use Nous Portal subscription ($10/mo) by routing ALL LLM calls through the Hermes Agent framework, instead of direct API. This keeps cost at **$0** (Kimi K2.5 is free inside Hermes Agent) and aligns deeply with the hackathon's host tool. Risk: Hermes Agent's Python SDK + vision support aren't fully documented — verify first, then refactor.
+> **Decision (recorded):** Use Nous Portal subscription ($10/mo) by routing ALL LLM calls through the Hermes Agent framework, instead of direct API. This keeps cost at **$0** (Kimi K2.6 is free inside Hermes Agent) and aligns deeply with the hackathon's host tool. Risk: Hermes Agent's Python SDK + vision support aren't fully documented — verify first, then refactor.
 
 #### Day 2 — Morning (research spike — do not refactor yet)
 - [ ] Install Hermes Agent on Windows (likely via WSL2):
   `curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash`
 - [ ] `hermes setup` — sign in with user's Nous Portal subscription
-- [ ] `hermes model moonshotai/kimi-k2.5` — select the free agentic model
+- [ ] `hermes model moonshotai/kimi-k2.6` — select the free agentic model
 - [ ] Locate Hermes Agent Python package / SDK — check if it's `pip install hermes-agent` or GitHub-only
 - [ ] Inspect `agentskills.io` standard — understand the skill manifest + runtime contract
-- [ ] **Vision smoke test** — send a single JPEG of a rebar photo through Hermes Agent CLI chat with Kimi K2.5 selected, confirm multimodal works via subscription
+- [ ] **Vision smoke test** — send a single JPEG of a rebar photo through Hermes Agent CLI chat with Kimi K2.6 selected, confirm multimodal works via subscription
 - [ ] **Decision point:** document whether vision works, whether Python SDK is usable from FastAPI
 
 #### Day 2 — Afternoon (execute based on spike result)
@@ -56,7 +56,7 @@ Ship a working end-to-end demo where:
 - [ ] Keep FastAPI SSE flow unchanged
 
 **If vision does NOT work via framework:** (partial fallback — $5 vision)
-- [ ] Keep Hermes 4 70B + Kimi K2.5 TEXT calls via Hermes Agent (subscription)
+- [ ] Keep Hermes 4 70B + Kimi K2.6 TEXT calls via Hermes Agent (subscription)
 - [ ] Vision-only calls route through Moonshot direct (`VISION_BACKEND=moonshot`) — requires $5-10 in Moonshot API credit
 - [ ] Document the mixed billing in CLAUDE.md
 
@@ -161,7 +161,7 @@ photo-analyzer mode. Ferhat Baş's project already validated end-to-end via curl
 ### Day 15 (Apr 29) — Demo video shoot + edit
 - [ ] Storyboard (30s intro / 90s demo / 60s outro)
 - [ ] Screen record at 1080p 60fps
-- [ ] Edit with captions + overlays; highlight model badges (`moonshotai/kimi-k2.5`, `Hermes-4-70B`)
+- [ ] Edit with captions + overlays; highlight model badges (`moonshotai/kimi-k2.6`, `Hermes-4-70B`)
 - [ ] Music (royalty-free, uplifting/tense)
 - [ ] Twitter writeup (<280 chars + thread)
 
@@ -176,7 +176,7 @@ photo-analyzer mode. Ferhat Baş's project already validated end-to-end via curl
 
 **IN scope:**
 - 7 agents + moderator as Hermes Agent skills (Path B)
-- Kimi K2.5 via subscription (free) for vision + agentic orchestration
+- Kimi K2.6 via subscription (free) for vision + agentic orchestration
 - Hermes 4 70B via subscription for Moderator + CodeAgent narrative
 - SSE live agent-debate stream to frontend
 - Three.js 3D overlay (columns only — beams/shear walls only if time)
@@ -187,7 +187,7 @@ photo-analyzer mode. Ferhat Baş's project already validated end-to-end via curl
 **OUT of scope:**
 - Mobile app (web only)
 - Real municipality integration (mock dashboard only)
-- Rebar detection model training (Kimi K2.5 zero-shot)
+- Rebar detection model training (Kimi K2.6 zero-shot)
 - Full Turkish construction code coverage (cite relevant articles only)
 - User accounts beyond role-based demo
 - Payment / subscriptions / invoicing
@@ -199,7 +199,7 @@ photo-analyzer mode. Ferhat Baş's project already validated end-to-end via curl
 | **Hermes Agent framework doesn't expose usable Python SDK / vision via subscription** | Day 2 morning research spike answers this. Fallback: subprocess bridge (`hermes run ...`). Worst case: $5-10 Moonshot direct for vision only |
 | **Windows / WSL2 install friction for Hermes Agent** | Install path documented by Nous (curl installer); WSL2 if native Windows fails. Budget: 2-3 hours before falling back |
 | **Subscription doesn't cover the volume we need during testing** | Unlikely at $10/mo given our small call volume; monitor `hermes usage` if available. Keep direct API as a $5 safety net |
-| Kimi K2.5 can't read some structural drawings well | Prompt engineering, few-shot examples; fallback: pre-annotate 2-3 demo projects |
+| Kimi K2.6 can't read some structural drawings well | Prompt engineering, few-shot examples; fallback: pre-annotate 2-3 demo projects |
 | No open TS 500 PDF | Use academic summaries + İMO lecture notes; cite on-screen |
 | AFAD has no public API | Hard-code 5-10 cities' zone data for demo (already implemented) |
 | Rebar detection inaccurate on real photos | Curate demo photos to ones Kimi handles well; "research prototype" framing in video |

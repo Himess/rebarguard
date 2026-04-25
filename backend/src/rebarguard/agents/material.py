@@ -1,4 +1,4 @@
-"""MaterialAgent — detects rebar steel class + corrosion level via Kimi K2.5."""
+"""MaterialAgent — detects rebar steel class + corrosion level via Kimi K2.6."""
 
 from __future__ import annotations
 

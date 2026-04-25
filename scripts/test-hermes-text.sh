@@ -12,10 +12,10 @@ echo "==> status:"
 hermes status 2>&1 | head -20
 
 echo
-echo "==> Text call (Kimi K2.5 via subscription — should cost \$0):"
+echo "==> Text call (Kimi K2.6 via subscription — should cost \$0):"
 OUT=$(hermes chat \
-    -q 'Respond with a single JSON object only, no markdown fences: {"hello": "world", "model": "kimi-k2.5"}' \
-    -m "moonshotai/kimi-k2.5" \
+    -q 'Respond with a single JSON object only, no markdown fences: {"hello": "world", "model": "kimi-k2.6"}' \
+    -m "moonshotai/kimi-k2.6" \
     --provider nous \
     -Q \
     --source tool \

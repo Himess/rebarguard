@@ -14,6 +14,10 @@ primary_region = 'fra'
   HERMES_RUNTIME = 'cli'
   PORT = '8000'
   VISION_BACKEND = 'nous_portal'
+  # Auto-accept the shell hooks declared in cli-config.yaml. Required because
+  # the container has no TTY for the first-use consent prompt; the hooks just
+  # write append-only JSONL audit rows to the volume, no destructive ops.
+  HERMES_ACCEPT_HOOKS = '1'
 
 [[mounts]]
   source = 'hermes_data'

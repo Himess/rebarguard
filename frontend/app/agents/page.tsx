@@ -5,16 +5,16 @@ import { TopNav } from '@/components/TopNav';
 import { AGENTS } from '@/lib/agents';
 
 const FLOW = [
-  { step: '01', phase: 'Ingestion', agents: ['plan'], note: 'Kimi K2.5 reads the approved PDF drawing. One shot, structured plan JSON out.' },
+  { step: '01', phase: 'Ingestion', agents: ['plan'], note: 'Kimi K2.6 reads the approved PDF drawing. One shot, structured plan JSON out.' },
   { step: '02', phase: 'Site analysis', agents: ['geometry', 'fraud', 'seismic'], note: 'Deterministic agents run in parallel against detected rebar + EXIF + AFAD zone.' },
-  { step: '03', phase: 'Vision pass', agents: ['material', 'cover'], note: 'Kimi K2.5 close-up + cover reads with reference-marker calibration.' },
+  { step: '03', phase: 'Vision pass', agents: ['material', 'cover'], note: 'Kimi K2.6 close-up + cover reads with reference-marker calibration.' },
   { step: '04', phase: 'Compliance', agents: ['code'], note: 'TBDY 2018 + TS 500 whitelist RAG, Hermes 4 narrative per violation.' },
   { step: '05', phase: 'Synthesis', agents: ['mod'], note: 'Hermes 4 70B weighs 7 reports, emits score + verdict.' },
   { step: '06', phase: 'Counter-review', agents: ['municipality'], note: 'Independent municipal reviewer. Hard rail: cannot uphold a REJECT.' },
 ] as const;
 
-const MODEL_COLOR: Record<'kimi-k2.5' | 'hermes-4-70b', string> = {
-  'kimi-k2.5': 'var(--blue)',
+const MODEL_COLOR: Record<'kimi-k2.6' | 'hermes-4-70b', string> = {
+  'kimi-k2.6': 'var(--blue)',
   'hermes-4-70b': 'var(--amber)',
 };
 
@@ -49,7 +49,7 @@ export default function AgentsPage() {
             lineHeight: 1.55,
           }}
         >
-          Every inspection runs the same ordered debate. Kimi K2.5 sees the photos, Hermes 4 70B
+          Every inspection runs the same ordered debate. Kimi K2.6 sees the photos, Hermes 4 70B
           argues the codes, the Moderator scores it, the Belediye Agent countersigns — and then
           a human engineer has the last click.
         </p>

@@ -1,4 +1,4 @@
-"""Prompt templates for Kimi K2.5 vision calls."""
+"""Prompt templates for Kimi K2.6 vision calls."""
 
 PLAN_PARSE_PROMPT = """You are a senior structural engineer analyzing an approved \
 reinforced-concrete (RC) structural drawing page. Extract the project metadata and ALL \

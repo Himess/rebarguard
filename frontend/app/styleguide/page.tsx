@@ -188,7 +188,7 @@ export default function StyleguidePage() {
                   className="mono"
                   style={{ fontSize: 11, letterSpacing: '0.08em', color: 'var(--blue)' }}
                 >
-                  KIMI-K2.5 · VISION
+                  KIMI-K2.6 · VISION
                 </div>
               </Row>
               <Row label="Mono label · 10">
@@ -250,7 +250,7 @@ export default function StyleguidePage() {
             >
               <span className="chip hazard">HAZARD</span>
               <span className="chip amber">HERMES-4-70B</span>
-              <span className="chip blue">KIMI-K2.5</span>
+              <span className="chip blue">KIMI-K2.6</span>
               <span className="chip">NEUTRAL</span>
             </div>
           </Panel>

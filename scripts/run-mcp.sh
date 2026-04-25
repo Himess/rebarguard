@@ -20,7 +20,7 @@
 set -euo pipefail
 
 SKILLS="${REBARGUARD_SKILLS:-parse-structural-plan,inspect-rebar,moderate-inspection}"
-MODEL="${REBARGUARD_MODEL:-moonshotai/kimi-k2.5}"
+MODEL="${REBARGUARD_MODEL:-moonshotai/kimi-k2.6}"
 
 exec hermes mcp serve \
   -s "$SKILLS" \

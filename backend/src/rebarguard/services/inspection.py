@@ -43,7 +43,7 @@ from rebarguard.schemas import (
 from rebarguard.vision import get_kimi_client
 from rebarguard.vision.prompts import REBAR_DETECT_PROMPT
 
-_KIMI_MODEL_TAG = "moonshotai/kimi-k2.5"
+_KIMI_MODEL_TAG = "moonshotai/kimi-k2.6"
 
 
 @dataclass
@@ -89,7 +89,7 @@ class InspectionOrchestrator:
             kind="observation",
             content=(
                 f"Stage: {stage_label}. Inspection started for {label}. 7 agents + belediye — "
-                f"Kimi K2.5 handles vision, Hermes 4 70B handles reasoning."
+                f"Kimi K2.6 handles vision, Hermes 4 70B handles reasoning."
             ),
         )
         yield AgentMessage(
@@ -108,7 +108,7 @@ class InspectionOrchestrator:
                 agent=AgentRole.PLAN_PARSER,
                 kind="observation",
                 content=(
-                    f"Kimi K2.5 detection: {det.detected_rebar_count} rebars, "
+                    f"Kimi K2.6 detection: {det.detected_rebar_count} rebars, "
                     f"stirrups {'visible' if det.stirrup_visible else 'not visible'}."
                 ),
                 model=_KIMI_MODEL_TAG,
@@ -242,7 +242,7 @@ class InspectionOrchestrator:
     async def _detect_all(
         self, photos: list[Path], element_type: ElementType
     ) -> list[RebarDetection]:
-        # Kimi K2.5 agent-swarm fan-out: each photo gets its own isolated Hermes
+        # Kimi K2.6 agent-swarm fan-out: each photo gets its own isolated Hermes
         # subprocess running in parallel via asyncio.gather. For a stage with 19
         # site photos (Fıstık Ağacı), this drops wall-clock from ~25 min to ~5 min
         # at default concurrency.

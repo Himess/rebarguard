@@ -34,6 +34,16 @@ COPY src ./src
 # looks for them.
 COPY skills /opt/hermes-skills
 
+# Hermes Agent CLI config + hooks. cli-config.yaml declares lifecycle hooks
+# (on_session_start, on_session_finalize, post_llm_call) that fire shell
+# scripts in agent-hooks/ to write a tamper-evident audit trail to the volume.
+# Hooks need exec bit; jq is preferred for compact JSONL formatting.
+COPY hermes-config /opt/hermes-config
+RUN apt-get update && apt-get install -y --no-install-recommends jq \
+    && rm -rf /var/lib/apt/lists/* \
+    && find /opt/hermes-config -name '*.sh' -exec sed -i 's/\r$//' {} \; \
+    && find /opt/hermes-config -name '*.sh' -exec chmod +x {} \;
+
 # Hermes Agent CLI — subscription-backed model access.
 #
 # IMPORTANT: the install MUST go somewhere that the runtime entrypoint does NOT
@@ -71,6 +81,18 @@ if [ ! -L /root/.hermes/skills ]; then
   rm -rf /root/.hermes/skills 2>/dev/null || true
   ln -sf /opt/hermes-skills /root/.hermes/skills
 fi
+
+# Wire our cli-config.yaml so Hermes loads our hooks (on_session_start,
+# on_session_finalize, post_llm_call) on every chat call. Symlink-based so a
+# redeploy refreshes the config without touching the OAuth volume.
+if [ ! -L /root/.hermes/config.yaml ]; then
+  rm -f /root/.hermes/config.yaml 2>/dev/null || true
+  ln -sf /opt/hermes-config/cli-config.yaml /root/.hermes/config.yaml
+fi
+
+# Hooks fire under HERMES_ACCEPT_HOOKS=1 (set in fly.toml) and via the
+# --accept-hooks flag we pass on every `hermes chat` from the bridge. The
+# CLI auto-allowlists on first call.
 
 exec "$@"
 EOF

@@ -1,0 +1,43 @@
+# RebarGuard — Hermes Agent CLI configuration
+#
+# Symlinked into ~/.hermes/config.yaml at container start by backend/Dockerfile.
+# Declares production-time hooks that fire on every Hermes Agent call.
+#
+# Why hooks: every Moderator + Belediye + skill-loaded Kimi call goes through
+# `hermes chat`. By declaring shell hooks here, we get a tamper-evident audit
+# trail of every model call without changing a line of Python — the framework
+# itself emits the events, our scripts just persist them. Append-only JSONL
+# on the Fly volume so a municipal inspector can audit any prior verdict.
+
+# Hooks fire shell scripts on lifecycle events emitted by Hermes Agent.
+# Scripts receive a JSON payload on stdin describing the event.
+#
+# Valid events: pre_tool_call, post_tool_call, pre_llm_call, post_llm_call,
+#               pre_api_request, post_api_request, on_session_start,
+#               on_session_end, on_session_finalize, on_session_reset,
+#               subagent_stop
+hooks:
+  # Record every session that starts so we can correlate verdicts back to a
+  # source request — useful when re-inspecting the same parcel after a year.
+  on_session_start:
+    - command: "/opt/hermes-config/agent-hooks/log-session-start.sh"
+      timeout: 5
+
+  # The big one: when a session finalizes (verdict emitted, tokens flushed),
+  # write the full session metadata to the audit log so judges + municipality
+  # can reconstruct the chain of reasoning.
+  on_session_finalize:
+    - command: "/opt/hermes-config/agent-hooks/log-verdict.sh"
+      timeout: 10
+
+  # Mirror every Moderator / Belediye / inspect-rebar LLM call into a
+  # tamper-evident JSONL trail. Matches against the skill name preloaded with
+  # `-s <skill>` so we capture the meaningful calls, not internal probes.
+  post_llm_call:
+    - matcher: "moderate-inspection|inspect-rebar|parse-structural-plan"
+      command: "/opt/hermes-config/agent-hooks/audit-trail.sh"
+      timeout: 5
+
+# Auto-accept hooks in non-interactive (gateway / cron / API) contexts.
+# The container runs without a TTY so we can't show a consent prompt.
+hooks_auto_accept: true

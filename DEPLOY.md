@@ -88,7 +88,7 @@ curl https://rebarguard-api.fly.dev/health
 - `HERMES_RUNTIME=cli` — routes all LLM calls through the `hermes` CLI subprocess, billed against the Nous Portal subscription (not direct API tier).
 - `HERMES_CLI_VIA_WSL=false` — we're already in Linux, no WSL hop.
 - `HERMES_HOME=/data/hermes` — volume-backed OAuth token.
-- `VISION_BACKEND=nous_portal` — Kimi K2.5 vision via subscription.
+- `VISION_BACKEND=nous_portal` — Kimi K2.6 vision via subscription.
 
 Override via `fly secrets set KEY=value` for anything sensitive.
 
