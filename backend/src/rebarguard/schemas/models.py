@@ -353,6 +353,11 @@ class ModeratorReport(BaseModel):
     verdict: AgentVerdict
     score: InspectionScore
     narrative: str
+    # Optional second pass: a short, literary register suitable for the citizen
+    # audience. The clinical `narrative` stays for engineers; UI picks the right
+    # one by audience (English on /inspection/new, Turkish on /watch).
+    narrative_en_literary: str | None = None
+    narrative_tr_literary: str | None = None
     critical_issues: list[str] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)
 

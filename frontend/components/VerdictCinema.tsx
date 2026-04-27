@@ -7,6 +7,8 @@ export type VerdictCinemaPayload = {
   overall: number;
   criticalIssues: string[];
   narrative: string;
+  literaryEN?: string | null;
+  literaryTR?: string | null;
   municipalRecommendation?: 'uphold' | 'downgrade' | 'escalate_to_human' | null;
   municipalNarrative?: string | null;
 };
@@ -194,6 +196,35 @@ export function VerdictCinema({
             <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--text-1)' }}>
               {payload.narrative}
             </p>
+            {payload.literaryEN && (
+              <div
+                style={{
+                  marginTop: 14,
+                  paddingTop: 12,
+                  borderTop: '1px dashed var(--line-1)',
+                  fontStyle: 'italic',
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                  color: 'var(--text-2)',
+                }}
+              >
+                <span
+                  className="mono"
+                  style={{
+                    display: 'inline-block',
+                    fontSize: 9,
+                    letterSpacing: '0.08em',
+                    color: 'var(--hazard)',
+                    marginRight: 8,
+                    textTransform: 'uppercase',
+                    fontStyle: 'normal',
+                  }}
+                >
+                  Citizen audience · EN
+                </span>
+                {payload.literaryEN}
+              </div>
+            )}
           </div>
         </div>
 

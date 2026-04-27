@@ -143,8 +143,14 @@ function NewInspection() {
     if (!moderatorMsg || !verdict) return;
     if (cinemaShownRef.current === moderatorMsg.id) return;
     cinemaShownRef.current = moderatorMsg.id;
-    const criticalIssues =
-      ((moderatorMsg?.evidence as { critical_issues?: string[] } | undefined)?.critical_issues ?? []);
+    const ev = moderatorMsg?.evidence as
+      | {
+          critical_issues?: string[];
+          narrative_en_literary?: string | null;
+          narrative_tr_literary?: string | null;
+        }
+      | undefined;
+    const criticalIssues = ev?.critical_issues ?? [];
     const muni = municipalityMsg?.evidence as
       | { recommendation?: VerdictCinemaPayload['municipalRecommendation']; narrative?: string }
       | undefined;
@@ -152,6 +158,8 @@ function NewInspection() {
       verdict,
       overall: modScore ?? 0,
       narrative: narrative ?? '',
+      literaryEN: ev?.narrative_en_literary ?? null,
+      literaryTR: ev?.narrative_tr_literary ?? null,
       criticalIssues,
       municipalRecommendation: muni?.recommendation ?? null,
       municipalNarrative: muni?.narrative ?? null,

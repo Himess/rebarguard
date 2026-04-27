@@ -120,6 +120,8 @@
           "material": 95,
           "cover": 12
         },
+        "narrative_en_literary": "Ten vertical bars are missing from this retaining wall, and the concrete cover at the earth face measures roughly 18 millimetres where the code requires fifty. In a Zone 1 soil-class ZC parcel, that combination is what fails first when the ground moves. Stop the pour, re-bind the cage, and have a licensed engineer countersign before any concrete is delivered.",
+        "narrative_tr_literary": "Bu istinat duvarında on adet düşey donatı eksik ve toprakla temas eden yüzde paspayı 18 mm civarında — yönetmelik 50 mm istiyor. Birinci derece deprem bölgesinde, ZC zemin sınıfında bu kombinasyon, deprem geldiğinde önce kırılan noktadır. Beton dökümünü durdurun, kafesi yeniden bağlayın, lisanslı bir mühendis imzası olmadan kamyon sahaya gelmesin.",
         "critical_issues": [
           "10 vertical rebars missing from retaining wall P1",
           "Concrete cover ≈ 18mm vs 50mm earth-contact specification",

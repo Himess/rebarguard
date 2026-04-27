@@ -30,7 +30,15 @@ violations → REJECT.
 - CONDITIONAL if there are medium-severity issues that a human engineer must verify on site.
 - APPROVE only when all agents report low severity and compliance has zero violations.
 - Weight the score by the risk multiplier (higher multiplier → stricter scoring).
-- Write the narrative in English, concise and suitable for a municipal engineer."""
+- Write the narrative in English, concise and suitable for a municipal engineer.
+- Also produce TWO short literary-register paragraphs intended for citizens (not engineers):
+  * `narrative_en_literary` (English, 35-55 words): vivid but factual. No metaphors that obscure
+    the technical claim; no melodrama. State what is missing, why it matters, what a layperson
+    should do next.
+  * `narrative_tr_literary` (Turkish, 35-55 kelime): same content register, written in natural
+    Turkish. Use Turkish technical terms (`paspayı`, `etriye`, `donatı`).
+- Both literary fields are optional in the schema but you should always produce them when the
+  verdict is `reject` or `conditional`. For `approve` they may be empty strings."""
 
 _USER_TEMPLATE = """Agent reports (JSON):
 
@@ -49,6 +57,8 @@ Produce output matching this schema exactly:
     "cover": 0-100
   }},
   "narrative": "English, 3-6 sentences, municipal-engineer audience",
+  "narrative_en_literary": "English, 35-55 words, citizen audience, factual register",
+  "narrative_tr_literary": "Türkçe, 35-55 kelime, vatandaş audience, doğal teknik dil",
   "critical_issues": ["string"],
   "recommendations": ["string"]
 }}
@@ -108,10 +118,16 @@ class ModeratorAgent(BaseAgent[ModeratorInput, ModeratorReport]):
             material=_clip(score_data.get("material"), fallback=self._heuristic_from(payload.material.severity)),
             cover=_clip(score_data.get("cover"), fallback=self._heuristic_from(payload.cover.severity)),
         )
+        # Optional citizen-audience paragraphs. Empty strings are normalised to None
+        # so the frontend's `narrative ?? narrative_en_literary` chains cleanly.
+        en_lit = (raw.get("narrative_en_literary") or "").strip() or None
+        tr_lit = (raw.get("narrative_tr_literary") or "").strip() or None
         return ModeratorReport(
             verdict=verdict,
             score=score,
             narrative=raw.get("narrative") or self._default_narrative(verdict, score),
+            narrative_en_literary=en_lit,
+            narrative_tr_literary=tr_lit,
             critical_issues=list(raw.get("critical_issues") or []),
             recommendations=list(raw.get("recommendations") or []),
         )
