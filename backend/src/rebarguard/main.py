@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from rebarguard.config import get_settings
 from rebarguard.routers import (
     audit,
+    chat,
     complaints,
     demo,
     inspections,
@@ -65,3 +66,4 @@ app.include_router(regulations.router, prefix="/api/regulations", tags=["regulat
 app.include_router(demo.router, prefix="/api/demo", tags=["demo"])
 app.include_router(complaints.router, prefix="/api/complaints", tags=["complaints"])
 app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"])

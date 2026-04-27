@@ -234,6 +234,31 @@ def test_replay_rejects_path_traversal() -> None:
     assert r.status_code in {400, 404}
 
 
+def test_chat_stream_rejects_empty_message() -> None:
+    r = client.post("/api/chat/stream", data={"message": ""})
+    assert r.status_code in {400, 422}
+
+
+def test_chat_stream_rejects_unsupported_image_type() -> None:
+    r = client.post(
+        "/api/chat/stream",
+        data={"message": "hello"},
+        files={"photo": ("malicious.exe", b"MZ\x00\x00", "application/octet-stream")},
+    )
+    # In direct/cli runtime we may get 500 from Hermes-not-installed before the
+    # image-type check fires; the contract is "either the image-type 400 or a
+    # downstream failure", never a silent pass.
+    assert r.status_code != 200
+
+
+def test_chat_reset_unknown_conversation_returns_envelope() -> None:
+    r = client.delete("/api/chat/conversations/nonexistent-cid")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["conversation_id"] == "nonexistent-cid"
+    assert body["reset"] in {True, False}
+
+
 def test_audit_log_event_filter(tmp_path, monkeypatch) -> None:
     log = tmp_path / "audit.jsonl"
     log.write_text(

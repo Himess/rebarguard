@@ -287,6 +287,87 @@ export async function fetchAuditLog(
 
 // ----------------------------- demo replay ------------------------------
 
+// ----------------------------- citizen chat ------------------------------
+
+export type ChatMeta = {
+  severity: 'ok' | 'moderate' | 'high';
+  suggest_complaint: boolean;
+};
+
+export type ChatStreamEvent =
+  | { kind: 'meta'; conversation_id: string; session_resumed: boolean; model: string }
+  | { kind: 'thinking'; phase: string }
+  | {
+      kind: 'message';
+      conversation_id: string;
+      session_id: string | null;
+      content: string;
+      meta: ChatMeta;
+      model: string;
+    }
+  | { kind: 'error'; error: string }
+  | { kind: 'done' };
+
+export function sendChatMessage(
+  message: string,
+  onEvent: (e: ChatStreamEvent) => void,
+  options: {
+    conversationId?: string;
+    photo?: File | null;
+    onError?: (e: Error) => void;
+    onDone?: () => void;
+  } = {},
+): () => void {
+  const fd = new FormData();
+  fd.append('message', message);
+  if (options.conversationId) fd.append('conversation_id', options.conversationId);
+  if (options.photo) fd.append('photo', options.photo);
+  const controller = new AbortController();
+  (async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/chat/stream`, {
+        method: 'POST',
+        body: fd,
+        signal: controller.signal,
+      });
+      if (!res.ok || !res.body) throw new Error(await res.text());
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+        for (const part of parts) {
+          const eventLine = part.split('\n').find((l) => l.startsWith('event: '));
+          const dataLine = part.split('\n').find((l) => l.startsWith('data: '));
+          if (!dataLine) continue;
+          const evtName = (eventLine?.slice(7) || 'message').trim();
+          let payload: Record<string, unknown> = {};
+          try {
+            payload = JSON.parse(dataLine.slice(6));
+          } catch {
+            continue;
+          }
+          onEvent({ kind: evtName as ChatStreamEvent['kind'], ...payload } as ChatStreamEvent);
+        }
+      }
+      options.onDone?.();
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') options.onError?.(e as Error);
+    }
+  })();
+  return () => controller.abort();
+}
+
+export async function resetChat(conversationId: string): Promise<void> {
+  await fetch(`${BACKEND_URL}/api/chat/conversations/${encodeURIComponent(conversationId)}`, {
+    method: 'DELETE',
+  });
+}
+
 export function startReplayStream(
   scenario: string,
   onMessage: (m: AgentMessage) => void,
