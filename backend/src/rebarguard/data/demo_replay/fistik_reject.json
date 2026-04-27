@@ -1,0 +1,148 @@
+{
+  "scenario": "fistik_reject",
+  "title": "Fıstık Ağacı — basement retaining wall (REJECT)",
+  "description": "Pre-recorded 9-agent debate from a real Fıstık Ağacı site photo. Replays deterministically without spending Kimi quota — perfect for the demo video where agent latency variance breaks the cut.",
+  "events": [
+    {
+      "delay_ms": 200,
+      "agent": "moderator",
+      "kind": "observation",
+      "content": "Stage: foundation. Inspection started for Shear Wall P1 (basement_2). 9 agents online — Kimi K2.6 vision, Hermes 4 70B reasoning."
+    },
+    {
+      "delay_ms": 500,
+      "agent": "risk",
+      "kind": "observation",
+      "content": "Project metadata: Istanbul, soil ZC, 6 floors + 2 basements, earthquake zone Zone 1 (highest)."
+    },
+    {
+      "delay_ms": 900,
+      "agent": "plan_parser",
+      "kind": "observation",
+      "content": "Kimi K2.6 detection: 20 vertical rebars on retaining wall, stirrups not visible (occluded by formwork shadows).",
+      "model": "moonshotai/kimi-k2.6",
+      "evidence": {
+        "detected_rebar_count": 20,
+        "estimated_diameter_mm": 12,
+        "estimated_spacing_mm": 175,
+        "stirrup_visible": false,
+        "reference_marker_found": false,
+        "model": "moonshotai/kimi-k2.6"
+      }
+    },
+    {
+      "delay_ms": 1100,
+      "agent": "geometry",
+      "kind": "verdict",
+      "content": "Plan vs site: spec requires 30 vertical bars at Ø12; site shows 20. Missing 10 bars (33% deficit) → critical.",
+      "evidence": {
+        "expected_count": 30,
+        "detected_count": 20,
+        "delta": -10,
+        "severity": "critical"
+      }
+    },
+    {
+      "delay_ms": 1400,
+      "agent": "code",
+      "kind": "verdict",
+      "content": "TBDY 7.6.2.1 violated: shear-wall vertical reinforcement ratio falls below 0.0025·Ag minimum. TS 500 7.4.4 confinement spacing not verifiable from this photo.",
+      "model": "Hermes-4-70B",
+      "evidence": {
+        "violations": [
+          {"code": "TBDY 7.6.2.1", "severity": "critical", "detail": "ρ_l = 0.0017 < 0.0025"},
+          {"code": "TS 500 7.4.4", "severity": "high", "detail": "Stirrup spacing unverified"}
+        ]
+      }
+    },
+    {
+      "delay_ms": 1300,
+      "agent": "fraud",
+      "kind": "verdict",
+      "content": "EXIF 2026-04-25T08:14 UTC, GPS 41.0082N 28.9784E matches project coordinates. No reference marker — measurements unverified.",
+      "evidence": {
+        "exif_timestamp_valid": true,
+        "geolocation_valid": true,
+        "reference_marker_present": false,
+        "photo_hash_duplicate": false
+      }
+    },
+    {
+      "delay_ms": 1200,
+      "agent": "risk",
+      "kind": "verdict",
+      "content": "AFAD zone 1 + soil ZC + 6 floors → seismic risk multiplier 1.42×. Vertical-rebar deficit on a basement retaining wall = catastrophic failure mode.",
+      "evidence": {
+        "zone_factor": 1.0,
+        "soil_factor": 1.15,
+        "floor_factor": 1.23,
+        "composite": 1.42
+      }
+    },
+    {
+      "delay_ms": 1800,
+      "agent": "material",
+      "kind": "verdict",
+      "content": "Kimi K2.6 close-up: visible rib pattern consistent with B500C (S420). No active corrosion. Surface clean.",
+      "model": "moonshotai/kimi-k2.6",
+      "evidence": {
+        "detected_steel_class": "B500C",
+        "corrosion_level": 0,
+        "surface_condition": "clean"
+      }
+    },
+    {
+      "delay_ms": 1700,
+      "agent": "cover",
+      "kind": "verdict",
+      "content": "Kimi K2.6 cover estimate: ≈18mm at bottom-left edge — TS 500 minimum 25mm violated; in earth-contact zones spec is 50mm.",
+      "model": "moonshotai/kimi-k2.6",
+      "evidence": {
+        "estimated_cover_mm": 18,
+        "expected_cover_mm": 50,
+        "within_tolerance": false
+      }
+    },
+    {
+      "delay_ms": 2400,
+      "agent": "moderator",
+      "kind": "verdict",
+      "content": "VERDICT: REJECT. Composite score 38/100. Three critical findings stack: 33% rebar deficit (TBDY 7.6.2.1) + cover 18mm vs 50mm earth-contact spec (TS 500 7.3) + missing reference marker (FraudAgent). Pour blocked. Re-bind 10 vertical Ø12 bars, install plastic spacers on the earth face, re-photograph with a tape measure in frame, re-run inspection.",
+      "model": "Hermes-4-70B",
+      "evidence": {
+        "verdict": "reject",
+        "score": {
+          "overall": 38,
+          "geometry": 25,
+          "code": 30,
+          "fraud": 70,
+          "risk": 35,
+          "material": 95,
+          "cover": 12
+        },
+        "critical_issues": [
+          "10 vertical rebars missing from retaining wall P1",
+          "Concrete cover ≈ 18mm vs 50mm earth-contact specification",
+          "No reference marker — measurements not legally verifiable"
+        ],
+        "recommendations": [
+          "Re-bind 10 × Ø12 verticals at the spacing shown in S-04 sheet",
+          "Install plastic spacers on the earth-facing rebar plane",
+          "Re-photograph with a tape measure visible in the frame",
+          "Halt the pour until municipal engineer countersigns"
+        ]
+      }
+    },
+    {
+      "delay_ms": 2200,
+      "agent": "municipality",
+      "kind": "verdict",
+      "content": "Belediye Agent (Hermes 4 70B): independent review confirms REJECT. Deficiencies are structural and on the seismic load path — cannot downgrade to CONDITIONAL. Escalating to human municipal engineer for countersignature before any pour authorisation.",
+      "model": "Hermes-4-70B",
+      "evidence": {
+        "recommendation": "escalate_to_human",
+        "reasoning": "Critical findings on seismic load path; safety rail prevents uphold of REJECT verdicts."
+      }
+    }
+  ]
+}

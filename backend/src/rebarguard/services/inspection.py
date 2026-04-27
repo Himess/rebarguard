@@ -7,6 +7,7 @@ user doesn't have to re-enter it during site inspection.
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -192,6 +193,19 @@ class InspectionOrchestrator:
         # the full inspection history for one building.
         session_tag = _session_tag_for(job)
 
+        # ---- Round 2: cross-examination ----
+        # Before the Moderator synthesises, run a single challenge → rebuttal turn so
+        # the debate is *adversarial*, not just a stream of independent verdicts.
+        # We pick the highest-severity finding, ask Hermes 4 to challenge one agent
+        # in its own voice, then rebut from another agent's perspective. One LLM call
+        # produces both turns for latency control. Failures degrade silently — the
+        # Moderator still runs.
+        async for msg in self._cross_examine(
+            geom=geom, comp=comp, fraud=fraud, risk=risk, material=material, cover=cover,
+            session_tag=session_tag,
+        ):
+            yield msg
+
         moderator_report = await self.moderator.run(
             ModeratorInput(
                 geometry=geom,
@@ -237,6 +251,93 @@ class InspectionOrchestrator:
                 agent=AgentRole.MUNICIPALITY,
                 kind="observation",
                 content=f"Municipal reviewer unavailable: {e}",
+            )
+
+    async def _cross_examine(
+        self,
+        *,
+        geom,
+        comp,
+        fraud,
+        risk,
+        material,
+        cover,
+        session_tag: str | None,
+    ) -> AsyncIterator[AgentMessage]:
+        """Run one adversarial turn between two agents on the highest-severity finding.
+
+        Hermes 4 70B speaks in two distinct agent voices (challenger + responder) in
+        a single call so the SSE stream sees challenge → rebuttal pacing without
+        burning two round-trips. Robust to Hermes returning partial JSON: any
+        missing field falls through silently and the Moderator still runs.
+        """
+
+        # Build a compact summary the model can reason over without our full schema
+        # bloating the prompt.
+        bundle = {
+            "geometry":   {"severity": geom.severity, "summary": geom.summary},
+            "compliance": {"severity": comp.severity, "summary": comp.summary,
+                           "violations_count": len(getattr(comp, "violations", []) or [])},
+            "fraud":      {"severity": fraud.severity, "summary": fraud.summary},
+            "risk":       {"severity": risk.severity, "summary": risk.summary},
+            "material":   {"severity": material.severity, "summary": material.summary},
+            "cover":      {"severity": cover.severity, "summary": cover.summary},
+        }
+
+        system = (
+            "You are simulating a courtroom-style cross-examination between two "
+            "structural-inspection agents. Pick the SINGLE most severe finding from "
+            "the bundle, then write ONE challenge utterance from a sceptical agent "
+            "and ONE rebuttal utterance from the agent that owns that finding. Be "
+            "concrete: cite the specific number, code, or photo cue. Each utterance "
+            "is 1–2 sentences max, English, suitable for the inspection-debate UI."
+        )
+        user = (
+            "Reports bundle (JSON):\n" + json.dumps(bundle, ensure_ascii=False, indent=2) +
+            "\n\nValid agent ids: geometry, code, fraud, risk, material, cover, plan_parser.\n"
+            "Output a single JSON object — no markdown:\n"
+            "{\n"
+            '  "topic": "1-line label of the contested finding",\n'
+            '  "challenge": {"agent": "<id>", "text": "..."},\n'
+            '  "rebuttal":  {"agent": "<id>", "text": "..."}\n'
+            "}\n"
+        )
+
+        try:
+            from rebarguard.hermes import get_hermes_client
+
+            hermes = get_hermes_client()
+            raw = await hermes.json_complete(
+                system,
+                user,
+                model=hermes.reasoning_model,
+                max_tokens=420,
+                temperature=0.4,
+                skills=["moderate-inspection"],
+                session_tag=session_tag,
+            )
+        except Exception:
+            return
+
+        challenge = (raw or {}).get("challenge") or {}
+        rebuttal = (raw or {}).get("rebuttal") or {}
+        topic = (raw or {}).get("topic") or "contested finding"
+
+        if isinstance(challenge, dict) and challenge.get("text"):
+            yield AgentMessage(
+                agent=_role_for(challenge.get("agent")),
+                kind="challenge",
+                content=str(challenge.get("text", ""))[:600],
+                model=self.settings.hermes_reasoning_model,
+                evidence={"topic": topic, "round": "cross-examination"},
+            )
+        if isinstance(rebuttal, dict) and rebuttal.get("text"):
+            yield AgentMessage(
+                agent=_role_for(rebuttal.get("agent")),
+                kind="rebuttal",
+                content=str(rebuttal.get("text", ""))[:600],
+                model=self.settings.hermes_reasoning_model,
+                evidence={"topic": topic, "round": "cross-examination"},
             )
 
     async def _detect_all(
@@ -315,3 +416,23 @@ def _session_tag_for(job: InspectionJob) -> str:
         c if (c.isalnum() or c in {"-", "_"}) else "-" for c in raw.lower()
     ).strip("-")
     return safe or "unknown"
+
+
+_ROLE_BY_NAME = {
+    "geometry": AgentRole.GEOMETRY,
+    "code": AgentRole.CODE,
+    "fraud": AgentRole.FRAUD,
+    "risk": AgentRole.RISK,
+    "material": AgentRole.MATERIAL,
+    "cover": AgentRole.COVER,
+    "plan_parser": AgentRole.PLAN_PARSER,
+    "moderator": AgentRole.MODERATOR,
+}
+
+
+def _role_for(name) -> AgentRole:
+    """Map an agent-id string from a Hermes-emitted JSON to our AgentRole enum.
+    Unknown / missing values fall back to MODERATOR so the bubble still renders."""
+    if not isinstance(name, str):
+        return AgentRole.MODERATOR
+    return _ROLE_BY_NAME.get(name.strip().lower(), AgentRole.MODERATOR)

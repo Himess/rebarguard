@@ -12,6 +12,7 @@ const ITEMS = [
   { href: '/watch', id: 'watch', label: 'Citizen Watch' },
   { href: '/demo', id: 'demo', label: 'Demo' },
   { href: '/agents', id: 'agents', label: 'Agents' },
+  { href: '/audit', id: 'audit', label: 'Audit' },
 ];
 
 type Props = {

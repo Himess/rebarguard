@@ -41,6 +41,16 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/rebarguard"]
 
+# Include the JSON replay scenarios shipped under src/rebarguard/data/demo_replay/.
+# Hatchling defaults pick up *.py only; this rule makes the bundled .json files
+# part of the wheel so `importlib.resources.files("rebarguard")` can resolve them
+# at runtime.
+[tool.hatch.build]
+include = [
+    "src/rebarguard/**/*.py",
+    "src/rebarguard/**/*.json",
+]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

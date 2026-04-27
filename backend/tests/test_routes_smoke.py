@@ -163,3 +163,98 @@ def test_complaints_list_includes_recent_submission() -> None:
     assert listed.status_code == 200
     body = listed.json()
     assert any(c["tracking_id"] == tid for c in body["complaints"])
+
+
+# -------------------------------- audit ----------------------------------
+
+
+def test_audit_log_returns_envelope_when_log_missing(tmp_path, monkeypatch) -> None:
+    """No audit-log.jsonl on disk yet → endpoint returns count=0 envelope."""
+    missing = tmp_path / "no-such-audit.jsonl"
+    monkeypatch.setenv("REBARGUARD_AUDIT_LOG", str(missing))
+    # The endpoint reads the path lazily on each call so env override takes effect.
+    from importlib import reload
+
+    from rebarguard.routers import audit as audit_mod
+
+    reload(audit_mod)
+    fresh = TestClient(app)
+    r = fresh.get("/api/audit/log")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] == 0
+    assert body["rows"] == []
+
+
+def test_audit_log_tail_reads_jsonl(tmp_path, monkeypatch) -> None:
+    log = tmp_path / "audit.jsonl"
+    log.write_text(
+        '\n'.join(
+            [
+                '{"event": "on_session_start", "ts": "2026-04-27T10:00:00Z", "session_id": "abc"}',
+                '{"event": "post_llm_call", "ts": "2026-04-27T10:00:05Z", "model": "moonshotai/kimi-k2.6"}',
+                '{"event": "on_session_finalize", "ts": "2026-04-27T10:00:10Z", "session_id": "abc"}',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("REBARGUARD_AUDIT_LOG", str(log))
+    from importlib import reload
+
+    from rebarguard.routers import audit as audit_mod
+
+    reload(audit_mod)
+    fresh = TestClient(app)
+    r = fresh.get("/api/audit/log")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] == 3
+    # Most recent first
+    assert body["rows"][0]["event"] == "on_session_finalize"
+    assert body["summary"]["post_llm_call"] == 1
+
+
+def test_replay_meta_returns_scenario_summary() -> None:
+    r = client.get("/api/demo/replay-meta/fistik_reject")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["scenario"] == "fistik_reject"
+    assert body["event_count"] >= 9
+    assert "REJECT" in body["title"].upper() or "reject" in body["title"]
+
+
+def test_replay_meta_unknown_scenario_404() -> None:
+    r = client.get("/api/demo/replay-meta/does_not_exist")
+    assert r.status_code == 404
+
+
+def test_replay_rejects_path_traversal() -> None:
+    # The router must refuse anything that's not a clean alphanumeric scenario name.
+    r = client.get("/api/demo/replay-meta/..%2F..%2Fetc%2Fpasswd")
+    assert r.status_code in {400, 404}
+
+
+def test_audit_log_event_filter(tmp_path, monkeypatch) -> None:
+    log = tmp_path / "audit.jsonl"
+    log.write_text(
+        '\n'.join(
+            [
+                '{"event": "on_session_start", "ts": "t1"}',
+                '{"event": "post_llm_call", "ts": "t2"}',
+                '{"event": "post_llm_call", "ts": "t3"}',
+            ]
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("REBARGUARD_AUDIT_LOG", str(log))
+    from importlib import reload
+
+    from rebarguard.routers import audit as audit_mod
+
+    reload(audit_mod)
+    fresh = TestClient(app)
+    r = fresh.get("/api/audit/log?event=post_llm_call")
+    assert r.status_code == 200
+    rows = r.json()["rows"]
+    assert len(rows) == 2
+    assert all(row["event"] == "post_llm_call" for row in rows)

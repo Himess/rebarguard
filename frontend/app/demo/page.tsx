@@ -145,18 +145,28 @@ export default function DemoPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-            <button
-              className="btn primary"
-              onClick={seedFistik}
-              disabled={seeding}
-              style={{ height: 40, padding: '0 18px', fontSize: 13 }}
-            >
-              {seeding
-                ? 'Seeding…'
-                : seedId
-                  ? `Seeded · open inspection →`
-                  : 'Seed Fıstık into Dashboard'}
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Link
+                href="/inspection/new?replay=fistik_reject"
+                className="btn ghost sm"
+                style={{ height: 40, padding: '0 14px', fontSize: 12, textDecoration: 'none' }}
+                title="Stream the pre-recorded 9-agent debate (no Kimi calls). Demo-video safe."
+              >
+                ▶ Replay debate (deterministic)
+              </Link>
+              <button
+                className="btn primary"
+                onClick={seedFistik}
+                disabled={seeding}
+                style={{ height: 40, padding: '0 18px', fontSize: 13 }}
+              >
+                {seeding
+                  ? 'Seeding…'
+                  : seedId
+                    ? `Seeded · open inspection →`
+                    : 'Seed Fıstık into Dashboard'}
+              </button>
+            </div>
             {seedId && (
               <button
                 onClick={() => router.push(`/inspection/new?project=${seedId}`)}

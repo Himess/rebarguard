@@ -11,6 +11,7 @@ import { AGENTS, CATEGORIES, toAgentId, type AgentId } from '@/lib/agents';
 import {
   BACKEND_URL,
   startInspectionStream,
+  startReplayStream,
   type AgentMessage,
   type ElementType,
   type InspectionStage,
@@ -61,6 +62,7 @@ export default function NewInspectionPage() {
 function NewInspection() {
   const params = useSearchParams();
   const projectId = params.get('project') || '';
+  const replayScenario = params.get('replay');
 
   const [project, setProject] = useState<Project | null>(null);
   const [elementKey, setElementKey] = useState('');
@@ -239,6 +241,31 @@ function NewInspection() {
       },
     );
   }
+
+  // Deterministic replay path: ?replay=fistik_reject streams the pre-recorded
+  // SSE transcript so the demo video has stable timing regardless of Kimi cold
+  // start. Triggers automatically when the query param is present.
+  useEffect(() => {
+    if (!replayScenario) return;
+    setMessages([]);
+    setScore(0);
+    setRunning(true);
+    setDone(false);
+    startTimeRef.current = Date.now();
+    const cancel = startReplayStream(
+      replayScenario,
+      (m) => setMessages((prev) => [...prev, m]),
+      () => setRunning(false),
+      () => {
+        setRunning(false);
+        setDone(true);
+      },
+      1.0,
+    );
+    cancelRef.current = cancel;
+    return cancel;
+  }, [replayScenario]);
+
   useEffect(() => () => cancelRef.current(), []);
 
   const meta = project?.plan.metadata;

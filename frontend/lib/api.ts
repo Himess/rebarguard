@@ -257,6 +257,76 @@ export async function submitComplaint(
   return res.json();
 }
 
+// ----------------------------- audit log ---------------------------------
+
+export type AuditRow = Record<string, unknown> & {
+  event?: string;
+  ts?: string;
+  session_id?: string | null;
+  model?: string | null;
+  source?: string | null;
+};
+
+export type AuditLogResponse = {
+  log_path: string;
+  count: number;
+  summary: Record<string, number>;
+  rows: AuditRow[];
+};
+
+export async function fetchAuditLog(
+  limit = 50,
+  event?: string,
+): Promise<AuditLogResponse> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (event) params.set('event', event);
+  const res = await fetch(`${BACKEND_URL}/api/audit/log?${params}`);
+  if (!res.ok) throw new Error(`audit log fetch failed (${res.status})`);
+  return res.json();
+}
+
+// ----------------------------- demo replay ------------------------------
+
+export function startReplayStream(
+  scenario: string,
+  onMessage: (m: AgentMessage) => void,
+  onError?: (e: Error) => void,
+  onDone?: () => void,
+  speed = 1.0,
+): () => void {
+  const controller = new AbortController();
+  (async () => {
+    try {
+      const url = `${BACKEND_URL}/api/demo/replay/${encodeURIComponent(scenario)}?speed=${speed}`;
+      const res = await fetch(url, { signal: controller.signal });
+      if (!res.ok || !res.body) throw new Error(await res.text());
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+        for (const part of parts) {
+          const dataLine = part.split('\n').find((l) => l.startsWith('data: '));
+          if (!dataLine) continue;
+          try {
+            onMessage(JSON.parse(dataLine.slice(6)) as AgentMessage);
+          } catch {
+            // ignore malformed
+          }
+        }
+      }
+      onDone?.();
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') onError?.(e as Error);
+    }
+  })();
+  return () => controller.abort();
+}
+
 export async function analyzeQuickPhoto(photo: File): Promise<QuickScanResult> {
   const fd = new FormData();
   fd.append('photo', photo);

@@ -114,6 +114,23 @@ resume). For the hackathon demo video, warm it with a `curl /health` before reco
 
 ---
 
+## 4b. Hermes cron jobs (optional, opt-in)
+
+Two scheduled jobs are registered by `scripts/install-cron.sh`:
+
+- `rebarguard-daily-audit` — 03:00 UTC daily, Hermes 4 70B summarises the past 24 h of `audit-log.jsonl`
+- `rebarguard-weekly-afad-probe` — 02:00 UTC Sunday, cross-references AFAD seismic feed against seeded parcels
+
+The Fly machine auto-suspends when traffic is idle, so the cron gateway that fires these
+jobs cannot run continuously by default. Two options:
+
+- **Manual fire** (recommended for the hackathon): `fly ssh console -a rebarguard-api`,
+  then `hermes cron run rebarguard-daily-audit`. The job runs once on demand. Used in the
+  demo video.
+- **Always-on gateway**: flip `min_machines_running = 1` in `fly.toml`, redeploy, and
+  start the gateway via `bash scripts/start-cron-gateway.sh`. Burns Fly free-tier
+  always-on minutes — track the budget if you go this route.
+
 ## 5. Post-deploy smoke tests
 
 ```bash

@@ -3,11 +3,21 @@
 These endpoints inject hand-crafted `StructuralPlan` data into the in-memory store so the
 full 7-agent debate can run without waiting for PDF column-schedules that a DWG hasn't
 been exported for. Remove or gate this behind an env flag before production.
+
+Also serves the `/replay/{scenario}` endpoint that streams a pre-recorded 9-agent debate
+over SSE — used by the demo video so cold-start + Kimi latency variance don't break the cut.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+import asyncio
+import json
+from importlib import resources
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import APIRouter, HTTPException
+from sse_starlette.sse import EventSourceResponse
 
 from rebarguard.routers.projects import _STORE, _STORE_LOCK
 from rebarguard.schemas import (
@@ -23,6 +33,71 @@ from rebarguard.schemas import (
 )
 
 router = APIRouter()
+
+
+# ----------------------------- replay -------------------------------------
+
+
+def _replay_path(scenario: str) -> Path:
+    """Resolve the JSON for a scenario name. Lives inside the package so it
+    ships in the wheel + Docker image."""
+    safe = scenario.lower().replace("/", "").replace("\\", "")
+    if not safe.replace("_", "").replace("-", "").isalnum():
+        raise HTTPException(400, "invalid scenario name")
+    try:
+        with resources.as_file(
+            resources.files("rebarguard").joinpath(f"data/demo_replay/{safe}.json")
+        ) as p:
+            return Path(p)
+    except (FileNotFoundError, ModuleNotFoundError) as e:
+        raise HTTPException(404, f"scenario {safe!r} not found") from e
+
+
+@router.get("/replay/{scenario}", summary="SSE-stream a pre-recorded 9-agent debate")
+async def replay(scenario: str, speed: float = 1.0):
+    """Replay a deterministic agent debate for the demo video.
+
+    The JSON file lists `{delay_ms, agent, kind, content, model?, evidence?}`
+    events. We sleep `delay_ms / speed` between emissions so the timing feels
+    like a real Kimi/Hermes run without burning tokens or risking cold-start.
+    """
+    p = _replay_path(scenario)
+    if not p.exists():
+        raise HTTPException(404, f"scenario {scenario!r} not found at {p}")
+    raw = json.loads(p.read_text("utf-8"))
+    events = raw.get("events") or []
+    speed = max(0.1, min(10.0, float(speed)))
+
+    async def gen():
+        for ev in events:
+            await asyncio.sleep(max(0.0, float(ev.get("delay_ms", 0))) / 1000.0 / speed)
+            payload = {
+                "id": uuid4().hex,
+                "agent": ev.get("agent", "moderator"),
+                "kind": ev.get("kind", "observation"),
+                "content": ev.get("content", ""),
+                "model": ev.get("model"),
+                "evidence": ev.get("evidence"),
+            }
+            yield {"event": payload["agent"], "data": json.dumps(payload, ensure_ascii=False)}
+
+    return EventSourceResponse(gen())
+
+
+@router.get("/replay-meta/{scenario}")
+async def replay_meta(scenario: str) -> dict:
+    """Return scenario title + description without streaming. Used by the
+    `/demo` page to render the Replay button label."""
+    p = _replay_path(scenario)
+    if not p.exists():
+        raise HTTPException(404, f"scenario {scenario!r} not found")
+    raw = json.loads(p.read_text("utf-8"))
+    return {
+        "scenario": raw.get("scenario", scenario),
+        "title": raw.get("title", scenario),
+        "description": raw.get("description", ""),
+        "event_count": len(raw.get("events") or []),
+    }
 
 
 @router.post("/fistik", response_model=Project, summary="Seed the 1340 Ada 43 Parsel demo")

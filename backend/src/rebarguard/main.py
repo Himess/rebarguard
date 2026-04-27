@@ -4,7 +4,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from rebarguard.config import get_settings
-from rebarguard.routers import complaints, demo, inspections, projects, quick, regulations
+from rebarguard.routers import (
+    audit,
+    complaints,
+    demo,
+    inspections,
+    projects,
+    quick,
+    regulations,
+)
 
 
 @asynccontextmanager
@@ -56,3 +64,4 @@ app.include_router(quick.router, prefix="/api/quick", tags=["quick"])
 app.include_router(regulations.router, prefix="/api/regulations", tags=["regulations"])
 app.include_router(demo.router, prefix="/api/demo", tags=["demo"])
 app.include_router(complaints.router, prefix="/api/complaints", tags=["complaints"])
+app.include_router(audit.router, prefix="/api/audit", tags=["audit"])
