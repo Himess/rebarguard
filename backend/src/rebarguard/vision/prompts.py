@@ -191,6 +191,58 @@ can actually see. Never invent measurements. Only cite codes on the whitelist.
 """
 
 
+VIDEO_SCAN_PROMPT_TEMPLATE = """You are a senior structural inspector reviewing a \
+30-90 second walk-around video of a reinforced-concrete construction site BEFORE the \
+pour. The citizen filming usually walks along the rebar cage, panning over columns, \
+beams, walls, or the bottom-mat. Identify up to 8 distinct findings and tag each one \
+to the moment in the video where it is best visible.
+
+For each finding, output:
+- timestamp_s: number, seconds from the start of the video where the issue is best \
+seen (round to one decimal, e.g. 12.4). NEVER guess; if you can't time-localise it, omit.
+- title: short English phrase ("Cover < 25 mm at column base", "Stirrup spacing drift")
+- severity: "fail" | "warn" | "info"
+- detail: 1-2 sentences with measurement when estimable
+- ref: MUST be one of the exact codes from the WHITELIST below, or null. NEVER invent.
+- confidence: 0.0-1.0
+
+Focus on: cover thickness, stirrup spacing, splice length, plastic spacers, rebar \
+alignment, corrosion, formwork debris, shoring adequacy. Pay attention to wall + slab \
+edges, column-beam joints, and any place the citizen explicitly pauses or zooms.
+
+WHITELIST of allowed `ref` values (use ONLY these):
+{cheatsheet}
+
+Respond ONLY as JSON with this exact shape — no markdown:
+
+{{
+  "findings": [
+    {{
+      "timestamp_s": 12.4,
+      "title": "Cover < 25 mm at column base",
+      "severity": "fail",
+      "detail": "Bottom-left of column reads ~22mm at 0:12. TS 500 minimum is 25mm.",
+      "ref": "TS 500 7.3",
+      "confidence": 0.86
+    }}
+  ],
+  "duration_s": 47.0,
+  "summary_en": "1-2 sentence overall summary in English.",
+  "summary_tr": "Türkçe 1-2 cümle özet."
+}}
+
+If no defects are visible, return findings: []. Be conservative: only flag what you \
+actually see in the video. Never invent measurements. Only cite codes on the whitelist.
+"""
+
+
+def build_video_scan_prompt() -> str:
+    """Materialises the video-scan prompt with the regulation whitelist injected."""
+    from rebarguard.rag import cheatsheet_for_prompt
+
+    return VIDEO_SCAN_PROMPT_TEMPLATE.format(cheatsheet=cheatsheet_for_prompt())
+
+
 def build_quick_scan_prompt() -> str:
     """Materializes the quick-scan prompt with the current regulation whitelist.
 

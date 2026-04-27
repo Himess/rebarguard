@@ -30,10 +30,17 @@ class Settings(BaseSettings):
     )
     hermes_reasoning_model: str = Field(default="Hermes-4-70B", alias="HERMES_REASONING_MODEL")
 
-    # ---- Moonshot (vision fallback) ----
+    # ---- Moonshot (direct vision + video) ----
+    # Vision falls back to Hermes CLI by default ($0). Video is Moonshot direct
+    # only — Hermes CLI's --image flag is single-image; the Nous Portal proxy
+    # doesn't relay video. So MOONSHOT_API_KEY is required for /api/video/*
+    # endpoints, optional for /api/quick.
     moonshot_api_key: str = Field(default="", alias="MOONSHOT_API_KEY")
-    moonshot_base_url: str = Field(default="https://api.moonshot.ai/v1", alias="MOONSHOT_BASE_URL")
+    moonshot_base_url: str = Field(
+        default="https://api.moonshot.ai/v1", alias="MOONSHOT_BASE_URL"
+    )
     kimi_vision_model: str = Field(default="kimi-k2.6", alias="KIMI_VISION_MODEL")
+    kimi_video_model: str = Field(default="kimi-k2.6", alias="KIMI_VIDEO_MODEL")
     vision_backend: Literal["nous_portal", "moonshot", "hermes_cli"] = Field(
         default="nous_portal", alias="VISION_BACKEND"
     )

@@ -1,0 +1,58 @@
+{
+  "scenario": "fistik_video",
+  "title": "Fıstık Ağacı — 47 s site walkthrough (CONDITIONAL)",
+  "description": "Pre-recorded transcript of Kimi K2.6's analysis of a 47-second walk-around video at the basement-1 retaining-wall pour. Used when MOONSHOT_API_KEY is unset so the /video page still demos.",
+  "duration_s": 47.0,
+  "summary_en": "Cage geometry mostly matches the S-04 sheet but the bottom-left of the retaining wall is short on cover and a section of stirrup spacing has drifted in the confinement zone. Conditional pour pending re-bind and a re-photo with a tape measure in frame.",
+  "summary_tr": "Donatı kafesi büyük ölçüde S-04'e uygun ama istinat duvarının sol-alt köşesinde paspayı yetersiz, sıkı sarmal bölgesinde etriye aralığı kaymış. Yeniden bağlama + cetvelle yeniden fotoğraf çekilmeden döküm önerilmez.",
+  "findings": [
+    {
+      "timestamp_s": 4.2,
+      "title": "Reference marker not in frame",
+      "severity": "warn",
+      "detail": "First 8 seconds pan over the cage without any tape, ruler or person for scale. Cover thickness later in the clip is therefore inferred, not measured.",
+      "ref": null,
+      "confidence": 0.9
+    },
+    {
+      "timestamp_s": 12.4,
+      "title": "Cover < 25 mm at column base",
+      "severity": "fail",
+      "detail": "Bottom-left of column S2 reads roughly 22 mm cover where TS 500 7.3 minimum is 25 mm. Plastic spacer absent on the earth-facing side.",
+      "ref": "TS 500 7.3",
+      "confidence": 0.84
+    },
+    {
+      "timestamp_s": 18.7,
+      "title": "Stirrup spacing drift in confinement zone",
+      "severity": "warn",
+      "detail": "Three Ø10 stirrups in the bottom 1 m of the column show ~140 mm pitch; spec is 100 mm in the confinement zone. Re-tie before pour.",
+      "ref": "TBDY 7.3.6",
+      "confidence": 0.78
+    },
+    {
+      "timestamp_s": 26.1,
+      "title": "Lap splice length OK",
+      "severity": "info",
+      "detail": "Camera pauses on a lap splice at axis B; visible overlap is ~40Ø — meets TS 500 7.2 requirement.",
+      "ref": "TS 500 7.2",
+      "confidence": 0.82
+    },
+    {
+      "timestamp_s": 33.5,
+      "title": "Plastic spacer missing on retaining-wall earth face",
+      "severity": "warn",
+      "detail": "At 0:33 the camera shows the back face of the retaining wall — no plastic spacers visible. Earth contact requires 50 mm cover; without spacers this drops to whatever the cage rests on.",
+      "ref": "TS 500 7.6",
+      "confidence": 0.81
+    },
+    {
+      "timestamp_s": 41.0,
+      "title": "Concrete debris at trench bottom",
+      "severity": "info",
+      "detail": "Loose chunks from the previous form lift visible at the trench bottom. Sweep before pour or fines will compromise bond.",
+      "ref": null,
+      "confidence": 0.66
+    }
+  ]
+}

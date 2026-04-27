@@ -368,6 +368,44 @@ export async function resetChat(conversationId: string): Promise<void> {
   });
 }
 
+// ----------------------------- video analysis ----------------------------
+
+export type VideoFinding = {
+  timestamp_s: number;
+  title: string;
+  severity: 'fail' | 'warn' | 'info';
+  detail: string;
+  ref: string | null;
+  confidence: number;
+};
+
+export type VideoScanResult = {
+  findings: VideoFinding[];
+  duration_s: number | null;
+  summary_en: string;
+  summary_tr: string;
+  elapsed_s: number;
+  model: string;
+  source: 'live' | 'demo_fallback';
+};
+
+export async function analyzeVideo(video: File): Promise<VideoScanResult> {
+  const fd = new FormData();
+  fd.append('video', video);
+  const res = await fetch(`${BACKEND_URL}/api/video/analyze`, {
+    method: 'POST',
+    body: fd,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function fetchVideoDemo(): Promise<VideoScanResult> {
+  const res = await fetch(`${BACKEND_URL}/api/video/demo`);
+  if (!res.ok) throw new Error(`video demo fetch failed (${res.status})`);
+  return res.json();
+}
+
 export function startReplayStream(
   scenario: string,
   onMessage: (m: AgentMessage) => void,

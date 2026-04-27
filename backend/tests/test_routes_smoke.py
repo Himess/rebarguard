@@ -251,6 +251,29 @@ def test_chat_stream_rejects_unsupported_image_type() -> None:
     assert r.status_code != 200
 
 
+def test_video_demo_returns_canned_transcript() -> None:
+    r = client.get("/api/video/demo")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["source"] == "demo_fallback"
+    assert isinstance(body["findings"], list)
+    assert body["duration_s"] is None or body["duration_s"] > 0
+    assert any(f["severity"] == "fail" for f in body["findings"])
+
+
+def test_video_analyze_rejects_missing_file() -> None:
+    r = client.post("/api/video/analyze")
+    assert r.status_code in {400, 422}
+
+
+def test_video_analyze_rejects_unsupported_extension() -> None:
+    r = client.post(
+        "/api/video/analyze",
+        files={"video": ("malicious.exe", b"MZ\x00\x00", "application/octet-stream")},
+    )
+    assert r.status_code == 400
+
+
 def test_chat_reset_unknown_conversation_returns_envelope() -> None:
     r = client.delete("/api/chat/conversations/nonexistent-cid")
     assert r.status_code == 200
