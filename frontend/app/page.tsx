@@ -72,7 +72,7 @@ export default function LandingPage() {
             verified in under 40 seconds from site photos.
           </p>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 36 }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 36, flexWrap: 'wrap' }}>
             <Link
               href="/inspection/new"
               className="btn primary"
@@ -88,6 +88,38 @@ export default function LandingPage() {
               Quick scan (upload photo)
             </Link>
           </div>
+
+          <Link
+            href="/watch"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 18,
+              padding: '8px 14px',
+              border: '1px dashed var(--line-2)',
+              borderRadius: 4,
+              textDecoration: 'none',
+              color: 'var(--text-1)',
+              fontSize: 13,
+              maxWidth: 'fit-content',
+            }}
+          >
+            <span
+              className="mono"
+              style={{
+                fontSize: 10,
+                color: 'var(--hazard)',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Daire sahibi misin?
+            </span>
+            <span style={{ color: 'var(--text-2)' }}>
+              Müteahhitini denetle <span style={{ color: 'var(--hazard)' }}>→</span>
+            </span>
+          </Link>
 
           <div
             style={{

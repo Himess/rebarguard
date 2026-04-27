@@ -207,6 +207,56 @@ export type QuickScanResult = {
   model: string;
 };
 
+// ----------------------------- complaints --------------------------------
+
+export type ComplaintAddress = {
+  parcel_no?: string | null;
+  district?: string | null;
+  city?: string;
+  full_address?: string | null;
+  contractor_name?: string | null;
+  apartment_no?: string | null;
+};
+
+export type ComplaintDraft = {
+  findings: QuickFinding[];
+  address: ComplaintAddress;
+  grade: number;
+  note?: string;
+  citizen_name?: string | null;
+  citizen_contact?: string | null;
+};
+
+export type ComplaintSubmitResponse = {
+  tracking_id: string;
+  submitted_at: string;
+  status: string;
+  eta_days: number;
+  message: string;
+};
+
+export async function downloadComplaintPdf(draft: ComplaintDraft): Promise<Blob> {
+  const res = await fetch(`${BACKEND_URL}/api/complaints/draft-pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft),
+  });
+  if (!res.ok) throw new Error(`PDF generation failed (${res.status})`);
+  return res.blob();
+}
+
+export async function submitComplaint(
+  draft: ComplaintDraft,
+): Promise<ComplaintSubmitResponse> {
+  const res = await fetch(`${BACKEND_URL}/api/complaints`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function analyzeQuickPhoto(photo: File): Promise<QuickScanResult> {
   const fd = new FormData();
   fd.append('photo', photo);
