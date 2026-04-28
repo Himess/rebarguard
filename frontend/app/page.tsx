@@ -3,10 +3,10 @@ import { TopNav } from '@/components/TopNav';
 import { AgentRing } from '@/components/AgentRing';
 
 const STATS = [
-  { k: '9',   l: 'Agents debating' },
-  { k: '16',  l: 'Curated TBDY/TS 500 articles' },
-  { k: '48',  l: 'GPG-verified commits' },
-  { k: '$0',  l: 'Per-call · Nous subscription' },
+  { k: '9',    l: 'Agents debating' },
+  { k: '16',   l: 'Curated TBDY/TS 500 articles' },
+  { k: '5',    l: 'Element types · column/beam/wall/slab/stairs' },
+  { k: '60s',  l: 'Median verdict latency' },
 ] as const;
 
 export default function LandingPage() {
