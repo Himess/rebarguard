@@ -248,7 +248,7 @@ export default async function Dashboard() {
             }}
           >
             Tip: <span style={{ color: 'var(--text-0)' }}>POST /api/demo/fistik</span> seeds a
-            realistic 1340 Ada 43 Parsel project (6+2 floors, 7.95×15m, İnş. Müh. Ferhat Baş) so
+            realistic 1340 Ada 43 Parsel project (6+2 floors, 7.95×15m, Civ. Eng. Ferhat Baş) so
             you can walk the full demo flow.
           </div>
         )}

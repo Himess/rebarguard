@@ -138,7 +138,7 @@ export default function DemoPage() {
               Three pours, three verdicts.
             </h1>
             <p style={{ margin: 0, fontSize: 15, color: 'var(--text-2)', maxWidth: 680, lineHeight: 1.55 }}>
-              Real data from İnş. Müh. Ferhat Baş&apos;s Istanbul RC project — 6+2 floors,
+              Real data from Civ. Eng. Ferhat Baş&apos;s Istanbul RC project — 6+2 floors,
               BS30 concrete, 58.5 t of B420C. Pick a scenario, seed it into the dashboard,
               then run a quick scan or full inspection.
             </p>
