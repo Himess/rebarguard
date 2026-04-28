@@ -106,12 +106,13 @@ export default function VideoPage() {
               letterSpacing: '-0.01em',
             }}
           >
-            30 saniyelik saha turu çek. <span style={{ color: 'var(--hazard)' }}>Kimi izlesin.</span>
+            Walk the cage. <span style={{ color: 'var(--hazard)' }}>Kimi watches.</span>
           </h1>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', maxWidth: 720, lineHeight: 1.55 }}>
-            Telefonla yürüyerek demir kafesini gezdir, MP4 olarak yükle. Kimi K2.6 video native
-            olarak izler ve <strong>timestamp&apos;li bulgular</strong> üretir — paspayı yetersiz
-            mi, etriye aralığı kaymış mı, formwork temiz mi. Her bulguya tıkla, video o ana atlar.
+            Pan a phone over the rebar cage for 30 to 90 seconds, upload the MP4. Kimi K2.6
+            ingests video natively and emits <strong>time-stamped findings</strong> — cover
+            shortage, stirrup spacing drift, missing spacers, formwork debris. Click any
+            finding to seek the video to that frame.
           </p>
         </div>
 
@@ -126,7 +127,7 @@ export default function VideoPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Saha turu</h2>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Site walkthrough</h2>
                 <span
                   className="mono"
                   style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}
@@ -138,7 +139,7 @@ export default function VideoPage() {
                 </span>
               </div>
               <label className="btn ghost sm" style={{ cursor: 'pointer' }}>
-                {file ? 'Replace video' : '+ Video yükle'}
+                {file ? 'Replace video' : '+ Upload video'}
                 <input
                   type="file"
                   accept="video/mp4,video/quicktime,video/webm,video/*"
@@ -184,9 +185,9 @@ export default function VideoPage() {
                     padding: 24,
                   }}
                 >
-                  Bir saha turu MP4&apos;ü yükle veya
+                  Upload a site-walk MP4
                   <br />
-                  aşağıdaki demo transkripti incele
+                  or scrub the demo transcript below
                 </div>
               )}
 
@@ -204,7 +205,7 @@ export default function VideoPage() {
                     letterSpacing: '0.1em',
                   }}
                 >
-                  KIMI K2.6 VIDEOYU İNCELİYOR…
+                  KIMI K2.6 IS WATCHING…
                 </div>
               )}
             </div>
@@ -285,7 +286,7 @@ export default function VideoPage() {
                 >
                   <span>{fmt(currentTime)}</span>
                   <span>
-                    {findingMarkers.length} bulgu · KIMI K2.6 NATIVE VIDEO
+                    {findingMarkers.length} findings · KIMI K2.6 NATIVE VIDEO
                   </span>
                   <span>{fmt(duration)}</span>
                 </div>
