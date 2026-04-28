@@ -3,10 +3,10 @@ import { TopNav } from '@/components/TopNav';
 import { AgentRing } from '@/components/AgentRing';
 
 const STATS = [
-  { k: '14,287', l: 'Pours inspected' },
-  { k: '1,042',  l: 'Blocked before pour' },
-  { k: '38s',    l: 'Median verdict time' },
-  { k: '7',      l: 'Agents + moderator' },
+  { k: '9',   l: 'Agents debating' },
+  { k: '16',  l: 'Curated TBDY/TS 500 articles' },
+  { k: '48',  l: 'GPG-verified commits' },
+  { k: '$0',  l: 'Per-call · Nous subscription' },
 ] as const;
 
 export default function LandingPage() {
@@ -67,12 +67,51 @@ export default function LandingPage() {
               textWrap: 'pretty',
             }}
           >
-            RebarGuard runs 8 AI agents against the approved structural plan{' '}
+            RebarGuard runs 9 AI agents against the approved structural plan{' '}
             <em>before</em> each pour. Cover thickness, splice length, TBDY 2018 compliance —
-            verified in under 40 seconds from site photos.
+            verified in under 60 seconds from site photos.
           </p>
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 36, flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 18,
+              flexWrap: 'wrap',
+            }}
+          >
+            <span
+              className="chip mono"
+              style={{
+                background: 'color-mix(in oklch, var(--blue) 12%, transparent)',
+                color: 'var(--blue)',
+                borderColor: 'color-mix(in oklch, var(--blue) 35%, transparent)',
+                letterSpacing: '0.08em',
+              }}
+            >
+              KIMI K2.6 · VISION
+            </span>
+            <span
+              className="chip mono"
+              style={{
+                background: 'color-mix(in oklch, var(--amber) 12%, transparent)',
+                color: 'var(--amber)',
+                borderColor: 'color-mix(in oklch, var(--amber) 35%, transparent)',
+                letterSpacing: '0.08em',
+              }}
+            >
+              HERMES 4 70B · REASONING
+            </span>
+            <span
+              className="mono"
+              style={{ fontSize: 11, color: 'var(--text-3)', letterSpacing: '0.08em' }}
+            >
+              VIA NOUS PORTAL
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 28, flexWrap: 'wrap' }}>
             <Link
               href="/inspection/new"
               className="btn primary"

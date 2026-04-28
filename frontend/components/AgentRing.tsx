@@ -1,8 +1,8 @@
-import { AGENTS } from '@/lib/agents';
+import { AGENTS, AGENT_BY_ID } from '@/lib/agents';
 
 export function AgentRing({ size = 540 }: { size?: number }) {
   const R = 220;
-  const agents = AGENTS.slice(0, 7);
+  const agents = [...AGENTS.slice(0, 7), AGENT_BY_ID.municipality];
   const half = size / 2;
   return (
     <svg
