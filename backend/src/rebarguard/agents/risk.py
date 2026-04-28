@@ -1,4 +1,11 @@
-"""RiskAgent — AFAD earthquake zone + soil class → risk multiplier."""
+"""RiskAgent — AFAD earthquake zone + soil class → risk multiplier.
+
+Zone × soil × floor multiplier comes from the official TBDY 2018 / AFAD table — a
+fixed lookup, never an LLM "guess." After the deterministic computation, Hermes 4 70B
+narrates *what the numbers mean for the structure* in a single English sentence so
+the debate stream reads as agentic prose. Hermes failures fall back to the
+deterministic summary; the multiplier is unchanged.
+"""
 
 from __future__ import annotations
 
@@ -65,11 +72,28 @@ class RiskAgent(BaseAgent[RiskInput, RiskReport]):
         base = (pga or 0.3) / 0.3  # reference PGA 0.3g
         multiplier = round(base * soil_mult * floor_mult, 2)
 
-        summary = (
+        base_summary = (
             f"{payload.city or 'Unknown city'}: PGA {pga or 'N/A'} g, "
             f"soil {payload.soil_class or 'ZC'}, {payload.floors} floor(s) → "
             f"risk multiplier ×{multiplier}"
         )
+
+        summary = base_summary
+        if pga is not None:  # Skip narrative for unknown cities (no signal to narrate)
+            try:
+                narrative = await self._hermes_narrative(
+                    city=payload.city or "Unknown",
+                    zone=zone,
+                    pga=pga,
+                    soil_class=payload.soil_class or "ZC",
+                    floors=payload.floors,
+                    multiplier=multiplier,
+                )
+                if narrative:
+                    summary = narrative
+            except Exception:
+                summary = base_summary
+
         return RiskReport(
             afad_zone=zone,
             pga_g=pga,
@@ -77,3 +101,38 @@ class RiskAgent(BaseAgent[RiskInput, RiskReport]):
             risk_multiplier=multiplier,
             summary=summary,
         )
+
+    async def _hermes_narrative(
+        self,
+        *,
+        city: str,
+        zone: str | None,
+        pga: float,
+        soil_class: str,
+        floors: int,
+        multiplier: float,
+    ) -> str | None:
+        system = (
+            "You are a structural seismic-risk agent reading the AFAD lookup result. "
+            "The PGA, zone, and multiplier are fixed regulatory values — do not change "
+            "them. Narrate in 1–2 concrete English sentences what this risk profile "
+            "means for the structure and which findings (cover, stirrup spacing, etc.) "
+            "become high-impact at this seismicity. No markdown, no bullets."
+        )
+        user = (
+            f"Site: {city}. AFAD {zone or 'unmapped'} (PGA {pga:.2f} g). "
+            f"Soil class {soil_class}. Floors: {floors}. "
+            f"Composite risk multiplier ×{multiplier}."
+        )
+        resp = await self.hermes.complete(
+            [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            model=self.hermes.reasoning_model,
+            max_tokens=180,
+            temperature=0.3,
+            skills=["moderate-inspection"],
+        )
+        text = (resp.get("content") or "").strip()
+        return text or None

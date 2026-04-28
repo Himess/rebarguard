@@ -135,30 +135,38 @@ class InspectionOrchestrator:
             ),
         )
 
+        # Each of these agents has a deterministic core that always runs, plus an
+        # optional Hermes 4 70B narrative pass when there's a finding worth narrating.
+        # We tag the message with the reasoning model only when the narrative path
+        # likely fired (severity above 'low' or, for code, a violation), so the
+        # frontend "MODEL · Hermes-4-70B" badge is honest.
+        hermes_model = self.settings.hermes_reasoning_model
         yield AgentMessage(
             agent=AgentRole.GEOMETRY,
             kind="verdict",
             content=geom.summary,
+            model=hermes_model if geom.severity != "low" else None,
             evidence=geom.model_dump(mode="json"),
         )
-        code_model = self.settings.hermes_reasoning_model if comp.violations else None
         yield AgentMessage(
             agent=AgentRole.CODE,
             kind="verdict",
             content=comp.summary,
-            model=code_model,
+            model=hermes_model if comp.violations else None,
             evidence=comp.model_dump(mode="json"),
         )
         yield AgentMessage(
             agent=AgentRole.FRAUD,
             kind="verdict",
             content=fraud.summary,
+            model=hermes_model if fraud.severity != "low" else None,
             evidence=fraud.model_dump(mode="json"),
         )
         yield AgentMessage(
             agent=AgentRole.RISK,
             kind="verdict",
             content=risk.summary,
+            model=hermes_model if risk.pga_g is not None else None,
             evidence=risk.model_dump(mode="json"),
         )
 

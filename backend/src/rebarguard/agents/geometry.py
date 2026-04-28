@@ -1,4 +1,11 @@
-"""GeometryAgent — compares plan spec vs. vision-detected site rebar (any element type)."""
+"""GeometryAgent — compares plan spec vs. vision-detected site rebar (any element type).
+
+The diff itself is deterministic arithmetic (`expected - detected`); we never let a
+language model fabricate counts. After the diff is computed we ask Hermes 4 70B to
+narrate the result in a structural-engineer's voice so the SSE debate stream reads
+like a person, not a printf. If Hermes is unavailable we silently fall back to the
+deterministic summary — verdict correctness is unaffected.
+"""
 
 from __future__ import annotations
 
@@ -52,7 +59,27 @@ class GeometryAgent(BaseAgent[GeometryInput, GeometryDiff]):
             )
 
         severity = self._severity(missing, expected_count, diameter_ok, stirrup_ok)
-        summary = self._summary(element, expected_count, actual_count, missing, diameter_ok, stirrup_ok)
+        base_summary = self._summary(
+            element, expected_count, actual_count, missing, diameter_ok, stirrup_ok
+        )
+
+        summary = base_summary
+        if not rebar_ok or diameter_ok is False or stirrup_ok is False:
+            try:
+                narrative = await self._hermes_narrative(
+                    element_label(element),
+                    expected_count=expected_count,
+                    actual_count=actual_count,
+                    missing=missing,
+                    diameter_ok=diameter_ok,
+                    stirrup_ok=stirrup_ok,
+                    expected_stirrup_mm=st.spacing_mm if st else None,
+                    actual_stirrup_mm=det.estimated_stirrup_spacing_mm,
+                )
+                if narrative:
+                    summary = narrative
+            except Exception:
+                summary = base_summary
 
         return GeometryDiff(
             element_id=element.id,
@@ -67,6 +94,47 @@ class GeometryAgent(BaseAgent[GeometryInput, GeometryDiff]):
             severity=severity,
             summary=summary,
         )
+
+    async def _hermes_narrative(
+        self,
+        element_label_str: str,
+        *,
+        expected_count: int,
+        actual_count: int,
+        missing: int,
+        diameter_ok: bool | None,
+        stirrup_ok: bool | None,
+        expected_stirrup_mm: int | None,
+        actual_stirrup_mm: int | None,
+    ) -> str | None:
+        system = (
+            "You are a structural-inspection agent reporting a plan-vs-site geometry diff. "
+            "The deterministic comparison has already been computed — your job is to narrate "
+            "it in 1–2 concrete English sentences as if speaking to fellow agents in a "
+            "debate. Use the exact numbers given. No markdown, no bullets, no hedging."
+        )
+        diffs = [f"plan {expected_count} bars vs site {actual_count}"]
+        if missing:
+            diffs.append(f"{missing} missing")
+        if diameter_ok is False:
+            diffs.append("diameter mismatch")
+        if stirrup_ok is False and expected_stirrup_mm and actual_stirrup_mm:
+            diffs.append(
+                f"stirrup pitch {actual_stirrup_mm} mm vs spec {expected_stirrup_mm} mm"
+            )
+        user = f"{element_label_str}\nFindings: " + "; ".join(diffs) + "."
+        resp = await self.hermes.complete(
+            [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            model=self.hermes.reasoning_model,
+            max_tokens=180,
+            temperature=0.3,
+            skills=["moderate-inspection"],
+        )
+        text = (resp.get("content") or "").strip()
+        return text or None
 
     @staticmethod
     def _severity(

@@ -1,4 +1,10 @@
-"""FraudAgent — EXIF validation, timestamp sanity, reference-marker presence, hash dedup."""
+"""FraudAgent — EXIF validation, timestamp sanity, reference-marker presence, hash dedup.
+
+The fraud checks themselves are deterministic file/EXIF parsing — we never let an
+LLM "decide" whether a timestamp or hash is valid. After the checks run, Hermes 4 70B
+turns the result into a 1–2 sentence narrative for the debate stream. If Hermes
+fails, the deterministic summary is used and the verdict is unchanged.
+"""
 
 from __future__ import annotations
 
@@ -52,7 +58,23 @@ class FraudAgent(BaseAgent[FraudInput, FraudReport]):
             issues.append("No reference marker found in any photo.")
 
         severity = self._severity(len(issues), hash_dup, not exif_ok)
-        summary = self._summary(exif_ok, ref_ok, hash_dup, len(issues))
+        base_summary = self._summary(exif_ok, ref_ok, hash_dup, len(issues))
+
+        summary = base_summary
+        if issues or not ref_ok or hash_dup:
+            try:
+                narrative = await self._hermes_narrative(
+                    exif_ok=exif_ok,
+                    ref_ok=ref_ok,
+                    hash_dup=hash_dup,
+                    issues=issues,
+                    n_photos=len(payload.photo_paths),
+                )
+                if narrative:
+                    summary = narrative
+            except Exception:
+                summary = base_summary
+
         return FraudReport(
             exif_timestamp_valid=exif_ok,
             geolocation_valid=geo_ok,
@@ -62,6 +84,44 @@ class FraudAgent(BaseAgent[FraudInput, FraudReport]):
             severity=severity,
             summary=summary,
         )
+
+    async def _hermes_narrative(
+        self,
+        *,
+        exif_ok: bool,
+        ref_ok: bool,
+        hash_dup: bool,
+        issues: list[str],
+        n_photos: int,
+    ) -> str | None:
+        system = (
+            "You are a structural-inspection fraud agent. The deterministic EXIF / "
+            "reference-marker / hash checks have already run — your job is to narrate "
+            "the result in 1–2 concrete English sentences for the debate stream. "
+            "Reference the exact issues given. No markdown, no bullets, no hedging."
+        )
+        flags = []
+        if not exif_ok:
+            flags.append("EXIF timestamp invalid or missing")
+        if not ref_ok:
+            flags.append("no reference marker visible")
+        if hash_dup:
+            flags.append("photo hash duplicate (re-uploaded)")
+        body = f"Photos audited: {n_photos}. Flags: " + "; ".join(flags) + "."
+        if issues:
+            body += "\nDetails:\n- " + "\n- ".join(issues[:5])
+        resp = await self.hermes.complete(
+            [
+                {"role": "system", "content": system},
+                {"role": "user", "content": body},
+            ],
+            model=self.hermes.reasoning_model,
+            max_tokens=180,
+            temperature=0.3,
+            skills=["moderate-inspection"],
+        )
+        text = (resp.get("content") or "").strip()
+        return text or None
 
     @staticmethod
     def _read_exif(path: Path) -> tuple[datetime | None, tuple[float, float] | None]:

@@ -28,15 +28,15 @@ export type AgentDef = {
 };
 
 export const AGENTS: AgentDef[] = [
-  { id: 'plan',     name: 'PlanParser',       short: 'PLAN',   model: 'kimi-k2.6',    modelClass: 'blue',  hueVar: '--agent-1', role: 'Reads approved PDF/DWG drawings' },
-  { id: 'geometry', name: 'GeometryAgent',    short: 'GEOM',   model: 'hermes-4-70b', modelClass: 'amber', hueVar: '--agent-2', role: 'Plan vs site rebar diff' },
-  { id: 'code',     name: 'CodeAgent',        short: 'CODE',   model: 'hermes-4-70b', modelClass: 'amber', hueVar: '--agent-3', role: 'TBDY 2018 / TS 500 compliance' },
-  { id: 'fraud',    name: 'FraudAgent',       short: 'FRAUD',  model: 'hermes-4-70b', modelClass: 'amber', hueVar: '--agent-4', role: 'EXIF / marker / hash dup' },
-  { id: 'seismic',  name: 'SeismicRiskAgent', short: 'SEISM',  model: 'hermes-4-70b', modelClass: 'amber', hueVar: '--agent-5', role: 'AFAD zone × soil × floors' },
-  { id: 'material', name: 'MaterialAgent',    short: 'MATL',   model: 'kimi-k2.6',    modelClass: 'blue',  hueVar: '--agent-6', role: 'Steel class, corrosion' },
-  { id: 'cover',    name: 'CoverAgent',       short: 'COVER',  model: 'kimi-k2.6',    modelClass: 'blue',  hueVar: '--agent-7', role: 'Concrete cover estimation' },
-  { id: 'mod',      name: 'Moderator',        short: 'MOD',    model: 'hermes-4-70b', modelClass: 'amber', hueVar: '--agent-8', role: 'Synthesizes all findings' },
-  { id: 'municipality', name: 'Belediye Agent', short: 'BLD',  model: 'hermes-4-70b', modelClass: 'amber', hueVar: '--agent-9', role: 'Independent municipal reviewer (pour-approval gate)' },
+  { id: 'plan',     name: 'PlanParser',       short: 'PLAN',   model: 'kimi-k2.6',           modelClass: 'blue',  hueVar: '--agent-1', role: 'Reads approved PDF/DWG drawings' },
+  { id: 'geometry', name: 'GeometryAgent',    short: 'GEOM',   model: 'rules + hermes-4-70b', modelClass: 'amber', hueVar: '--agent-2', role: 'Plan vs site rebar diff (rules compute, Hermes narrates)' },
+  { id: 'code',     name: 'CodeAgent',        short: 'CODE',   model: 'rules + hermes-4-70b', modelClass: 'amber', hueVar: '--agent-3', role: 'TBDY 2018 / TS 500 compliance (rules compute, Hermes narrates)' },
+  { id: 'fraud',    name: 'FraudAgent',       short: 'FRAUD',  model: 'rules + hermes-4-70b', modelClass: 'amber', hueVar: '--agent-4', role: 'EXIF / marker / hash dup (rules compute, Hermes narrates)' },
+  { id: 'seismic',  name: 'SeismicRiskAgent', short: 'SEISM',  model: 'rules + hermes-4-70b', modelClass: 'amber', hueVar: '--agent-5', role: 'AFAD zone × soil × floors (rules compute, Hermes narrates)' },
+  { id: 'material', name: 'MaterialAgent',    short: 'MATL',   model: 'kimi-k2.6',           modelClass: 'blue',  hueVar: '--agent-6', role: 'Steel class, corrosion' },
+  { id: 'cover',    name: 'CoverAgent',       short: 'COVER',  model: 'kimi-k2.6',           modelClass: 'blue',  hueVar: '--agent-7', role: 'Concrete cover estimation' },
+  { id: 'mod',      name: 'Moderator',        short: 'MOD',    model: 'hermes-4-70b',         modelClass: 'amber', hueVar: '--agent-8', role: 'Synthesizes all findings' },
+  { id: 'municipality', name: 'Municipality Agent', short: 'BLD', model: 'hermes-4-70b',       modelClass: 'amber', hueVar: '--agent-9', role: 'Independent municipal reviewer (pour-approval gate)' },
 ];
 
 export const AGENT_BY_ID: Record<AgentId, AgentDef> = Object.fromEntries(

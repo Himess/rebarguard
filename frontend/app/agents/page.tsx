@@ -6,16 +6,17 @@ import { AGENTS } from '@/lib/agents';
 
 const FLOW = [
   { step: '01', phase: 'Ingestion', agents: ['plan'], note: 'Kimi K2.6 reads the approved PDF drawing. One shot, structured plan JSON out.' },
-  { step: '02', phase: 'Site analysis', agents: ['geometry', 'fraud', 'seismic'], note: 'Deterministic agents run in parallel against detected rebar + EXIF + AFAD zone.' },
+  { step: '02', phase: 'Site analysis', agents: ['geometry', 'fraud', 'seismic'], note: 'Rule engines compute the diff (counts, EXIF, AFAD lookup). Hermes 4 70B narrates each finding in parallel — verdict math stays auditable, prose stays agentic.' },
   { step: '03', phase: 'Vision pass', agents: ['material', 'cover'], note: 'Kimi K2.6 close-up + cover reads with reference-marker calibration.' },
-  { step: '04', phase: 'Compliance', agents: ['code'], note: 'TBDY 2018 + TS 500 whitelist RAG, Hermes 4 narrative per violation.' },
-  { step: '05', phase: 'Synthesis', agents: ['mod'], note: 'Hermes 4 70B weighs 7 reports, emits score + verdict.' },
+  { step: '04', phase: 'Compliance', agents: ['code'], note: 'Rule engine over TBDY 2018 + TS 500 whitelist RAG. Hermes 4 70B writes the violation narrative.' },
+  { step: '05', phase: 'Synthesis', agents: ['mod'], note: 'Hermes 4 70B weighs the 6 specialist reports, emits score + verdict.' },
   { step: '06', phase: 'Counter-review', agents: ['municipality'], note: 'Independent municipal reviewer. Hard rail: cannot uphold a REJECT.' },
 ] as const;
 
-const MODEL_COLOR: Record<'kimi-k2.6' | 'hermes-4-70b', string> = {
+const MODEL_COLOR: Record<string, string> = {
   'kimi-k2.6': 'var(--blue)',
   'hermes-4-70b': 'var(--amber)',
+  'rules + hermes-4-70b': 'var(--amber)',
 };
 
 export default function AgentsPage() {
