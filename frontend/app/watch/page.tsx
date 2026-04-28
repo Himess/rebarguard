@@ -22,12 +22,6 @@ function bboxToCircle(f: QuickFinding): DisplayFinding {
   return { ...f, cx, cy, r };
 }
 
-const DEMO_FALLBACK: QuickFinding[] = [
-  { title: 'Cover < 25mm',         severity: 'fail', bbox: { x: 0.22, y: 0.36, w: 0.12, h: 0.10 }, detail: '22mm measured at bottom-left corner. TS 500 minimum violated.', ref: 'TS 500 7.3',  confidence: 0.88 },
-  { title: 'Stirrup spacing drift', severity: 'warn', bbox: { x: 0.55, y: 0.28, w: 0.09, h: 0.08 }, detail: 'Ø10 stirrup pitch 140mm, spec 100mm in confinement zone.',         ref: 'TBDY 7.3.6', confidence: 0.76 },
-  { title: 'Spacer missing',        severity: 'warn', bbox: { x: 0.72, y: 0.55, w: 0.08, h: 0.07 }, detail: 'No plastic spacer visible — potential cover drop.',                  ref: 'TS 500 7.6', confidence: 0.71 },
-];
-
 const colorFor = (s: QuickFinding['severity']) =>
   s === 'fail' ? 'var(--red)' : s === 'warn' ? 'var(--yellow)' : 'var(--blue)';
 
@@ -44,17 +38,17 @@ function gradeOf(findings: QuickFinding[]): number {
 
 function gradeBand(g: number): { label: string; color: string; band: string } {
   if (g >= 80) return { label: 'OK', color: 'var(--green)', band: 'A' };
-  if (g >= 60) return { label: 'RİSKLİ', color: 'var(--yellow)', band: 'C' };
-  return { label: 'AĞIR RİSK', color: 'var(--red)', band: 'F' };
+  if (g >= 60) return { label: 'AT RISK', color: 'var(--yellow)', band: 'C' };
+  return { label: 'HIGH RISK', color: 'var(--red)', band: 'F' };
 }
 
 export default function WatchPage() {
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [openArticle, setOpenArticle] = useState<string | null>(null);
-  const [findings, setFindings] = useState<QuickFinding[]>(DEMO_FALLBACK);
+  const [findings, setFindings] = useState<QuickFinding[]>([]);
   const [loading, setLoading] = useState(false);
-  const [usingDemo, setUsingDemo] = useState(true);
+  const [hasResult, setHasResult] = useState(false);
   const [scanErr, setScanErr] = useState<string | null>(null);
 
   const [address, setAddress] = useState<ComplaintAddress>({
@@ -89,20 +83,16 @@ export default function WatchPage() {
     setScanErr(null);
     setSubmitResponse(null);
     setSubmitErr(null);
-    if (!f) {
-      setFindings(DEMO_FALLBACK);
-      setUsingDemo(true);
-      return;
-    }
+    setFindings([]);
+    setHasResult(false);
+    if (!f) return;
     setLoading(true);
     try {
       const result = await analyzeQuickPhoto(f);
-      setFindings(result.findings.length > 0 ? result.findings : []);
-      setUsingDemo(false);
+      setFindings(result.findings);
+      setHasResult(true);
     } catch (e) {
       setScanErr((e as Error).message);
-      setFindings(DEMO_FALLBACK);
-      setUsingDemo(true);
     } finally {
       setLoading(false);
     }
@@ -170,7 +160,7 @@ export default function WatchPage() {
       <div style={{ padding: '40px 32px 64px', maxWidth: 1280, margin: '0 auto' }}>
         {/* Hero */}
         <div style={{ marginBottom: 32 }}>
-          <span className="chip hazard">VATANDAŞ DENETİMİ · BETA</span>
+          <span className="chip hazard">CITIZEN WATCH · BETA</span>
           <h1
             style={{
               margin: '12px 0 10px',
@@ -180,13 +170,15 @@ export default function WatchPage() {
               maxWidth: 920,
             }}
           >
-            Kat karşılığı dairen mi var? <span style={{ color: 'var(--hazard)' }}>Müteahhitini denetle.</span>
+            Got an apartment under construction?{' '}
+            <span style={{ color: 'var(--hazard)' }}>Audit your contractor.</span>
           </h1>
           <p style={{ margin: 0, fontSize: 15, color: 'var(--text-2)', maxWidth: 760, lineHeight: 1.55 }}>
-            Kahramanmaraş&apos;ta 58 500 bina yıkıldı; içlerinin çoğunda demir kâğıtta vardı, kalıpta yoktu.
-            Sahaya gidiyorsan beton dökülmeden önce bir foto çek — 9 yapay zeka ajanı projeni denetlesin,
-            <strong> 0–100 puan ver</strong>, eksiklik varsa CIMER&apos;e ileteceğin <strong>resmi
-            dilekçe taslağını</strong> üretsin.
+            58,500 buildings collapsed in the 2023 Kahramanmaraş earthquake — many of them had rebar
+            on paper but not in the formwork. If you can visit the site, snap a photo before the
+            pour: 9 AI agents grade the cage, <strong>0–100 score</strong>, and if anything is off
+            we draft the <strong>official CIMER petition</strong> (Turkey&apos;s state complaint
+            portal) for you.
           </p>
         </div>
 
@@ -200,9 +192,9 @@ export default function WatchPage() {
           }}
         >
           {[
-            { n: '01', t: 'Foto çek', d: 'Beton dökülmeden önce kalıp + donatı fotosunu yükle.' },
-            { n: '02', t: 'Kimi denetlesin', d: 'Kimi K2.6 + TBDY 2018 + TS 500 referansları, gerçek zamanlı.' },
-            { n: '03', t: 'Dilekçeni hazırla', d: 'PDF indir veya mock İBB gönderim akışını çalıştır.' },
+            { n: '01', t: 'Snap a photo', d: 'Upload the rebar cage + formwork before the pour begins.' },
+            { n: '02', t: 'Let Kimi inspect', d: 'Kimi K2.6 + TBDY 2018 + TS 500 references, in real time.' },
+            { n: '03', t: 'Draft your petition', d: 'Download the PDF or run the mock İBB submission flow.' },
           ].map((s) => (
             <div key={s.n} className="panel" style={{ padding: '14px 16px' }}>
               <div className="mono" style={{ fontSize: 11, color: 'var(--hazard)', letterSpacing: '0.1em' }}>
@@ -234,7 +226,7 @@ export default function WatchPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Saha fotoğrafı</h2>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Site photo</h2>
                 <span
                   className="mono"
                   style={{
@@ -244,11 +236,11 @@ export default function WatchPage() {
                     textTransform: 'uppercase',
                   }}
                 >
-                  {usingDemo ? 'demo data' : 'live kimi k2.6'}
+                  {hasResult ? 'live kimi k2.6' : 'awaiting photo'}
                 </span>
               </div>
               <label className="btn ghost sm" style={{ cursor: 'pointer' }}>
-                {file ? 'Fotoyu değiştir' : 'Foto yükle'}
+                {file ? 'Replace photo' : 'Upload photo'}
                 <input
                   type="file"
                   accept="image/*"
@@ -271,7 +263,7 @@ export default function WatchPage() {
               {url ? (
                 <img
                   src={url}
-                  alt={file ? `Saha fotoğrafı ${file.name}` : 'Saha fotoğrafı'}
+                  alt={file ? `Site photo ${file.name}` : 'Site photo'}
                   style={{
                     position: 'absolute',
                     inset: 0,
@@ -297,7 +289,7 @@ export default function WatchPage() {
                     textTransform: 'uppercase',
                   }}
                 >
-                  Foto yüklemek için sağdaki butona bas
+                  Click upload to begin
                 </div>
               )}
 
@@ -333,7 +325,7 @@ export default function WatchPage() {
                     letterSpacing: '0.1em',
                   }}
                 >
-                  KIMI ANALİZ EDİYOR…
+                  KIMI ANALYZING…
                 </div>
               )}
             </div>
@@ -347,7 +339,7 @@ export default function WatchPage() {
                   letterSpacing: '0.06em',
                 }}
               >
-                ANALİZ HATASI · {scanErr}
+                ANALYSIS ERROR · {scanErr}
               </div>
             )}
 
@@ -356,10 +348,18 @@ export default function WatchPage() {
                 className="mono"
                 style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.08em', marginBottom: 6, textTransform: 'uppercase' }}
               >
-                Tespit edilen bulgular ({findings.length})
+                Findings detected ({findings.length})
               </div>
               {findings.length === 0 && (
-                <div style={{ fontSize: 13, color: 'var(--text-2)' }}>Foto temiz görünüyor.</div>
+                <div style={{ fontSize: 13, color: 'var(--text-2)' }}>
+                  {!file
+                    ? 'Upload a photo to begin analysis.'
+                    : loading
+                      ? 'Kimi K2.6 is analyzing the photo…'
+                      : hasResult
+                        ? 'Photo looks clean — no defects detected.'
+                        : 'Awaiting analysis.'}
+                </div>
               )}
               {findings.map((f, i) => (
                 <div
@@ -430,7 +430,7 @@ export default function WatchPage() {
               className="panel"
               style={{
                 padding: '20px',
-                borderLeft: `3px solid ${band.color}`,
+                borderLeft: `3px solid ${hasResult ? band.color : 'var(--line-2)'}`,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 18,
@@ -443,12 +443,19 @@ export default function WatchPage() {
                   borderRadius: '50%',
                   display: 'grid',
                   placeItems: 'center',
-                  border: `2px solid ${band.color}`,
+                  border: `2px solid ${hasResult ? band.color : 'var(--line-2)'}`,
                   flexShrink: 0,
                 }}
               >
-                <div className="mono num" style={{ fontSize: 28, fontWeight: 600, color: band.color }}>
-                  {grade}
+                <div
+                  className="mono num"
+                  style={{
+                    fontSize: 28,
+                    fontWeight: 600,
+                    color: hasResult ? band.color : 'var(--text-3)',
+                  }}
+                >
+                  {hasResult ? grade : '—'}
                 </div>
               </div>
               <div style={{ flex: 1 }}>
@@ -456,15 +463,17 @@ export default function WatchPage() {
                   className="mono"
                   style={{
                     fontSize: 11,
-                    color: band.color,
+                    color: hasResult ? band.color : 'var(--text-3)',
                     letterSpacing: '0.1em',
                     textTransform: 'uppercase',
                   }}
                 >
-                  Sınıf {band.band} · {band.label}
+                  {hasResult ? `Class ${band.band} · ${band.label}` : 'Awaiting analysis'}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 4, lineHeight: 1.4 }}>
-                  AI ön değerlendirmesi. Hukuki bağlayıcılığı yoktur — kesin tespit için lisanslı yapı denetim firması gerekir.
+                  {hasResult
+                    ? 'AI preliminary assessment. Carries no legal weight — a licensed building-control firm is required for definitive findings.'
+                    : 'Upload a site photo above to receive a 0–100 score and a draft petition.'}
                 </div>
               </div>
             </div>
@@ -474,44 +483,44 @@ export default function WatchPage() {
                 className="mono"
                 style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}
               >
-                Konum & müteahhit (opsiyonel)
+                Location & contractor (optional)
               </div>
               <Field
-                label="Parsel no"
+                label="Parcel"
                 value={address.parcel_no || ''}
-                placeholder="örn. 1340 Ada 43 Parsel"
+                placeholder="e.g. 1340 Ada 43 Parsel"
                 onChange={(v) => setAddress({ ...address, parcel_no: v })}
               />
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <Field
-                  label="İlçe"
+                  label="District"
                   value={address.district || ''}
                   placeholder="Kadıköy"
                   onChange={(v) => setAddress({ ...address, district: v })}
                 />
                 <Field
-                  label="Şehir"
+                  label="City"
                   value={address.city || 'Istanbul'}
                   placeholder="Istanbul"
                   onChange={(v) => setAddress({ ...address, city: v })}
                 />
               </div>
               <Field
-                label="Açık adres"
+                label="Street address"
                 value={address.full_address || ''}
-                placeholder="Sokak, no…"
+                placeholder="Street, number…"
                 onChange={(v) => setAddress({ ...address, full_address: v })}
               />
               <Field
-                label="Müteahhit firma"
+                label="Contractor"
                 value={address.contractor_name || ''}
-                placeholder="örn. Demo İnşaat A.Ş."
+                placeholder="e.g. Demo İnşaat A.Ş."
                 onChange={(v) => setAddress({ ...address, contractor_name: v })}
               />
               <Field
-                label="Daire no"
+                label="Apartment no."
                 value={address.apartment_no || ''}
-                placeholder="opsiyonel"
+                placeholder="optional"
                 onChange={(v) => setAddress({ ...address, apartment_no: v })}
               />
             </div>
@@ -521,18 +530,18 @@ export default function WatchPage() {
                 className="mono"
                 style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.08em', textTransform: 'uppercase' }}
               >
-                İmza bilgileri
+                Signatory info
               </div>
               <Field
-                label="Ad — Soyad"
+                label="Full name"
                 value={citizenName}
-                placeholder="dilekçeye yazılır"
+                placeholder="will appear on the petition"
                 onChange={setCitizenName}
               />
               <Field
-                label="İletişim"
+                label="Contact"
                 value={citizenContact}
-                placeholder="e-posta veya telefon"
+                placeholder="email or phone"
                 onChange={setCitizenContact}
               />
               <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -540,14 +549,14 @@ export default function WatchPage() {
                   className="mono"
                   style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.06em', textTransform: 'uppercase' }}
                 >
-                  Not
+                  Note
                 </span>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   rows={3}
                   maxLength={2000}
-                  placeholder="Sahaya kaç kez gittiğin, gözlemler…"
+                  placeholder="How many times you've visited the site, observations…"
                   style={{
                     width: '100%',
                     background: 'var(--bg-1)',
@@ -570,18 +579,18 @@ export default function WatchPage() {
                 <button
                   className="btn primary"
                   onClick={onSubmit}
-                  disabled={submitting || pdfBusy}
+                  disabled={submitting || pdfBusy || !hasResult}
                   style={{ height: 44, fontSize: 14 }}
                 >
-                  {submitting ? 'İBB Yapı Kontrol\'e iletiliyor…' : 'Belediyeye gönder (mock)'}
+                  {submitting ? 'Submitting to İBB Building Control…' : 'Submit to municipality (mock)'}
                 </button>
                 <button
                   className="btn ghost"
                   onClick={onDownloadPdf}
-                  disabled={submitting || pdfBusy}
+                  disabled={submitting || pdfBusy || !hasResult}
                   style={{ height: 40, fontSize: 13 }}
                 >
-                  {pdfBusy ? 'PDF hazırlanıyor…' : 'Dilekçe PDF\'ini indir'}
+                  {pdfBusy ? 'Preparing PDF…' : 'Download petition PDF'}
                 </button>
                 {submitErr && (
                   <span className="mono" style={{ fontSize: 10, color: 'var(--red)', letterSpacing: '0.06em' }}>
@@ -598,9 +607,10 @@ export default function WatchPage() {
                     marginTop: 4,
                   }}
                 >
-                  <strong style={{ color: 'var(--text-2)' }}>Mock uyarı:</strong> Bu demo build&apos;de
-                  belediyeye <em>gerçek</em> başvuru yapılmıyor. PDF&apos;i indir, e-Devlet → CIMER&apos;e
-                  ek olarak yükle. Anonim ihbarlar yasal süreç için yetersiz olabilir.
+                  <strong style={{ color: 'var(--text-2)' }}>Mock notice:</strong> This demo build
+                  does <em>not</em> file a real petition with the municipality. Download the PDF
+                  and attach it on e-Devlet → CIMER yourself. Anonymous reports may be insufficient
+                  for the legal process.
                 </div>
               </div>
             )}
@@ -620,15 +630,15 @@ export default function WatchPage() {
             lineHeight: 1.55,
           }}
         >
-          <strong style={{ color: 'var(--text-1)' }}>Not.</strong> Müteahhitsen{' '}
+          <strong style={{ color: 'var(--text-1)' }}>Note.</strong> If you&apos;re a contractor,{' '}
           <Link href="/quick" style={{ color: 'var(--hazard)' }}>
             /quick
           </Link>{' '}
-          sayfası daha uygun: aynı analiz, dilekçe akışı yok. Tam denetim için{' '}
+          fits better — same analysis, no petition flow. For a full audit, the{' '}
           <Link href="/inspection/new" style={{ color: 'var(--hazard)' }}>
             /inspection/new
           </Link>{' '}
-          akışında 9 ajan + Belediye Agent &apos;tartışması&apos; çalışır.
+          flow runs the 9-agent + Municipality Agent debate end-to-end.
         </div>
       </div>
     </div>
@@ -690,13 +700,13 @@ function SubmittedCard({ resp }: { resp: ComplaintSubmitResponse }) {
         className="mono"
         style={{ fontSize: 10, color: 'var(--green)', letterSpacing: '0.1em', textTransform: 'uppercase' }}
       >
-        Mock İletildi · İBB Yapı Kontrol Daire Bşk.
+        Mock submitted · İBB Building Control Dept.
       </div>
       <div style={{ fontSize: 18, fontWeight: 600, color: 'var(--text-0)' }}>
-        İhbar No: <span className="mono">{resp.tracking_id}</span>
+        Petition no: <span className="mono">{resp.tracking_id}</span>
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
-        Tahmini yanıt süresi <strong>{resp.eta_days} iş günü</strong>. Kayıt durumu:{' '}
+        Estimated response time <strong>{resp.eta_days} business days</strong>. Status:{' '}
         <span className="mono" style={{ color: 'var(--text-1)' }}>
           {resp.status}
         </span>

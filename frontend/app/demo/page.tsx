@@ -21,7 +21,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: 'happy',
     title: 'Happy path — mat foundation pour',
-    subtitle: 'Compliant radye temel, 8 agents pass, Belediye upholds.',
+    subtitle: 'Compliant raft foundation, 8 agents pass, Municipality upholds.',
     verdict: 'approve',
     summary:
       'A well-prepared bottom-mat reinforcement with proper spacers, clean trench, and verified splice lengths. The Moderator returns APPROVE, Belediye Agent upholds, human engineer countersigns.',
@@ -30,7 +30,7 @@ const SCENARIOS: Scenario[] = [
       { severity: 'info', title: 'Lap splice length ≥ 40Ø verified', ref: 'TS 500 7.2' },
       { severity: 'info', title: 'Stirrup hooks bent to 135° (seismic)', ref: 'TS 500 7.4' },
     ],
-    photoHint: 'Upload a clean radye / mat foundation photo with visible spacers and rebar grid.',
+    photoHint: 'Upload a clean mat-foundation photo with visible spacers and rebar grid.',
     pattern: 'mat',
   },
   {

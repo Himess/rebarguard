@@ -35,9 +35,9 @@ const MAP: Record<
 };
 
 const MUNI_LABEL: Record<NonNullable<VerdictCinemaPayload['municipalRecommendation']>, string> = {
-  uphold: 'BELEDİYE · UPHOLDS VERDICT',
-  downgrade: 'BELEDİYE · RECOMMENDS DOWNGRADE',
-  escalate_to_human: 'BELEDİYE · ESCALATE TO HUMAN ENGINEER',
+  uphold: 'MUNICIPALITY · UPHOLDS VERDICT',
+  downgrade: 'MUNICIPALITY · RECOMMENDS DOWNGRADE',
+  escalate_to_human: 'MUNICIPALITY · ESCALATE TO HUMAN ENGINEER',
 };
 
 export function VerdictCinema({

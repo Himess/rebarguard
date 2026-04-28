@@ -27,13 +27,13 @@ const SEVERITY_COLOR: Record<ChatMeta['severity'], string> = {
 };
 const SEVERITY_LABEL: Record<ChatMeta['severity'], string> = {
   ok: 'OK',
-  moderate: 'RİSKLİ',
-  high: 'BÜYÜK RİSK',
+  moderate: 'AT RISK',
+  high: 'HIGH RISK',
 };
 
 const SUGGESTIONS = [
-  'Müteahhitim daha bitirmeden beton dökmek istiyor — bu fotoğrafa bakar mısın?',
-  'Kolonun dibinde paspayı 1 cm gibi duruyor; sorun mu?',
+  'My contractor wants to pour concrete before finishing the cage — can you check this photo?',
+  'Concrete cover at the base of the column looks like ~1 cm; is that a problem?',
   'I want to file a complaint about my contractor. Can you help?',
 ];
 
@@ -174,16 +174,16 @@ export default function ChatPage() {
           }}
         >
           <div>
-            <span className="chip hazard">İHBAR HATTI · BETA</span>
+            <span className="chip hazard">CITIZEN HOTLINE · BETA</span>
             <h1
               style={{ margin: '10px 0 6px', fontSize: 32, fontWeight: 600, letterSpacing: '-0.01em' }}
             >
-              Şüpheli bir foto mu var? Konuş.
+              Got a suspicious site photo? Talk to us.
             </h1>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--text-2)', maxWidth: 640, lineHeight: 1.55 }}>
               Multi-turn agent · Hermes 4 70B reasons, Kimi K2.6 sees, TBDY 2018 / TS 500 grounded.
-              Speak Turkish or English. Attach a site photo any time. RebarGuard remembers
-              everything you've said in this thread until you reset.
+              Attach a site photo any time. RebarGuard remembers everything you&apos;ve said in
+              this thread until you reset.
             </p>
           </div>
           <button
@@ -316,7 +316,7 @@ export default function ChatPage() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={onKey}
-              placeholder="Bir şey sor — Türkçe ya da English. Enter gönderir, Shift+Enter satır atlar."
+              placeholder="Ask anything. Enter sends, Shift+Enter for a new line."
               rows={2}
               maxLength={4000}
               disabled={streaming}
@@ -338,7 +338,7 @@ export default function ChatPage() {
                 className="btn ghost sm"
                 style={{ cursor: 'pointer', textAlign: 'center', height: 36 }}
               >
-                {photo ? '✓' : '+ Foto'}
+                {photo ? '✓' : '+ Photo'}
                 <input
                   type="file"
                   accept="image/*"
@@ -353,7 +353,7 @@ export default function ChatPage() {
                 className="btn primary sm"
                 style={{ height: 36, padding: '0 14px' }}
               >
-                Gönder
+                Send
               </button>
             </div>
           </div>
@@ -397,13 +397,13 @@ export default function ChatPage() {
             lineHeight: 1.55,
           }}
         >
-          <strong style={{ color: 'var(--text-1)' }}>Yasal uyarı.</strong> Bu sohbet AI destekli bir
-          ön değerlendirmedir. Hukuki bağlayıcılığı yoktur. Resmi süreç için bağımsız bir yapı
-          denetim firması ya da{' '}
+          <strong style={{ color: 'var(--text-1)' }}>Legal notice.</strong> This chat is an
+          AI-assisted preliminary review. It carries no legal weight. For an official process you
+          need an independent licensed building-control firm, or file a{' '}
           <Link href="/watch" style={{ color: 'var(--hazard)' }}>
-            CIMER dilekçe
+            CIMER petition
           </Link>{' '}
-          gerekir.
+          (Turkey&apos;s state complaint portal).
         </div>
       </div>
     </div>
@@ -524,7 +524,7 @@ function Bubble({ t }: { t: ChatTurn }) {
                 textTransform: 'uppercase',
               }}
             >
-              CIMER dilekçesi başlat →
+              Start CIMER petition →
             </Link>
           )}
         </div>

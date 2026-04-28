@@ -153,10 +153,10 @@ export default function LandingPage() {
                 textTransform: 'uppercase',
               }}
             >
-              Daire sahibi misin?
+              Are you a homeowner?
             </span>
             <span style={{ color: 'var(--text-2)' }}>
-              Müteahhitini denetle <span style={{ color: 'var(--hazard)' }}>→</span>
+              Audit your contractor <span style={{ color: 'var(--hazard)' }}>→</span>
             </span>
           </Link>
 

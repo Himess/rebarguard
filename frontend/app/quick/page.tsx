@@ -18,13 +18,6 @@ function bboxToCircle(f: QuickFinding): DisplayFinding {
   return { ...f, cx, cy, r };
 }
 
-const DEMO_FALLBACK: QuickFinding[] = [
-  { title: 'Cover < 25mm',         severity: 'fail', bbox: { x: 0.22, y: 0.36, w: 0.12, h: 0.10 }, detail: '22mm measured at bottom-left corner. TS 500 minimum violated.',   ref: 'TS 500 7.3',  confidence: 0.88 },
-  { title: 'Stirrup spacing drift', severity: 'warn', bbox: { x: 0.55, y: 0.28, w: 0.09, h: 0.08 }, detail: 'Ø10 stirrup pitch 140mm, spec 100mm in confinement zone.',          ref: 'TBDY 7.3.6', confidence: 0.76 },
-  { title: 'Splice length OK',      severity: 'info', bbox: { x: 0.44, y: 0.68, w: 0.07, h: 0.06 }, detail: '40Ø splice verified against S-04 sheet.',                            ref: 'TS 500 7.2', confidence: 0.82 },
-  { title: 'Spacer missing',        severity: 'warn', bbox: { x: 0.72, y: 0.55, w: 0.08, h: 0.07 }, detail: 'No plastic spacer visible — potential cover drop.',                   ref: 'TS 500 7.6', confidence: 0.71 },
-];
-
 const colorFor = (s: QuickFinding['severity']) =>
   s === 'fail' ? 'var(--red)' : s === 'warn' ? 'var(--yellow)' : 'var(--blue)';
 
@@ -33,12 +26,12 @@ export default function QuickScanPage() {
   const [url, setUrl] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [openArticle, setOpenArticle] = useState<string | null>(null);
-  const [findings, setFindings] = useState<QuickFinding[]>(DEMO_FALLBACK);
+  const [findings, setFindings] = useState<QuickFinding[]>([]);
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState<number | null>(null);
   const [model, setModel] = useState<string>('moonshotai/kimi-k2.6');
   const [err, setErr] = useState<string | null>(null);
-  const [usingDemo, setUsingDemo] = useState(true);
+  const [hasResult, setHasResult] = useState(false);
 
   const display: DisplayFinding[] = useMemo(
     () => findings.map(bboxToCircle),
@@ -51,30 +44,26 @@ export default function QuickScanPage() {
     setUrl(f ? URL.createObjectURL(f) : null);
     setErr(null);
     setHovered(null);
-    if (!f) {
-      setFindings(DEMO_FALLBACK);
-      setUsingDemo(true);
-      setElapsed(null);
-      return;
-    }
+    setFindings([]);
+    setHasResult(false);
+    setElapsed(null);
+    if (!f) return;
     setLoading(true);
     try {
       const result = await analyzeQuickPhoto(f);
-      setFindings(result.findings.length > 0 ? result.findings : []);
+      setFindings(result.findings);
       setElapsed(result.elapsed_s);
       setModel(result.model);
-      setUsingDemo(false);
+      setHasResult(true);
     } catch (e) {
       setErr((e as Error).message);
-      setFindings(DEMO_FALLBACK);
-      setUsingDemo(true);
     } finally {
       setLoading(false);
     }
   }
 
   const meta = useMemo(() => {
-    if (!file) return 'NO PHOTO · DEMO DATA';
+    if (!file) return 'NO PHOTO LOADED';
     const sizeMb = (file.size / 1024 / 1024).toFixed(1);
     return `${file.name.toUpperCase()} · ${sizeMb} MB`;
   }, [file]);
@@ -259,16 +248,16 @@ export default function QuickScanPage() {
                   {elapsed.toFixed(1)}s TOTAL
                 </span>
               )}
-              {usingDemo && (
+              {!file && (
                 <span
                   style={{
                     padding: '3px 6px',
                     background: 'rgba(0,0,0,0.6)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    color: 'var(--yellow)',
+                    color: 'var(--text-3)',
                   }}
                 >
-                  DEMO DATA
+                  AWAITING PHOTO
                 </span>
               )}
             </div>
@@ -363,7 +352,7 @@ export default function QuickScanPage() {
               }}
             >
               <span className="mono" style={{ color: 'var(--red)' }}>BACKEND UNAVAILABLE</span>{' '}
-              · {err} · Showing demo data.
+              · {err}
             </div>
           )}
         </div>
@@ -392,7 +381,13 @@ export default function QuickScanPage() {
                   letterSpacing: '0.08em',
                 }}
               >
-                NO DEFECTS DETECTED
+                {!file
+                  ? 'UPLOAD A PHOTO TO SCAN'
+                  : loading
+                    ? 'KIMI K2.6 ANALYZING…'
+                    : hasResult
+                      ? 'NO DEFECTS DETECTED'
+                      : 'AWAITING ANALYSIS'}
               </div>
             )}
             {findings.map((f, idx) => {
@@ -470,7 +465,7 @@ export default function QuickScanPage() {
             })}
           </div>
           <div style={{ padding: 12, borderTop: '1px solid var(--line-1)' }}>
-            <button className="btn" style={{ width: '100%' }} disabled={!file || usingDemo}>
+            <button className="btn" style={{ width: '100%' }} disabled={!file || !hasResult}>
               Add to inspection report
             </button>
           </div>
@@ -537,7 +532,7 @@ function PhotoPlaceholder() {
           textTransform: 'uppercase',
         }}
       >
-        [ demo annotations · upload to run live ]
+        [ upload a site photo to begin ]
       </div>
     </div>
   );
