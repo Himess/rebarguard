@@ -14,9 +14,8 @@ env/
 dist/
 build/
 
-# uv
+# uv — track lockfiles for reproducible CI builds; only ignore the venv
 .venv
-uv.lock
 
 # Node
 node_modules/
