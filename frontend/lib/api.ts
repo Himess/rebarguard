@@ -337,7 +337,9 @@ export function sendChatMessage(
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        // sse-starlette emits CRLF separators on Fly; normalise so `\n\n`
+        // splits actually find event boundaries.
+        buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
         const parts = buffer.split('\n\n');
         buffer = parts.pop() || '';
         for (const part of parts) {
@@ -425,14 +427,22 @@ export function startReplayStream(
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        // SSE separator is two CRLFs per the spec; sse-starlette emits CRLF
+        // line endings on Fly. Normalise to LF so we can split on `\n\n`.
+        buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
         const parts = buffer.split('\n\n');
         buffer = parts.pop() || '';
         for (const part of parts) {
           const dataLine = part.split('\n').find((l) => l.startsWith('data: '));
           if (!dataLine) continue;
           try {
-            onMessage(JSON.parse(dataLine.slice(6)) as AgentMessage);
+            const obj = JSON.parse(dataLine.slice(6)) as AgentMessage & {
+              timestamp?: string;
+            };
+            // Replay events don't carry a timestamp; synth one so downstream
+            // `new Date(m.timestamp)` math doesn't NaN out.
+            if (!obj.timestamp) obj.timestamp = new Date().toISOString();
+            onMessage(obj);
           } catch {
             // ignore malformed
           }
@@ -494,7 +504,9 @@ export function startInspectionStream(
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        // Normalise CRLF → LF; sse-starlette emits CRLF on Fly which would
+        // otherwise leave `\n\n`-based splits permanently empty.
+        buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
         const parts = buffer.split('\n\n');
         buffer = parts.pop() || '';
         for (const part of parts) {
