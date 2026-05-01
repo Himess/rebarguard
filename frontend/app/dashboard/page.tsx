@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { TopNav } from '@/components/TopNav';
 import { SeedFistikButton } from '@/components/SeedFistikButton';
+import { ReplayDemoButton } from '@/components/ReplayDemoButton';
 import { listProjects, type Project } from '@/lib/api';
 
 export const dynamic = 'force-dynamic';
@@ -60,6 +61,7 @@ export default async function Dashboard() {
               Demo scenarios
             </Link>
             <SeedFistikButton />
+            <ReplayDemoButton />
             <Link href="/quick" className="btn ghost sm" style={{ textDecoration: 'none' }}>
               Quick scan
             </Link>

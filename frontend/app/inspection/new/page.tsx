@@ -321,8 +321,25 @@ function NewInspection() {
           <span>
             STARTED {startTimeRef.current ? new Date(startTimeRef.current).toLocaleTimeString('en-GB') : '—'}
           </span>
+          {replayScenario && (
+            <span
+              className="mono"
+              title="Deterministic replay of a pre-recorded debate — Kimi quota untouched"
+              style={{
+                padding: '3px 8px',
+                fontSize: 10,
+                letterSpacing: '0.08em',
+                color: 'var(--amber)',
+                background: 'color-mix(in oklch, var(--amber) 12%, transparent)',
+                border: '1px solid color-mix(in oklch, var(--amber) 45%, var(--line-2))',
+                borderRadius: 2,
+              }}
+            >
+              REPLAY · {replayScenario.toUpperCase()}
+            </span>
+          )}
           <span style={{ color: running ? 'var(--hazard)' : 'var(--text-3)' }}>
-            {running ? '● LIVE SSE' : '○ IDLE'}
+            {running ? (replayScenario ? '● REPLAY SSE' : '● LIVE SSE') : '○ IDLE'}
           </span>
         </div>
       </div>
