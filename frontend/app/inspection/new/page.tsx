@@ -368,43 +368,94 @@ function NewInspection() {
         >
           <div>
             <Eyebrow>01 · Inputs</Eyebrow>
-            <label
-              style={{
-                display: 'block',
-                border: '1px dashed var(--line-2)',
-                borderRadius: 4,
-                padding: 18,
-                textAlign: 'center',
-                background: 'var(--bg-2)',
-                cursor: 'pointer',
-              }}
-            >
-              <div style={{ fontSize: 12, color: 'var(--text-1)', marginBottom: 4 }}>
-                Drop plan + site photos
-              </div>
-              <div
-                className="mono"
-                style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.06em' }}
+            {replayScenario ? (
+              <a
+                href="/sample-media/photos/20230525_173652.jpg"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: 'block',
+                  border: '1px solid var(--line-2)',
+                  borderRadius: 4,
+                  overflow: 'hidden',
+                  background: 'var(--bg-2)',
+                  textDecoration: 'none',
+                  color: 'inherit',
+                }}
               >
-                PDF · DWG · HEIC · JPG
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => setPhotos(Array.from(e.target.files ?? []))}
-                style={{ display: 'none' }}
-              />
-            </label>
+                <img
+                  src="/sample-media/photos/20230525_173652.jpg"
+                  alt="Shear wall cage analyzed during recording"
+                  style={{
+                    width: '100%',
+                    height: 130,
+                    objectFit: 'cover',
+                    display: 'block',
+                    filter: 'saturate(0.9)',
+                  }}
+                />
+                <div style={{ padding: '8px 10px' }}>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: 9,
+                      color: 'var(--amber)',
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      marginBottom: 2,
+                    }}
+                  >
+                    ▶ Analyzed during recording
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-1)' }}>
+                    Shear Wall P1 · basement_2
+                  </div>
+                  <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 1 }}>
+                    1 site photo · Kimi K2.6 + 8 specialists
+                  </div>
+                </div>
+              </a>
+            ) : (
+              <label
+                style={{
+                  display: 'block',
+                  border: '1px dashed var(--line-2)',
+                  borderRadius: 4,
+                  padding: 18,
+                  textAlign: 'center',
+                  background: 'var(--bg-2)',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ fontSize: 12, color: 'var(--text-1)', marginBottom: 4 }}>
+                  Drop plan + site photos
+                </div>
+                <div
+                  className="mono"
+                  style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.06em' }}
+                >
+                  PDF · DWG · HEIC · JPG
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setPhotos(Array.from(e.target.files ?? []))}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {photos.map((f, i) => (
-              <FileChip key={i} kind="PHOTO" name={f.name} size={`${(f.size / 1024 / 1024).toFixed(1)} MB`} ok />
-            ))}
-            {closeup && <FileChip kind="CLOSEUP" name={closeup.name} size={`${(closeup.size / 1024 / 1024).toFixed(1)} MB`} ok />}
-            {cover && <FileChip kind="COVER" name={cover.name} size={`${(cover.size / 1024 / 1024).toFixed(1)} MB`} ok />}
-          </div>
+          {!replayScenario && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {photos.map((f, i) => (
+                <FileChip key={i} kind="PHOTO" name={f.name} size={`${(f.size / 1024 / 1024).toFixed(1)} MB`} ok />
+              ))}
+              {closeup && <FileChip kind="CLOSEUP" name={closeup.name} size={`${(closeup.size / 1024 / 1024).toFixed(1)} MB`} ok />}
+              {cover && <FileChip kind="COVER" name={cover.name} size={`${(cover.size / 1024 / 1024).toFixed(1)} MB`} ok />}
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <SmallUpload label="Close-up" onFile={setCloseup} />
