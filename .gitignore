@@ -55,6 +55,8 @@ data/cache/
 data/embeddings/
 *.pdf
 !data/regulations/*.pdf
+!data/sample_projects/fistik-sample-statik.pdf
+!frontend/public/sample-media/**/*.pdf
 output/
 test-output/
 demo-artifacts/

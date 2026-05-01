@@ -136,3 +136,21 @@ export async function fetchSampleVideoFile(v: SampleVideo): Promise<File> {
   const blob = await res.blob();
   return new File([blob], v.filename, { type: blob.type || 'video/mp4' });
 }
+
+/** Synthetic Turkish-style structural sheet generated from the Fıstık seed. */
+export const SAMPLE_STRUCTURAL_PDF = {
+  filename: 'fistik-sample-statik.pdf',
+  url: '/sample-media/structural/fistik-sample-statik.pdf',
+  title: '1340 Ada 43 Parsel · S-04 Kolon Donatı',
+  hint:
+    'Synthetic Turkish-format structural sheet (project metadata + column / wall / beam tables). ~34 KB · 4 pages.',
+} as const;
+
+export async function fetchSampleStructuralPdf(): Promise<File> {
+  const res = await fetch(SAMPLE_STRUCTURAL_PDF.url);
+  if (!res.ok) throw new Error(`sample pdf fetch failed: ${res.status}`);
+  const blob = await res.blob();
+  return new File([blob], SAMPLE_STRUCTURAL_PDF.filename, {
+    type: blob.type || 'application/pdf',
+  });
+}

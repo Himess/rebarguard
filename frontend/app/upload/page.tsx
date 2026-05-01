@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { TopNav } from '@/components/TopNav';
 import { uploadProject } from '@/lib/api';
+import { SAMPLE_STRUCTURAL_PDF, fetchSampleStructuralPdf } from '@/lib/sample-media';
 
 export default function UploadPage() {
   const router = useRouter();
   const [pdf, setPdf] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [loadingSample, setLoadingSample] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,6 +25,20 @@ export default function UploadPage() {
     } catch (e) {
       setErr((e as Error).message);
       setBusy(false);
+    }
+  }
+
+  async function loadSample() {
+    if (loadingSample || busy) return;
+    setLoadingSample(true);
+    setErr(null);
+    try {
+      const file = await fetchSampleStructuralPdf();
+      setPdf(file);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setLoadingSample(false);
     }
   }
 
@@ -162,6 +178,42 @@ export default function UploadPage() {
               {busy ? 'Parsing with Kimi K2.6…' : 'Parse & continue →'}
             </button>
           </div>
+
+          <button
+            type="button"
+            onClick={loadSample}
+            disabled={loadingSample || busy}
+            className="mono"
+            style={{
+              marginTop: 4,
+              padding: '10px 14px',
+              background: 'transparent',
+              border: '1px dashed var(--line-2)',
+              borderRadius: 4,
+              color: 'var(--text-1)',
+              fontSize: 11,
+              letterSpacing: '0.06em',
+              cursor: loadingSample ? 'wait' : 'pointer',
+              textTransform: 'uppercase',
+              textAlign: 'left',
+            }}
+          >
+            {loadingSample
+              ? 'Loading sample…'
+              : `Try with sample sheet · ${SAMPLE_STRUCTURAL_PDF.title}`}
+            <span
+              style={{
+                display: 'block',
+                marginTop: 3,
+                fontSize: 10,
+                color: 'var(--text-3)',
+                textTransform: 'none',
+                letterSpacing: 0,
+              }}
+            >
+              {SAMPLE_STRUCTURAL_PDF.hint}
+            </span>
+          </button>
         </form>
 
         <div
