@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { TopNav } from '@/components/TopNav';
 import { ArticleModal } from '@/components/ArticleModal';
+import { SamplePhotoStrip } from '@/components/SamplePicker';
 import { analyzeQuickPhoto, BACKEND_URL, type QuickFinding } from '@/lib/api';
 
 type DisplayFinding = QuickFinding & {
@@ -312,6 +313,10 @@ export default function QuickScanPage() {
               </label>
             )}
           </div>
+
+          {!file && !loading && (
+            <SamplePhotoStrip onPick={onPick} limit={6} />
+          )}
 
           <div
             style={{

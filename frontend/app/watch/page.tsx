@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { TopNav } from '@/components/TopNav';
 import { ArticleModal } from '@/components/ArticleModal';
+import { SamplePhotoStrip } from '@/components/SamplePicker';
 import {
   analyzeQuickPhoto,
   downloadComplaintPdf,
@@ -341,6 +342,10 @@ export default function WatchPage() {
               >
                 ANALYSIS ERROR · {scanErr}
               </div>
+            )}
+
+            {!file && !loading && (
+              <SamplePhotoStrip onPick={onPick} limit={6} />
             )}
 
             <div className="panel" style={{ padding: '12px 14px' }}>

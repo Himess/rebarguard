@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { TopNav } from '@/components/TopNav';
 import { ArticleModal } from '@/components/ArticleModal';
+import { SampleVideoStrip } from '@/components/SamplePicker';
 import {
   analyzeVideo,
   fetchVideoDemo,
@@ -148,6 +149,8 @@ export default function VideoPage() {
                 />
               </label>
             </div>
+
+            {!file && !loading && <SampleVideoStrip onPick={onPick} limit={3} />}
 
             <div
               style={{
