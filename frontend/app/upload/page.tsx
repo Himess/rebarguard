@@ -60,7 +60,7 @@ export default function UploadPage() {
           <span style={{ color: 'var(--text-3)' }}>/</span>
           <span style={{ color: 'var(--text-0)' }}>UPLOAD</span>
         </div>
-        <div style={{ color: 'var(--text-3)' }}>ACCEPTS · PDF · DWG · MAX 25 MB</div>
+        <div style={{ color: 'var(--text-3)' }}>ACCEPTS · PDF · MAX 25 MB</div>
       </div>
 
       <div
@@ -85,9 +85,9 @@ export default function UploadPage() {
             Upload the approved project
           </h1>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--text-2)', lineHeight: 1.55 }}>
-            Drop the municipality-approved structural drawing — PDF or DWG plot. Kimi K2.6
-            will extract metadata, column schedule, beams, walls and slabs in the next
-            ~30 seconds.
+            Drop the municipality-approved structural drawing as a PDF. Kimi K2.6 will
+            extract metadata, column schedule, beams, walls and slabs in the next
+            ~30 seconds. (DWG users: plot/export to PDF in your CAD tool first.)
           </p>
         </div>
 
@@ -121,11 +121,11 @@ export default function UploadPage() {
               {pdf ? pdf.name : 'Drag & drop plan, or click to browse'}
             </div>
             <div className="mono" style={{ fontSize: 11, color: 'var(--text-3)', letterSpacing: '0.06em' }}>
-              {pdf ? `${(pdf.size / 1024 / 1024).toFixed(1)} MB` : 'PDF · DWG · MAX 25 MB'}
+              {pdf ? `${(pdf.size / 1024 / 1024).toFixed(1)} MB` : 'PDF · MAX 25 MB'}
             </div>
             <input
               type="file"
-              accept="application/pdf,.dwg"
+              accept="application/pdf"
               onChange={(e) => setPdf(e.target.files?.[0] ?? null)}
               style={{ display: 'none' }}
             />
@@ -175,9 +175,9 @@ export default function UploadPage() {
           }}
         >
           {[
-            { step: '01', title: 'Ingest', body: 'PDF/DWG → Kimi K2.6 OCR → structured StructuralPlan' },
-            { step: '02', title: 'Inspect', body: 'Site photos → 7-agent debate → geometry / code / fraud / risk' },
-            { step: '03', title: 'Authorize', body: 'Moderator verdict → belediye agent → human pour-approval' },
+            { step: '01', title: 'Ingest', body: 'PDF → Kimi K2.6 OCR → structured StructuralPlan (the spec)' },
+            { step: '02', title: 'Inspect', body: 'Site photos vs plan → 9-agent debate → geometry / code / fraud / risk' },
+            { step: '03', title: 'Authorize', body: 'Moderator verdict → Municipality Agent → human pour-approval' },
           ].map((s) => (
             <div
               key={s.step}
