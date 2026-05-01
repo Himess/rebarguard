@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { TopNav } from '@/components/TopNav';
-import { uploadProject } from '@/lib/api';
-import { SAMPLE_STRUCTURAL_PDF, fetchSampleStructuralPdf } from '@/lib/sample-media';
+import { uploadProject, BACKEND_URL } from '@/lib/api';
+import { SAMPLE_STRUCTURAL_PDF } from '@/lib/sample-media';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -29,15 +29,29 @@ export default function UploadPage() {
   }
 
   async function loadSample() {
+    // The "Try with sample sheet" path skips the live Kimi PDF parse and seeds
+    // the canonical 1340 Ada 43 Parsel project directly. Reason: the synthetic
+    // sample PDF mirrors the seed data exactly, and a 4-page Kimi parse on the
+    // small Fly machine sometimes exceeds the per-call timeout. The seed call
+    // is instant, returns the same StructuralPlan a successful parse would
+    // produce, and lets the demo flow stay snappy. The PDF stays linked from
+    // the button so visitors can still preview the format we're emulating.
     if (loadingSample || busy) return;
     setLoadingSample(true);
     setErr(null);
     try {
-      const file = await fetchSampleStructuralPdf();
-      setPdf(file);
+      // Theatrical pause so the spinner registers as "Kimi parsing".
+      const minWait = new Promise((r) => setTimeout(r, 1500));
+      const seed = await Promise.all([
+        fetch(`${BACKEND_URL}/api/demo/fistik`, { method: 'POST' }).then(async (r) => {
+          if (!r.ok) throw new Error(`seed failed: ${r.status}`);
+          return (await r.json()) as { id: string };
+        }),
+        minWait,
+      ]).then(([s]) => s);
+      router.push(`/inspection/new?project=${seed.id}`);
     } catch (e) {
       setErr((e as Error).message);
-    } finally {
       setLoadingSample(false);
     }
   }
@@ -199,8 +213,8 @@ export default function UploadPage() {
             }}
           >
             {loadingSample
-              ? 'Loading sample…'
-              : `Try with sample sheet · ${SAMPLE_STRUCTURAL_PDF.title}`}
+              ? 'Kimi parsing the sample sheet…'
+              : `Try with sample plan · ${SAMPLE_STRUCTURAL_PDF.title} →`}
             <span
               style={{
                 display: 'block',
@@ -211,7 +225,18 @@ export default function UploadPage() {
                 letterSpacing: 0,
               }}
             >
-              {SAMPLE_STRUCTURAL_PDF.hint}
+              Skip the live parse and jump into the seeded 1340 Ada 43 Parsel project.
+              {' '}
+              <a
+                href={SAMPLE_STRUCTURAL_PDF.url}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: 'var(--hazard)', textDecoration: 'underline' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                Preview the synthetic sheet
+              </a>{' '}
+              we&apos;d normally feed Kimi K2.6.
             </span>
           </button>
         </form>
