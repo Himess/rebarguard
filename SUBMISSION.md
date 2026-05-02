@@ -16,7 +16,7 @@
 **Tweet 1/3** (hook + demo)
 > Once concrete pours, the rebar is invisible.
 >
-> RebarGuard runs 9 AI agents against the approved structural plan **before** each pour. Cover thickness, splice length, TBDY 2018 compliance — verified in under 60 seconds from site photos.
+> RebarGuard runs 9 AI agents against the approved structural plan **before** each pour. Cover thickness, splice length, TBDY 2018 compliance — every finding tagged with a TS 500 / TBDY citation.
 >
 > Demo ↓
 
@@ -48,7 +48,7 @@ A construction-site supervisor uploads a structural-plan PDF and a few rebar-cag
 - **GeometryAgent** (rules + Hermes 4 70B narrative) — plan vs. site rebar diff
 - **CodeAgent** (rules + Hermes 4 70B) — TBDY 2018 / TS 500 compliance
 - **FraudAgent** — EXIF + reference-marker + hash dedup
-- **SeismicRiskAgent** — AFAD zone × soil × floors
+- **RiskAgent** — AFAD seismic zone × soil class × floors
 - **MaterialAgent** (Kimi K2.6) — steel class + corrosion
 - **CoverAgent** (Kimi K2.6) — concrete cover via reference marker
 - **Moderator** (Hermes 4 70B) — synthesizes verdict + 0–100 score
