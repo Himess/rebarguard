@@ -6,35 +6,59 @@
 
 ## ⚡ IF YOU'RE A NEW CLAUDE SESSION, START HERE
 
-**Snapshot (2026-05-02 afternoon):** Days 1–16 fully shipped. Final audit
-(`AUDIT-FINAL.md`) P0+P1 applied: OG image auto-detection, 9-agents copy
-parity, Dockerfile hooks comment fix, `BETA` chip cleanup, MCP cockpit URL
-hint, README skill table 4-of-4, municipality prompt arithmetic. MCP
-server (5 tools) live. Fly backend LIVE, Vercel synced. ~24 hours to
-deadline (2026-05-03 EOD). Only remaining critical path: **demo video
-shoot + Twitter/Discord submit**.
+**Snapshot (2026-05-02 late evening):** Day 16 essentially complete.
+Three citizen flows verified live end-to-end on production
+(rebarguard.vercel.app + rebarguard-api.fly.dev) in a single session
+tonight:
+
+| Flow | Photo | Result | Latency |
+|------|-------|--------|---------|
+| `/quick` | fistik-18 (340 KB) | 4 findings (Spacer missing, Stirrup spacing drift, Lap splice non-staggered, Surface rust) with TS 500 / TBDY refs | **194 s** |
+| `/watch` | same column | **Score 36 / Class F · HIGH RISK**, 5 findings (3 FAIL, 2 WARN), petition PDF downloads | ~4 min |
+| `/chat` | same column | Hermes 4 70B identifies 5 column deficiencies + offers "Should I prepare a CIMER petition draft for you?" — multi-turn with vision | ~3 min |
+
+The big debug we shipped today: `/quick` was timing out for 14 min
+because the Hermes CLI bridge timeout was **120 s** and tenacity was
+retrying 3× — but Kimi K2.6's real vision-call latency on Nous Portal
+subscription is **230–400 s** for a real construction-site photo. Fix
+in `97b4ce4`: bridge timeout 120 s → 480 s default, tenacity
+`stop_after_attempt(3)` → `1`, dropped `-s inspect-rebar` skill flag
+from the /quick fan-out (the skill content overlaps the prompt's
+already-injected TBDY/TS 500 whitelist). Fly secret
+`HERMES_CLI_TIMEOUT_S=480` is also live so the env stays consistent
+across restarts.
+
+The petition PDF was rendering Turkish characters (ı ş ğ ç İ ö ü) as
+black ■ boxes because ReportLab's built-in Helvetica has no
+Latin-Extended-A glyphs. Commit `2f89753` flips the entire petition
+body to English (cover letter, findings, regulation excerpts pulled
+from `Article.text_en`, filing instructions, legal notice) and adds
+`_ascii_clean()` so any free-form citizen input still routes through
+Helvetica without boxing. PDF and `/watch` page both carry a
+"CIMER petition auto-draft — English shown for international demo;
+production version generates the official Turkish text" notice for the
+hackathon jury. Fly deploy of this is in flight at the time of this
+snapshot.
+
+**~22 hours to deadline (2026-05-03 EOD).** Only critical-path items
+left: **#41 demo video shoot** + **#42 Twitter/Discord submit**.
 
 **Exact next three actions in order:**
 
-1. **Fly.io backend launch** (~15 min, interactive):
-   ```bash
-   cd C:/Users/USER/Desktop/RebarGuard/backend
-   fly launch --no-deploy --copy-config
-   fly volumes create hermes_data --size 1 --region fra
-   fly secrets set APP_CORS_ORIGINS=https://rebarguard.vercel.app
-   fly deploy
-   fly ssh console
-     # inside: hermes auth add nous --type oauth --no-browser
-     # open the printed URL on laptop, approve, exit
-   curl https://rebarguard-api.fly.dev/health
-   ```
-2. **Swap Vercel env var** `NEXT_PUBLIC_BACKEND_URL` → `https://rebarguard-api.fly.dev`
-   (Vercel dashboard → Settings → Env Vars → edit all three scopes → redeploy).
-3. **Record 3-min demo video** (see script outline below) → tweet tagging
-   `@NousResearch` + post in Nous Discord `#creative-hackathon-submissions`.
+1. **Verify the in-flight Fly deploy** (`fly status -a rebarguard-api`)
+   landed clean, then re-run `/watch` → "Download petition PDF" once
+   to confirm the English PDF renders without ■ boxes.
+2. **Record the 3-min demo video** (script outline below). Use
+   fistik-18 as the headline photo — it's now first in the
+   SAMPLE_PHOTOS picker on `/quick` and `/watch`. For Kimi-track proof
+   the screen must show `MOONSHOTAI/KIMI-K2.6 · VISION` chip; for
+   Hermes-track proof show the agent debate at `/inspection/new`
+   (deterministic via `/replay` cockpit so cold-start variance
+   doesn't bite you on camera).
+3. **Submit:** tweet the video tagging `@NousResearch` + post the same
+   in Nous Discord `#creative-hackathon-submissions`.
 
-Full deploy commands: see `DEPLOY.md`. Outstanding tasks: #40 (Fly), #41 (video),
-#42 (submit).
+Outstanding tasks: #41 (video), #42 (submit).
 
 **User is Turkish-speaking. Reply in Turkish.** Project code/UI/docs are English.
 Never add "Claude AI / Co-Authored-By" to commits. Every commit should be
@@ -200,9 +224,11 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
 
 ## Current state (update every session)
 
-- **Last updated:** 2026-04-21 (Days 1–14.5 complete, user on pause, Fly deploy is next
-  active task, user floated a second-project idea on 2026-04-21 — see below).
-- **Current day:** 15 of 16 (12 days remain until 2026-05-03 EOD deadline).
+- **Last updated:** 2026-05-02 23:25 (Day 16). Three citizen-facing flows
+  verified live end-to-end on production. Bridge timeout, retry logic, skill
+  flag, and petition PDF all rewritten today. Only deliverables left: video
+  shoot + Twitter/Discord submit.
+- **Current day:** 16 of 16 (~22 hours to 2026-05-03 EOD deadline).
 - **Active task:** Demo video shoot (Task #41) → Twitter + Discord submit (Task #42).
 - **Production URLs:**
   - Frontend: **https://rebarguard.vercel.app** (prod, fra1, auto-deploys on push
@@ -210,20 +236,44 @@ Nous Portal's own UI warns: *"Hermes 4 models are not recommended for use in Her
   - Backend: **https://rebarguard-api.fly.dev** (Fly.io fra, 1 CPU / 1 GB,
     auto-suspend, `hermes_data` volume mounted at `/data`, OAuth token saved at
     `/data/hermes/auth.json` — survives redeploys).
-  - GitHub: **https://github.com/Himess/rebarguard** (public, 38 commits,
+  - GitHub: **https://github.com/Himess/rebarguard** (public, ~45 commits,
     **100% GPG-verified**).
-- **Live E2E verified (2026-04-21 17:32 UTC):**
+- **Live E2E verified (2026-05-02 evening):**
   - `GET /health` → `{"status":"ok","hermes_runtime":"cli","vision_backend":"nous_portal","agentic_model":"moonshotai/kimi-k2.6","reasoning_model":"Hermes-4-70B"}`
-  - `POST /api/demo/fistik` seeds 1340 Ada 43 Parsel.
-  - `GET /api/regulations` returns 10 KB of curated articles.
-  - `hermes chat -m moonshotai/kimi-k2.6 --provider nous` on Fly returned a valid
-    JSON response → subscription path is green, no direct-API charges.
+  - `POST /api/quick/analyze` with fistik-18.jpg → 4 findings (Spacer missing
+    TS 500 7.6, Stirrup spacing drift TBDY 7.3.6, Lap splice non-staggered
+    TS 500 7.2, Surface rust info) in **194 s**. Streaming-response heartbeat
+    every 8 s keeps the Fly proxy alive across the long Kimi roundtrip.
+  - `POST /api/quick/analyze` headlessly via curl with fistik-01.jpg → 4
+    findings (Rebar against soil, Spacers missing, Formwork debris, Light
+    oxidation) in **397 s** — the upper end of the observed Kimi range, which
+    is exactly why the bridge timeout is now 480 s.
+  - `POST /api/watch/...` → score `36 / 100`, Class F · HIGH RISK, 5 findings
+    (3 FAIL, 2 WARN), citizen petition PDF downloads. After commit `2f89753`
+    the PDF body is English with `_ascii_clean()` for any free-form Turkish
+    citizen text + a "Demo notice" header explaining the production version
+    emits Turkish for CIMER.
+  - `POST /api/chat/stream` (Citizen Hotline, multi-turn) with the same column
+    photo → Hermes 4 70B narrated 5 deficiencies, ended with "Should I
+    prepare a CIMER petition draft for you?" + 3 follow-up suggestion chips.
+    SSE streaming token-by-token; the agent retains thread state across turns.
   - CORS from `https://rebarguard.vercel.app` echoes back correctly.
-- **Runtime state right now (2026-04-21):**
-  - WSL uvicorn: **stopped** (user asked to kill it because idle; restart with
-    `wsl -d Ubuntu-22.04 -- bash -c "cd /mnt/c/Users/USER/Desktop/RebarGuard/backend && uv run uvicorn rebarguard.main:app --reload --host 0.0.0.0 --port 8000"`)
-  - Next.js dev: **not running** (restart with `cd frontend && pnpm dev`)
-  - Vercel prod: live (cloud-side, no local cost)
+- **Production config (Fly secrets):**
+  - `APP_CORS_ORIGINS=https://rebarguard.vercel.app,...`
+  - `HERMES_CLI_TIMEOUT_S=480` (was 300, then 120 — bumped after empirical
+    probe showed Kimi vision turnaround is 230–400 s on a real construction
+    photo). Default in `config.py` is also 480 so a redeploy without the
+    secret stays consistent.
+- **Runtime state right now (2026-05-02 23:25):**
+  - Fly machine `d8d2369b2ddd08`: started, warm. Auto-suspends after ~10 min
+    idle; first request after suspend pays a ~1-second wake-up.
+  - Vercel prod: latest deploy `rebarguard-exv30dqr6`. Auto-deploys via
+    GitHub integration on every push to `main`.
+  - Backend deploy of `2f89753` (English petition PDF) was in flight at the
+    snapshot time — verify with `fly status -a rebarguard-api` before the
+    next /watch demo.
+  - WSL uvicorn / Next.js dev: not running locally (no need; production
+    is the demo target).
 
 ### Parked ideas / decisions to resume
 
@@ -646,8 +696,11 @@ Mobile stacks vertically.
 | 15 | 04-21 | **Fly backend LIVE** at `rebarguard-api.fly.dev` · Hermes OAuth completed + token persisted to `/data/hermes/auth.json` · Vercel env swapped to Fly URL · live E2E Kimi call via subscription green · two Docker build-breakers fixed (CRLF entrypoint, missing `git`, installer location clobber) | ✅ |
 | 15.5 | 04-24 | **Hermes framework usage upgrade** — custom SKILL.md files actually loaded (`-s parse-structural-plan`/`-s inspect-rebar`/`-s moderate-inspection`), parcel-based `--source rebarguard:<tag>` audit trail, `scripts/run-mcp.sh` helper, README "what we actually use" table. Framework score 4/10 → 7/10. Live verified on Fly. | ✅ |
 | 15.6 | 04-25 | **Memory + agent swarm + framework deepening** — `--resume <session_id>` per-parcel memory persisted to `/data/hermes/rebarguard-sessions.json`; `KimiVisionClient.analyze_images()` agent-swarm fan-out (asyncio.Semaphore, bounded concurrency); subagent parallelism documented honestly (asyncio.gather of bridge subprocesses); `toolsets`/`worktree` flags plumbed through bridge. Framework score 7/10 → 8/10, Kimi 8/10 → 9/10. Live deployed. | ✅ |
-| 15 | 05-01/02 | Fly deploy + smoke test + 3-min demo video shoot + edit | ⏳ |
-| 16 | 05-03 | Buffer + submission (Twitter @NousResearch + Nous Discord `creative-hackathon-submissions`) | ⏳ |
+| 16.0 | 05-02 | **/quick latency root-cause + fail-fast** — empirically measured Kimi vision turnaround inside Fly fra (`prompt_len=4138`, fistik-01.jpg 340 KB) at 230–400 s, well above the legacy 120 s bridge timeout. `97b4ce4` raises `HERMES_CLI_TIMEOUT_S` default 120→480, drops tenacity from `stop_after_attempt(3)` to `1`, and removes `-s inspect-rebar` from `/quick` (skill content overlaps the prompt's already-injected whitelist). Streaming response in `routers/quick.py` keeps the Fly proxy alive with an 8 s JSON-legal whitespace heartbeat across the long roundtrip. | ✅ |
+| 16.1 | 05-02 | **Sample picker headline photo** — fistik-18.jpg (335 KB column cage) added to `frontend/public/sample-media/photos/` and pinned first in `SAMPLE_PHOTOS`. Small enough to keep Kimi cold-start under the 480 s bridge ceiling, visually rich enough to land 4-5 real findings. | ✅ |
+| 16.2 | 05-02 | **English petition PDF + ASCII fold** (`2f89753`) — Helvetica has no Latin-Extended-A glyphs so Turkish ı ş ğ ç İ ö ü were rendering as ■ boxes. Cover letter, findings, regulation excerpts (now from `Article.text_en` / `title_en`), filing instructions and legal notice all switched to English. New `_ascii_clean()` helper folds free-form citizen text to ASCII so proper nouns stay readable. PDF and `/watch` page both carry "CIMER petition auto-draft — English shown for international demo; production version generates the official Turkish text" notice for the international jury. | ✅ |
+| 16.3 | 05-02 | **Three live citizen flows verified end-to-end on production**: `/quick` (4 findings, 194 s on fistik-18) · `/watch` (Score 36 / Class F · HIGH RISK, 5 findings, English petition PDF) · `/chat` (Hermes 4 70B + Kimi K2.6 multi-turn, narrated 5 column deficiencies + offered CIMER petition handoff). Demo video can now be shot against the live stack. | ✅ |
+| 16 | 05-03 | Demo video shoot + edit + submission (Twitter @NousResearch + Nous Discord `creative-hackathon-submissions`) | ⏳ |
 
 ### Deferred / cut (to absorb Day 5-8 scope)
 
