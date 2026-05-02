@@ -118,9 +118,13 @@ async def _run_kimi_quick(
     """
     try:
         prompt = build_quick_scan_prompt()
-        parsed = await kimi.analyze_image(
-            tmp_path, prompt, max_tokens=1400, skills=["inspect-rebar"]
-        )
+        # Skill flag disabled on /quick: the prompt already injects the full
+        # TBDY/TS 500 citation whitelist via build_quick_scan_prompt(), and the
+        # `inspect-rebar` SKILL.md adds another ~3 KB of overlapping context
+        # that slowed the Kimi roundtrip past our 120 s CLI timeout in fra.
+        # Inspection routes still load skills — only the one-shot /quick path
+        # is leaned out here for latency.
+        parsed = await kimi.analyze_image(tmp_path, prompt, max_tokens=1400)
     finally:
         shutil.rmtree(tmp_path.parent, ignore_errors=True)
 
