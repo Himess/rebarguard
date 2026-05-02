@@ -72,7 +72,12 @@ class KimiVisionClient:
     def backend(self) -> str:
         return self._mode
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    # Single attempt only — when the CLI hangs on a slow Kimi cold-start, retrying
+    # at 120s × 3 burns 6 min before the streaming endpoint can surface an error
+    # to the UI. Failing fast lets the frontend show "no findings" within ~2 min.
+    # The streaming /quick wrapper already serializes any RuntimeError into a
+    # structured error JSON the UI can render.
+    @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=1, min=2, max=10))
     async def analyze_image(
         self,
         image_path: str | Path,
