@@ -6,7 +6,7 @@ const STATS = [
   { k: '9',    l: 'Agents debating' },
   { k: '16',   l: 'Curated TBDY/TS 500 articles' },
   { k: '5',    l: 'Element types · column/beam/wall/slab/stairs' },
-  { k: '60s',  l: 'Median verdict latency' },
+  { k: '2',    l: 'Models · Kimi K2.6 vision · Hermes 4 70B reasoning' },
 ] as const;
 
 export default function LandingPage() {
@@ -69,7 +69,7 @@ export default function LandingPage() {
           >
             RebarGuard runs 9 AI agents against the approved structural plan{' '}
             <em>before</em> each pour. Cover thickness, splice length, TBDY 2018 compliance —
-            verified in under 60 seconds from site photos.
+            checked from site photos with TS 500 / TBDY citation tags on every finding.
           </p>
 
           <div
