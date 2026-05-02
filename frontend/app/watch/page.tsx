@@ -616,6 +616,11 @@ export default function WatchPage() {
                   does <em>not</em> file a real petition with the municipality. Download the PDF
                   and attach it on e-Devlet → CIMER yourself. Anonymous reports may be insufficient
                   for the legal process.
+                  <br />
+                  <strong style={{ color: 'var(--hazard)' }}>CIMER petition auto-draft:</strong>{' '}
+                  English shown for international demo; production version generates the official
+                  Turkish text required by Turkey&apos;s state complaint portal (CIMER, e-Devlet, Yapı
+                  Denetim Genel Müdürlüğü).
                 </div>
               </div>
             )}
