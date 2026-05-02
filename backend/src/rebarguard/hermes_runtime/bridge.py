@@ -209,8 +209,17 @@ class HermesCLIBridge(HermesRuntime):
             ) from e
 
         if proc.returncode != 0:
-            err = stderr.decode("utf-8", "replace").strip()[:400]
-            out = stdout.decode("utf-8", "replace").strip()[:400]
+            err = stderr.decode("utf-8", "replace").strip()[:1200]
+            out = stdout.decode("utf-8", "replace").strip()[:1200]
+            # Print before raising so the failure is visible in uvicorn stdout
+            # even when the FastAPI exception handler swallows the chain.
+            import sys
+            print(
+                f"[BRIDGE FAIL] cmd={cmd[:6]}... model={chosen_model} "
+                f"rc={proc.returncode}\n  STDERR: {err}\n  STDOUT: {out}",
+                file=sys.stderr,
+                flush=True,
+            )
             raise RuntimeError(
                 f"hermes CLI failed (rc={proc.returncode}). stderr: {err} | stdout: {out}"
             )
