@@ -33,7 +33,7 @@
 > Code: github.com/Himess/rebarguard (MIT)
 > Built for the Hermes Agent Creative Hackathon — @NousResearch + @MoonshotAI
 >
-> 🇹🇷 Inspired by Kahramanmaraş 2023 — 58 500 buildings collapsed, many with rebar on paper but not in formwork.
+> 🇹🇷 Inspired by Kahramanmaraş 2023 — 58,000+ people killed. Many in buildings that collapsed because the rebar work was never properly inspected.
 
 ## Discord — `#creative-hackathon-submissions`
 
@@ -59,7 +59,7 @@ A construction-site supervisor uploads a structural-plan PDF and a few rebar-cag
 **Video:** [link to YouTube/Twitter]
 
 **Why this submission**
-- Real-world stakes — earthquake-zone rebar fraud is the leading cause of building collapse in Turkey. The 2023 Kahramanmaraş quake destroyed 58 500 buildings; many had rebar on the structural drawing but not in the formwork.
+- Real-world stakes — earthquake-zone rebar fraud is a leading cause of building collapse in Turkey. The 2023 Kahramanmaraş earthquake killed more than 58,000 people; post-disaster investigations pointed repeatedly to buildings that collapsed because the rebar work was never properly inspected — steel drawn on the structural plan that was never actually placed in the formwork.
 - Different domain — most submissions will be chatbots / creative writing. Civic infrastructure / structural-engineering multi-agent is a fresh axis.
 - Quantified output — "10 vertical bars missing, cover 18mm vs 50mm earth-contact spec, ×1.42 seismic risk multiplier, REJECTED 38/100" — concrete numbers, not vibes.
 - Triple Nous showcase — Hermes Agent framework + Hermes 4 70B model + Nous Portal provider. All three on screen during the demo.

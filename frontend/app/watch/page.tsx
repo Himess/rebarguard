@@ -175,11 +175,12 @@ export default function WatchPage() {
             <span style={{ color: 'var(--hazard)' }}>Audit your contractor.</span>
           </h1>
           <p style={{ margin: 0, fontSize: 15, color: 'var(--text-2)', maxWidth: 760, lineHeight: 1.55 }}>
-            58,500 buildings collapsed in the 2023 Kahramanmaraş earthquake — many of them had rebar
-            on paper but not in the formwork. If you can visit the site, snap a photo before the
-            pour: 9 AI agents grade the cage, <strong>0–100 score</strong>, and if anything is off
-            we draft the <strong>official CIMER petition</strong> (Turkey&apos;s state complaint
-            portal) for you.
+            More than 58,000 people died in the 2023 Kahramanmaraş earthquake — many in
+            buildings that collapsed because the rebar work was never properly inspected.
+            If you can visit the site, snap a photo before the pour: 9 AI agents grade the
+            cage, <strong>0–100 score</strong>, and if anything is off we draft the{' '}
+            <strong>official CIMER petition</strong> (Turkey&apos;s state complaint portal)
+            for you.
           </p>
         </div>
 

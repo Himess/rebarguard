@@ -27,8 +27,10 @@ engineer-authenticated photos). **Rebar does not.** Once concrete pours, the ste
 invisible forever — and it's where earthquakes win or lose. Rebar theft, wrong spacing, missing
 stirrups, and undersized diameters are a silent structural risk.
 
-The Kahramanmaraş 2023 earthquake collapsed 58,500 buildings. A lot of them had steel on paper
-that never made it into the mold.
+The Kahramanmaraş 2023 earthquake killed more than 58,000 people. Post-disaster
+investigations pointed to the same root cause again and again — buildings that
+collapsed because the rebar work was never properly inspected. Steel drawn on
+paper that never made it into the mold.
 
 ## The system
 
