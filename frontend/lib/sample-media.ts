@@ -20,6 +20,12 @@ export type SampleVideo = {
 
 export const SAMPLE_PHOTOS: SamplePhoto[] = [
   {
+    filename: 'fistik-18.jpg',
+    title: 'Column rebar cage in formwork',
+    hint: 'Vertical column cage inside wooden formwork — clear stirrups, lap splices and ties visible. Best /quick demo image.',
+    element: 'column',
+  },
+  {
     filename: '20230417_130831.jpg',
     title: 'Beam stirrup close-up',
     hint: 'Tight stirrup spacing in confinement zone — count the bars and check pitch.',
