@@ -142,7 +142,7 @@ primitives through a Python orchestrator:
 
 | Primitive | How we use it |
 |---|---|
-| **Custom `SKILL.md` files** (`-s`) | Three skills ship in the Docker image at `/opt/hermes-skills/`: `parse-structural-plan`, `inspect-rebar`, `moderate-inspection`. The entrypoint symlinks them under `~/.hermes/skills/` so every `hermes chat -s <name>` call at runtime preloads the skill's instructions. Skills are repo-versioned at [`backend/skills/rebarguard/`](./backend/skills/rebarguard). |
+| **Custom `SKILL.md` files** (`-s`) | Four skills ship in the Docker image at `/opt/hermes-skills/`: `parse-structural-plan`, `inspect-rebar`, `moderate-inspection`, `citizen-chat`. The entrypoint symlinks them under `~/.hermes/skills/` so every `hermes chat -s <name>` call at runtime preloads the skill's instructions. Skills are repo-versioned at [`backend/skills/rebarguard/`](./backend/skills/rebarguard). |
 | **Nous Portal subscription path** (`--provider nous`) | All 9 agents route through `hermes chat --provider nous -m moonshotai/kimi-k2.6` or `-m Hermes-4-70B`. $0 incremental cost via the Basic plan. No direct API keys in the live container. |
 | **Session `--source` tagging** | Moderator and Belediye Agent calls for the same parcel share `--source rebarguard:<parcel_no>`. `hermes sessions list --source rebarguard:1340-ada-43-parsel` filters every prior verdict for the building — audit trail that persists on the Fly volume. |
 | **Session `--resume <id>` memory** | After every Moderator + Belediye call we persist the emitted `session_id` to `/data/hermes/rebarguard-sessions.json`. Next time the same parcel comes up, we pass `--resume <id>` so Hermes literally loads the prior verdict into context — repeat-offender awareness baked in. |

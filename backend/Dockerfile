@@ -90,9 +90,10 @@ if [ ! -L /root/.hermes/config.yaml ]; then
   ln -sf /opt/hermes-config/cli-config.yaml /root/.hermes/config.yaml
 fi
 
-# Hooks fire under HERMES_ACCEPT_HOOKS=1 (set in fly.toml) and via the
-# --accept-hooks flag we pass on every `hermes chat` from the bridge. The
-# CLI auto-allowlists on first call.
+# Hooks fire under HERMES_ACCEPT_HOOKS=1 (set in fly.toml) plus the
+# `hooks_auto_accept: true` flag declared in cli-config.yaml — together they
+# auto-allowlist new hooks the first time the CLI sees them, so headless runs
+# don't block on a permission prompt.
 
 exec "$@"
 EOF

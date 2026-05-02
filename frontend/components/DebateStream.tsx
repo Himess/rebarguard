@@ -13,7 +13,7 @@ type Props = {
   thinkingAgent?: AgentId | null;
 };
 
-export function DebateStream({ messages, total = 8, thinkingAgent }: Props) {
+export function DebateStream({ messages, total = 9, thinkingAgent }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (wrapRef.current) wrapRef.current.scrollTop = wrapRef.current.scrollHeight;

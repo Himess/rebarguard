@@ -16,7 +16,6 @@ const mono = IBM_Plex_Mono({
 });
 
 const SITE_URL = 'https://rebarguard.vercel.app';
-const OG_IMAGE = `${SITE_URL}/og.png`;
 const TITLE = 'RebarGuard — 9 AI agents auditing rebar before concrete pours';
 const DESCRIPTION =
   'Once concrete pours, the rebar is invisible. RebarGuard runs 9 Hermes-orchestrated AI agents against the approved structural plan before each pour — Kimi K2.6 vision + Hermes 4 70B reasoning, grounded in TBDY 2018 / TS 500.';
@@ -50,14 +49,7 @@ export const metadata: Metadata = {
     siteName: 'RebarGuard',
     title: TITLE,
     description: DESCRIPTION,
-    images: [
-      {
-        url: OG_IMAGE,
-        width: 1200,
-        height: 630,
-        alt: 'RebarGuard — 9 AI agents auditing rebar before concrete pours',
-      },
-    ],
+    // images: auto-detected from app/opengraph-image.tsx (Next.js convention)
   },
   twitter: {
     card: 'summary_large_image',
@@ -65,7 +57,7 @@ export const metadata: Metadata = {
     creator: '@himesseth',
     title: TITLE,
     description: DESCRIPTION,
-    images: [OG_IMAGE],
+    // images: auto-detected from app/twitter-image.tsx or opengraph-image.tsx
   },
   robots: {
     index: true,

@@ -41,7 +41,7 @@ export default function LandingPage() {
         >
           <div style={{ display: 'flex', gap: 8, marginBottom: 28 }}>
             <span className="chip hazard">PRE-POUR INSPECTION</span>
-            <span className="chip">v0.8 · BETA</span>
+            <span className="chip">BETA</span>
           </div>
           <h1
             style={{

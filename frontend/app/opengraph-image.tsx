@@ -12,14 +12,14 @@ const MUTED = '#6C7884';
 const LINE = '#262C36';
 
 const AGENTS = [
-  { id: 'PLAN', x: 600, y: 90, c: '#3B7FD8' },
-  { id: 'GEOM', x: 870, y: 195, c: '#E0A93D' },
-  { id: 'CODE', x: 970, y: 410, c: '#E0A93D' },
+  { id: 'PLAN',  x: 600, y: 90,  c: '#3B7FD8' },
+  { id: 'GEOM',  x: 870, y: 195, c: '#E0A93D' },
+  { id: 'CODE',  x: 970, y: 410, c: '#E0A93D' },
   { id: 'FRAUD', x: 850, y: 555, c: '#E0A93D' },
-  { id: 'SEISM', x: 600, y: 595, c: '#E0A93D' },
-  { id: 'MATL', x: 350, y: 555, c: '#3B7FD8' },
+  { id: 'SEISM', x: 600, y: 615, c: '#E0A93D' },
+  { id: 'MATL',  x: 350, y: 555, c: '#3B7FD8' },
   { id: 'COVER', x: 230, y: 410, c: '#3B7FD8' },
-  { id: 'MOD', x: 330, y: 195, c: HAZARD },
+  { id: 'BLD',   x: 330, y: 195, c: '#E0A93D' },
 ];
 
 export default async function OG() {

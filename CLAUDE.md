@@ -6,10 +6,13 @@
 
 ## ⚡ IF YOU'RE A NEW CLAUDE SESSION, START HERE
 
-**Snapshot (2026-04-21 evening):** Days 1–15 of 16 shipped. Audit (`AUDIT.md`)
-P0+P1+P2 all applied. Fly backend LIVE with Hermes OAuth saved on volume. Vercel
-env swapped to Fly URL. 12 days to deadline (2026-05-03 EOD). Only remaining
-critical path: **demo video shoot + Twitter/Discord submit**.
+**Snapshot (2026-05-02 afternoon):** Days 1–16 fully shipped. Final audit
+(`AUDIT-FINAL.md`) P0+P1 applied: OG image auto-detection, 9-agents copy
+parity, Dockerfile hooks comment fix, `BETA` chip cleanup, MCP cockpit URL
+hint, README skill table 4-of-4, municipality prompt arithmetic. MCP
+server (5 tools) live. Fly backend LIVE, Vercel synced. ~24 hours to
+deadline (2026-05-03 EOD). Only remaining critical path: **demo video
+shoot + Twitter/Discord submit**.
 
 **Exact next three actions in order:**
 

@@ -235,9 +235,9 @@ def build_server() -> Server:
                     meta["replay_url"] = (
                         f"{base}/api/demo/replay/{scenario}?speed=1.0"
                     )
-                    meta["cockpit_url"] = (
-                        f"https://rebarguard.vercel.app/inspection/new"
-                        f"?project=<seed_fistik_demo first>&replay={scenario}"
+                    meta["cockpit_hint"] = (
+                        "Call seed_fistik_demo first to get a project id, then open "
+                        f"https://rebarguard.vercel.app/inspection/new?project=<id>&replay={scenario}"
                     )
                     return _format(meta)
 

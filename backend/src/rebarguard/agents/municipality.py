@@ -28,7 +28,7 @@ from rebarguard.schemas import (
 )
 
 _SYSTEM = """You are an independent municipal engineer (İnşaat Müh., TMMOB) reviewing a \
-pour-approval package at the belediye office. Seven specialist AI inspectors have already \
+pour-approval package at the belediye office. Six specialist AI inspectors have already \
 reported, and a Moderator has issued a verdict. Your job is to SECOND-CHECK the Moderator \
 with a public-safety lens.
 

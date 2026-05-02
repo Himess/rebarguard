@@ -434,7 +434,7 @@ function NewInspection() {
                   className="mono"
                   style={{ fontSize: 10, color: 'var(--text-3)', letterSpacing: '0.06em' }}
                 >
-                  PDF · DWG · HEIC · JPG
+                  PDF · HEIC · JPG · PNG
                 </div>
                 <input
                   type="file"
@@ -502,7 +502,7 @@ function NewInspection() {
                 textAlign: 'center',
               }}
             >
-              EST. 38s · 8 AGENTS · SUBSCRIPTION
+              EST. 38s · 9 AGENTS · SUBSCRIPTION
             </div>
           </div>
         </div>
