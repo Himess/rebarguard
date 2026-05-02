@@ -161,6 +161,54 @@ primitives through a Python orchestrator:
 | Curated RAG whitelist | Quick-scan prompt injects the 16 curated TBDY/TS 500 codes; `_validate_ref()` silently drops any citation Kimi invents that's not on the whitelist. |
 | Subscription path | Every Kimi call goes through Hermes Agent CLI via Nous Portal Basic ($0/M tokens). Direct Moonshot API kept as a hot-swap fallback (`VISION_BACKEND=moonshot`). |
 
+## MCP server — RebarGuard as an AI-agent service
+
+RebarGuard is also a Model Context Protocol server. Any MCP client (Claude Desktop,
+ChatGPT desktop, another Hermes Agent instance, or `npx @modelcontextprotocol/inspector`)
+can call into the inspection registry without going through the web UI.
+
+**Five tools exposed:**
+
+| Tool | What it does |
+|---|---|
+| `list_inspections` | Every uploaded RebarGuard project pending pre-pour inspection. Returns id, parcel, city, soil class, zone, element counts, parse confidence. |
+| `get_inspection` | Full StructuralPlan for one project — every column / beam / wall / slab / stair with rebar layout, plus Kimi confidence. |
+| `seed_fistik_demo` | Provision the canonical 1340 Ada 43 Parsel demo project in one call. Returns the cockpit URL with `?replay=fistik_reject` query so the caller can hand off to the deterministic 9-agent debate UI. |
+| `lookup_regulation` | Resolve a TBDY 2018 or TS 500 article code to its full EN + TR text. Whitelist of 16 curated codes — same registry that grounds the citation modal in `/quick`. |
+| `replay_scenario` | Pre-recorded 9-agent debate metadata. Useful for wiring a deterministic demo into another agent's workflow without burning Kimi quota. |
+
+**Run locally** (stdio mode, the format Claude Desktop expects):
+
+```bash
+cd backend
+uv run python -m rebarguard.mcp
+```
+
+**Hook up to Claude Desktop:**
+
+```json
+// ~/Library/Application Support/Claude/claude_desktop_config.json
+{
+  "mcpServers": {
+    "rebarguard": {
+      "command": "uv",
+      "args": ["run", "python", "-m", "rebarguard.mcp"],
+      "cwd": "/absolute/path/to/RebarGuard/backend",
+      "env": { "REBARGUARD_BACKEND_URL": "https://rebarguard-api.fly.dev" }
+    }
+  }
+}
+```
+
+Now Claude Desktop sees five RebarGuard tools and can drive a real inspection cockpit:
+
+> *"Show me pending RebarGuard inspections in Istanbul, then seed the Fıstık demo and pull
+> the verdict for the seeded project."*
+
+Claude calls `list_inspections` → `seed_fistik_demo` → `get_inspection` → answers in natural language.
+The MCP layer is a thin httpx wrapper over the existing FastAPI — no logic duplication, no state
+divergence, swap `REBARGUARD_BACKEND_URL` to point at staging or local.
+
 ## Hackathon tracks
 
 - **Main Track** — Hermes Agent orchestrating a 9-agent debate on real structural-engineering

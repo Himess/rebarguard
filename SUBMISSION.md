@@ -22,11 +22,11 @@
 
 **Tweet 2/3** (stack)
 > Stack:
-> 🧠 Hermes Agent framework (Nous Research) — 9-agent orchestration, custom SKILL.md skills, parcel-scoped session memory
-> 🔍 Kimi K2.6 (Moonshot) via Nous Portal — vision OCR + bbox bounding boxes + native video
+> 🧠 Hermes Agent framework — 9-agent orchestration, 4 custom SKILL.md, parcel-scoped session memory, **MCP server mode** (Claude Desktop can drive the cockpit natively).
+> 🔍 Kimi K2.6 via Nous Portal — vision OCR + bbox + native video
 > 📐 Hermes 4 70B — Moderator + Municipality counter-review + per-finding narrative
 >
-> $0 per call (Nous Portal Basic subscription path).
+> $0/call (Nous Portal Basic subscription path).
 
 **Tweet 3/3** (links + CTA)
 > Try it: rebarguard.vercel.app
@@ -71,6 +71,9 @@ A construction-site supervisor uploads a structural-plan PDF and a few rebar-cag
 - FastAPI + Pydantic v2 + asyncio + sse-starlette backend (Fly.io fra1)
 - Next.js 16 + React 19 + Three.js + react-three-fiber frontend (Vercel)
 - 16 curated TBDY 2018 / TS 500 articles in pgvector RAG with citation whitelist (no hallucinated codes)
+
+**MCP server bonus**
+RebarGuard is also a Model Context Protocol server (`python -m rebarguard.mcp`). Five tools exposed: `list_inspections`, `get_inspection`, `seed_fistik_demo`, `lookup_regulation`, `replay_scenario`. Drop into Claude Desktop / ChatGPT desktop / another Hermes Agent and the inspection cockpit becomes a tool the AI can drive natively. Hermes Agent's most-native pattern — RebarGuard isn't a closed-loop UI, it's a service the wider agent ecosystem can consume.
 
 **Citizen-flow bonus**
 A Turkish homeowner under a *kat karşılığı* contract can `/watch` the same Kimi pipeline, get a 0–100 score, and have RebarGuard generate a CIMER petition PDF (Turkey's state complaint portal) ready to submit.

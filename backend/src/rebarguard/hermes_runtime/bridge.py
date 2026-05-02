@@ -177,10 +177,6 @@ class HermesCLIBridge(HermesRuntime):
             source,
             "--max-turns",
             str(self._settings.hermes_cli_max_turns),
-            # Auto-approve any new shell hooks declared in cli-config.yaml.
-            # Belt-and-braces alongside HERMES_ACCEPT_HOOKS=1 — without one or
-            # the other, hooks register but never fire under headless run.
-            "--accept-hooks",
         ]
         if image is not None:
             cmd.extend(["--image", self._translate_image_path(image)])
