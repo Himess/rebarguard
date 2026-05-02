@@ -126,6 +126,15 @@ export default function LandingPage() {
             >
               Quick scan (upload photo)
             </Link>
+            <a
+              href="/slides.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn ghost"
+              style={{ height: 44, padding: '0 22px', fontSize: 14, textDecoration: 'none' }}
+            >
+              View slides ↗
+            </a>
           </div>
 
           <Link

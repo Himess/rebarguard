@@ -93,6 +93,7 @@ Happy to answer questions! Built solo over 16 days. Repo, designs, decision log 
 | Surface | URL |
 |---|---|
 | Live frontend | https://rebarguard.vercel.app |
+| Slide deck (10 slides, F = present) | https://rebarguard.vercel.app/slides.html |
 | Backend (Fly) | https://rebarguard-api.fly.dev |
 | GitHub | https://github.com/Himess/rebarguard |
 | Replay cockpit (1-click) | https://rebarguard.vercel.app/dashboard → ▶ Replay cockpit |

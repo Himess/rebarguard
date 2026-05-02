@@ -1,0 +1,1052 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>RebarGuard — Demo Slides</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --bg-elev: #ffffff;
+    --fg: #0e0e10;
+    --fg-dim: #4b4b52;
+    --fg-faint: #8a8a92;
+    --accent: #b8860b;          /* deep warm yellow that reads on white */
+    --accent-soft: #fff4d1;     /* light warm yellow tint for fills */
+    --mint: #059669;
+    --red: #dc2626;
+    --border: #e5e5e2;
+    --border-strong: #d4d4d0;
+    --code-bg: #f1f1ee;
+    --blue: #2563eb;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #ececea;
+    color: var(--fg);
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+  .slide {
+    width: 1920px;
+    height: 1080px;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--fg);
+    padding: 60px 70px;
+    margin: 24px auto;
+    box-shadow: 0 0 0 1px var(--border), 0 30px 80px rgba(0,0,0,0.12);
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--fg-faint);
+    font-weight: 500;
+  }
+  .headline-tight {
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  .card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+  }
+  .logo-tile {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .logo-tile img { display: block; border-radius: 6px; object-fit: cover; }
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+    background-size: 80px 80px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    color: var(--fg-dim);
+  }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 0 4px rgba(5,150,105,0.15);
+    display: inline-block;
+  }
+  .num-badge {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+  .arch-panel {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+  }
+  .lz-line {
+    position: relative;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue) 30%, var(--blue) 70%, transparent);
+    box-shadow: 0 0 20px rgba(37,99,235,0.35);
+  }
+  .lz-line::before, .lz-line::after {
+    content: ''; position: absolute; top: 50%;
+    width: 0; height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    transform: translateY(-50%);
+  }
+  .lz-line::before { left: 0; border-right: 10px solid var(--blue); }
+  .lz-line::after { right: 0; border-left: 10px solid var(--blue); }
+  .check {
+    color: var(--mint);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    margin-right: 14px;
+  }
+
+  /* Presentation mode — toggled by pressing F. Hides everything except the
+     current slide, scales it to viewport (preserving 1920×1080 aspect),
+     centers it, dims background. Klavye/space → next slide. */
+  body.present {
+    background: #000;
+    overflow: hidden;
+  }
+  body.present .slide {
+    display: none;
+    margin: 0;
+    box-shadow: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(var(--present-scale, 1));
+    transform-origin: center center;
+  }
+  body.present .slide.is-current {
+    display: block;
+  }
+  #slide-indicator {
+    position: fixed;
+    bottom: 14px;
+    right: 14px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    z-index: 9999;
+    backdrop-filter: blur(6px);
+  }
+  #slide-help {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    z-index: 9999;
+    backdrop-filter: blur(6px);
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- SLIDE 1 — TITLE                                              -->
+<!-- ============================================================ -->
+<section class="slide grid-bg" data-screen-label="01 Title">
+  <div class="h-full w-full flex flex-col">
+    <div class="flex-1"></div>
+    <h1 class="headline-tight font-bold" style="font-size:144px;">REBARGUARD</h1>
+    <div class="italic mt-8" style="font-size:36px;font-weight:500;color:var(--accent);letter-spacing:-0.01em;">
+      Once concrete pours, the rebar is invisible.
+    </div>
+    <div class="flex-1"></div>
+    <div class="mono" style="font-size:22px;color:var(--fg-dim);">
+      Hermes Agent Creative Hackathon · 2026
+    </div>
+    <div class="flex-1"></div>
+
+    <!-- Bottom strip -->
+    <div>
+      <div class="kicker mb-4">BUILT WITH:</div>
+      <div class="flex items-center" style="gap:36px;">
+        <div class="logo-tile" style="width:96px;height:96px;"><img src="https://unavatar.io/twitter/NousResearch" style="width:72px;height:72px;" alt="Nous Research"></div>
+        <div class="logo-tile" style="width:96px;height:96px;"><img src="https://unavatar.io/twitter/Kimi_Moonshot" style="width:72px;height:72px;" alt="Moonshot Kimi"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2 — HI, I'M SEMIH                                      -->
+<!-- ============================================================ -->
+<section class="slide" data-screen-label="02 Hi Im Semih">
+  <div class="h-full w-full flex" style="gap:60px;">
+    <!-- Left 40% -->
+    <div style="width:40%;" class="flex flex-col justify-center">
+      <div class="kicker">SOLO BUILD</div>
+      <div class="font-bold headline-tight mt-8" style="font-size:96px;color:var(--accent);">Hi.</div>
+      <div class="font-bold headline-tight mt-2" style="font-size:72px;color:var(--fg);">I'm Semih.</div>
+      <div class="mono mt-6" style="font-size:22px;color:var(--fg-dim);">
+        Solo developer · Türkiye
+      </div>
+    </div>
+
+    <!-- Right 60% -->
+    <div style="width:60%;" class="flex flex-col justify-center">
+      <div class="flex flex-col" style="gap:32px;">
+        <div class="flex items-baseline" style="gap:24px;">
+          <span class="mono" style="font-size:18px;color:var(--fg-faint);letter-spacing:0.08em;width:120px;">TWITTER</span>
+          <a href="https://twitter.com/Himess__" class="mono" style="font-size:32px;color:var(--accent);text-decoration:underline;text-underline-offset:6px;">@Himess__</a>
+        </div>
+        <div class="flex items-baseline" style="gap:24px;">
+          <span class="mono" style="font-size:18px;color:var(--fg-faint);letter-spacing:0.08em;width:120px;">GITHUB</span>
+          <a href="https://github.com/Himess/rebarguard" class="mono" style="font-size:32px;color:var(--accent);text-decoration:underline;text-underline-offset:6px;">github.com/Himess/rebarguard</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3 — THE PROBLEM                                        -->
+<!-- ============================================================ -->
+<section class="slide" data-screen-label="03 Problem">
+  <div class="h-full w-full flex flex-col">
+    <div class="kicker">THE PROBLEM</div>
+
+    <div class="flex flex-1 mt-10" style="gap:60px;min-height:0;">
+      <!-- LEFT 60% -->
+      <div style="width:60%;" class="flex flex-col justify-center">
+        <blockquote class="italic font-medium headline-tight" style="font-size:60px;color:var(--fg);">
+          “Once concrete pours,<br>the rebar is invisible.”
+        </blockquote>
+
+        <div class="mt-12" style="font-size:24px;line-height:1.55;color:var(--fg);max-width:900px;">
+          <span class="font-semibold">2023 Kahramanmaraş earthquake — 58,500 buildings collapsed.</span> Many had rebar on paper, not in the formwork.
+        </div>
+
+        <div class="mt-8" style="font-size:20px;line-height:1.6;color:var(--fg-dim);max-width:900px;">
+          <span class="font-semibold" style="color:var(--fg);">Why it fails:</span> Concrete inspection is rigorous. Rebar inspection is human-dependent — and humans get tired, distracted, or under-trained.
+        </div>
+
+        <div class="mt-8" style="font-size:20px;line-height:1.6;color:var(--fg);max-width:900px;">
+          RebarGuard puts an <span style="color:var(--accent);font-weight:600;">agent layer</span> between the cage and the pour: <span style="color:var(--accent);font-weight:600;">nine specialists</span> check geometry, code compliance, cover, fraud signals, and seismic context <span class="font-semibold">BEFORE</span> the concrete arrives.
+        </div>
+      </div>
+
+      <!-- RIGHT 40% — illustration -->
+      <div style="width:40%;" class="flex flex-col items-center justify-center">
+        <svg viewBox="0 0 480 600" style="width:100%;max-width:480px;height:auto;" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="concreteGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#c9c4ba"/>
+              <stop offset="100%" stop-color="#9a958a"/>
+            </linearGradient>
+            <pattern id="bpGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(14,14,16,0.05)" stroke-width="0.5"/>
+            </pattern>
+          </defs>
+
+          <!-- Frame -->
+          <rect x="20" y="20" width="440" height="560" fill="#f7f7f5" stroke="#0e0e10" stroke-width="1.5"/>
+          <rect x="20" y="20" width="440" height="560" fill="url(#bpGrid)"/>
+
+          <!-- TOP HALF: rebar cage (visible) -->
+          <!-- vertical bars -->
+          <g stroke="#2a2a2e" stroke-width="3" stroke-linecap="square">
+            <line x1="80" y1="50" x2="80" y2="290"/>
+            <line x1="140" y1="50" x2="140" y2="290"/>
+            <line x1="200" y1="50" x2="200" y2="290"/>
+            <line x1="260" y1="50" x2="260" y2="290"/>
+            <line x1="320" y1="50" x2="320" y2="290"/>
+            <line x1="380" y1="50" x2="380" y2="290"/>
+          </g>
+          <!-- horizontal stirrups -->
+          <g stroke="#2a2a2e" stroke-width="2">
+            <line x1="60" y1="80" x2="400" y2="80"/>
+            <line x1="60" y1="125" x2="400" y2="125"/>
+            <line x1="60" y1="170" x2="400" y2="170"/>
+            <line x1="60" y1="215" x2="400" y2="215"/>
+            <line x1="60" y1="260" x2="400" y2="260"/>
+          </g>
+
+          <!-- Magnifying-glass icons inspecting different zones -->
+          <g stroke="#b8860b" stroke-width="2.2" fill="none">
+            <circle cx="115" cy="105" r="14"/>
+            <line x1="125" y1="115" x2="135" y2="125"/>
+          </g>
+          <g stroke="#b8860b" stroke-width="2.2" fill="none">
+            <circle cx="295" cy="155" r="14"/>
+            <line x1="305" y1="165" x2="315" y2="175"/>
+          </g>
+          <g stroke="#b8860b" stroke-width="2.2" fill="none">
+            <circle cx="225" cy="240" r="14"/>
+            <line x1="235" y1="250" x2="245" y2="260"/>
+          </g>
+          <g stroke="#b8860b" stroke-width="2.2" fill="none">
+            <circle cx="365" cy="220" r="14"/>
+            <line x1="375" y1="230" x2="385" y2="240"/>
+          </g>
+
+          <!-- POUR line -->
+          <line x1="40" y1="305" x2="440" y2="305" stroke="#b8860b" stroke-width="1.5"/>
+          <rect x="210" y="295" width="60" height="20" fill="#f7f7f5"/>
+          <text x="240" y="310" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="13" fill="#b8860b" letter-spacing="2">POUR</text>
+
+          <!-- BOTTOM HALF: concrete -->
+          <rect x="20" y="320" width="440" height="240" fill="url(#concreteGrad)"/>
+
+          <!-- faded rebar silhouette under concrete -->
+          <g stroke="#0e0e10" stroke-width="2" opacity="0.12">
+            <line x1="80" y1="335" x2="80" y2="555"/>
+            <line x1="140" y1="335" x2="140" y2="555"/>
+            <line x1="200" y1="335" x2="200" y2="555"/>
+            <line x1="260" y1="335" x2="260" y2="555"/>
+            <line x1="320" y1="335" x2="320" y2="555"/>
+            <line x1="380" y1="335" x2="380" y2="555"/>
+            <line x1="60" y1="365" x2="400" y2="365"/>
+            <line x1="60" y1="410" x2="400" y2="410"/>
+            <line x1="60" y1="455" x2="400" y2="455"/>
+            <line x1="60" y1="500" x2="400" y2="500"/>
+          </g>
+
+          <!-- subtle concrete texture dots -->
+          <g fill="#0e0e10" opacity="0.08">
+            <circle cx="100" cy="380" r="1.5"/>
+            <circle cx="180" cy="430" r="1.2"/>
+            <circle cx="270" cy="395" r="1.8"/>
+            <circle cx="340" cy="470" r="1.3"/>
+            <circle cx="150" cy="510" r="1.5"/>
+            <circle cx="380" cy="530" r="1.2"/>
+            <circle cx="60" cy="450" r="1.4"/>
+            <circle cx="410" cy="380" r="1.6"/>
+          </g>
+
+          <!-- frame border again on top -->
+          <rect x="20" y="20" width="440" height="560" fill="none" stroke="#0e0e10" stroke-width="1.5"/>
+
+          <!-- corner ticks (blueprint feel) -->
+          <g stroke="#0e0e10" stroke-width="1" opacity="0.4">
+            <line x1="20" y1="40" x2="40" y2="40"/>
+            <line x1="40" y1="20" x2="40" y2="40"/>
+            <line x1="440" y1="40" x2="460" y2="40"/>
+            <line x1="440" y1="20" x2="440" y2="40"/>
+            <line x1="20" y1="560" x2="40" y2="560"/>
+            <line x1="40" y1="560" x2="40" y2="580"/>
+            <line x1="440" y1="560" x2="460" y2="560"/>
+            <line x1="440" y1="560" x2="440" y2="580"/>
+          </g>
+        </svg>
+
+        <div class="mono mt-6 text-center" style="font-size:13px;color:var(--fg-faint);letter-spacing:0.04em;max-width:420px;">
+          Inspection window closes the moment concrete fills the form.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4 — THE SURFACES                                       -->
+<!-- ============================================================ -->
+<section class="slide" data-screen-label="04 The Surfaces">
+  <div class="h-full w-full flex flex-col">
+    <div class="kicker">WHAT WE BUILT</div>
+    <div class="font-bold headline-tight mt-3" style="font-size:64px;">Four surfaces. One inspection layer.</div>
+
+    <!-- 2x2 grid -->
+    <div class="grid mt-12" style="grid-template-columns:repeat(2,1fr);gap:32px;flex:1;min-height:0;">
+      <!-- card 1 -->
+      <div class="card flex flex-col" style="padding:36px;gap:18px;">
+        <div class="flex items-center" style="gap:18px;">
+          <div style="font-size:48px;">🏗️</div>
+          <div class="font-bold" style="font-size:32px;">Pre-pour cockpit</div>
+        </div>
+        <div style="font-size:20px;line-height:1.55;color:var(--fg-dim);">
+          9-agent debate before the pour. REJECT/CONDITIONAL/APPROVE verdict 0–100 with TBDY 2018 + TS 500 citations. The cinematic centerpiece — deterministic replay of real Fıstık Ağacı project.
+        </div>
+      </div>
+      <!-- card 2 -->
+      <div class="card flex flex-col" style="padding:36px;gap:18px;">
+        <div class="flex items-center" style="gap:18px;">
+          <div style="font-size:48px;">📸</div>
+          <div class="font-bold" style="font-size:32px;">Quick scan</div>
+        </div>
+        <div style="font-size:20px;line-height:1.55;color:var(--fg-dim);">
+          Single-photo Kimi K2.6 vision sandbox. Drop a site photo, get bbox callouts with TBDY 2018 / TS 500 citation tags on every finding.
+        </div>
+      </div>
+      <!-- card 3 -->
+      <div class="card flex flex-col" style="padding:36px;gap:18px;">
+        <div class="flex items-center" style="gap:18px;">
+          <div style="font-size:48px;">📋</div>
+          <div class="font-bold" style="font-size:32px;">Citizen watch</div>
+        </div>
+        <div style="font-size:20px;line-height:1.55;color:var(--fg-dim);">
+          Apartment owner audits their contractor. Auto-drafts a CIMER petition PDF for Turkey's state complaint portal. Real downstream civic action.
+        </div>
+      </div>
+      <!-- card 4 -->
+      <div class="card flex flex-col" style="padding:36px;gap:18px;">
+        <div class="flex items-center" style="gap:18px;">
+          <div style="font-size:48px;">💬</div>
+          <div class="font-bold" style="font-size:32px;">Citizen hotline</div>
+        </div>
+        <div style="font-size:20px;line-height:1.55;color:var(--fg-dim);">
+          Multi-turn chat hotline with photo attachments. Kimi K2.6 sees, Hermes 4 70B reasons. Severity grading triggers escalation flow.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5 — THE AGENTS                                         -->
+<!-- ============================================================ -->
+<section class="slide" data-screen-label="05 The Agents">
+  <div class="h-full w-full flex flex-col">
+    <div class="kicker">THE DEBATE</div>
+    <div class="font-bold headline-tight mt-4" style="font-size:64px;">Nine agents, two models, one verdict.</div>
+    <div class="mt-6" style="font-size:20px;line-height:1.55;color:var(--fg-dim);max-width:1200px;">
+      Every inspection runs the same ordered debate. Kimi K2.6 sees the photos, Hermes 4 70B argues the codes, the Moderator scores it, the Belediye Agent countersigns — and then a human engineer has the last click.
+    </div>
+
+    <!-- 3x3 agent grid -->
+    <div class="grid mt-10" style="grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:16px;flex:1;min-height:0;">
+      <!-- 01 -->
+      <div class="card flex flex-col" style="padding:18px 22px;gap:8px;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline" style="gap:10px;">
+            <span class="mono" style="font-size:13px;color:var(--fg-faint);">01</span>
+            <span class="font-bold" style="font-size:22px;">PlanParser</span>
+          </div>
+          <span class="mono" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">PLAN</span>
+        </div>
+        <div style="font-size:15px;color:var(--fg-dim);line-height:1.4;">Reads approved PDF/DWG drawings</div>
+        <div class="mono mt-auto" style="font-size:11px;color:var(--accent);letter-spacing:0.05em;">MODEL · KIMI-K2.6</div>
+      </div>
+      <!-- 02 -->
+      <div class="card flex flex-col" style="padding:18px 22px;gap:8px;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline" style="gap:10px;">
+            <span class="mono" style="font-size:13px;color:var(--fg-faint);">02</span>
+            <span class="font-bold" style="font-size:22px;">GeometryAgent</span>
+          </div>
+          <span class="mono" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">GEOM</span>
+        </div>
+        <div style="font-size:15px;color:var(--fg-dim);line-height:1.4;">Plan vs site rebar diff (rules compute, Hermes narrates)</div>
+        <div class="mono mt-auto" style="font-size:11px;color:var(--accent);letter-spacing:0.05em;">MODEL · RULES + HERMES-4-70B</div>
+      </div>
+      <!-- 03 -->
+      <div class="card flex flex-col" style="padding:18px 22px;gap:8px;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline" style="gap:10px;">
+            <span class="mono" style="font-size:13px;color:var(--fg-faint);">03</span>
+            <span class="font-bold" style="font-size:22px;">CodeAgent</span>
+          </div>
+          <span class="mono" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">CODE</span>
+        </div>
+        <div style="font-size:15px;color:var(--fg-dim);line-height:1.4;">TBDY 2018 / TS 500 compliance (rules compute, Hermes narrates)</div>
+        <div class="mono mt-auto" style="font-size:11px;color:var(--accent);letter-spacing:0.05em;">MODEL · RULES + HERMES-4-70B</div>
+      </div>
+      <!-- 04 -->
+      <div class="card flex flex-col" style="padding:18px 22px;gap:8px;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline" style="gap:10px;">
+            <span class="mono" style="font-size:13px;color:var(--fg-faint);">04</span>
+            <span class="font-bold" style="font-size:22px;">FraudAgent</span>
+          </div>
+          <span class="mono" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">FRAUD</span>
+        </div>
+        <div style="font-size:15px;color:var(--fg-dim);line-height:1.4;">EXIF / marker / hash dup (rules compute, Hermes narrates)</div>
+        <div class="mono mt-auto" style="font-size:11px;color:var(--accent);letter-spacing:0.05em;">MODEL · RULES + HERMES-4-70B</div>
+      </div>
+      <!-- 05 -->
+      <div class="card flex flex-col" style="padding:18px 22px;gap:8px;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline" style="gap:10px;">
+            <span class="mono" style="font-size:13px;color:var(--fg-faint);">05</span>
+            <span class="font-bold" style="font-size:22px;">RiskAgent</span>
+          </div>
+          <span class="mono" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">RISK</span>
+        </div>
+        <div style="font-size:15px;color:var(--fg-dim);line-height:1.4;">AFAD seismic zone × soil class × floors (rules compute, Hermes narrates)</div>
+        <div class="mono mt-auto" style="font-size:11px;color:var(--accent);letter-spacing:0.05em;">MODEL · RULES + HERMES-4-70B</div>
+      </div>
+      <!-- 06 -->
+      <div class="card flex flex-col" style="padding:18px 22px;gap:8px;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline" style="gap:10px;">
+            <span class="mono" style="font-size:13px;color:var(--fg-faint);">06</span>
+            <span class="font-bold" style="font-size:22px;">MaterialAgent</span>
+          </div>
+          <span class="mono" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">MATL</span>
+        </div>
+        <div style="font-size:15px;color:var(--fg-dim);line-height:1.4;">Steel class, corrosion</div>
+        <div class="mono mt-auto" style="font-size:11px;color:var(--accent);letter-spacing:0.05em;">MODEL · KIMI-K2.6</div>
+      </div>
+      <!-- 07 -->
+      <div class="card flex flex-col" style="padding:18px 22px;gap:8px;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline" style="gap:10px;">
+            <span class="mono" style="font-size:13px;color:var(--fg-faint);">07</span>
+            <span class="font-bold" style="font-size:22px;">CoverAgent</span>
+          </div>
+          <span class="mono" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">COVER</span>
+        </div>
+        <div style="font-size:15px;color:var(--fg-dim);line-height:1.4;">Concrete cover estimation</div>
+        <div class="mono mt-auto" style="font-size:11px;color:var(--accent);letter-spacing:0.05em;">MODEL · KIMI-K2.6</div>
+      </div>
+      <!-- 08 -->
+      <div class="card flex flex-col" style="padding:18px 22px;gap:8px;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline" style="gap:10px;">
+            <span class="mono" style="font-size:13px;color:var(--fg-faint);">08</span>
+            <span class="font-bold" style="font-size:22px;">Moderator</span>
+          </div>
+          <span class="mono" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">MOD</span>
+        </div>
+        <div style="font-size:15px;color:var(--fg-dim);line-height:1.4;">Synthesizes all findings</div>
+        <div class="mono mt-auto" style="font-size:11px;color:var(--accent);letter-spacing:0.05em;">MODEL · HERMES-4-70B</div>
+      </div>
+      <!-- 09 -->
+      <div class="card flex flex-col" style="padding:18px 22px;gap:8px;">
+        <div class="flex items-center justify-between">
+          <div class="flex items-baseline" style="gap:10px;">
+            <span class="mono" style="font-size:13px;color:var(--fg-faint);">09</span>
+            <span class="font-bold" style="font-size:22px;">Municipality Agent</span>
+          </div>
+          <span class="mono" style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">BLD</span>
+        </div>
+        <div style="font-size:15px;color:var(--fg-dim);line-height:1.4;">Independent municipal reviewer (pour-approval gate)</div>
+        <div class="mono mt-auto" style="font-size:11px;color:var(--accent);letter-spacing:0.05em;">MODEL · HERMES-4-70B</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6 — THE JOURNEY                                        -->
+<!-- ============================================================ -->
+<section class="slide" data-screen-label="06 The Journey">
+  <div class="h-full w-full flex flex-col">
+    <div class="kicker">THE JOURNEY</div>
+    <div class="font-bold headline-tight mt-3" style="font-size:60px;">From construction site to pour decision.</div>
+    <div class="mt-5" style="font-size:20px;line-height:1.55;color:var(--fg-dim);max-width:1300px;">
+      RebarGuard sits as an inspection layer between the rebar cage and the concrete pour. Four actors, one decision gate.
+    </div>
+
+    <!-- Flow diagram -->
+    <div class="flex items-stretch mt-12" style="gap:14px;flex:1;min-height:0;">
+
+      <!-- NODE 1 — Site worker -->
+      <div class="arch-panel flex flex-col items-center text-center" style="flex:1;padding:24px 18px;gap:14px;">
+        <svg viewBox="0 0 80 80" style="width:72px;height:72px;" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="28" width="60" height="38" rx="4" fill="none" stroke="#0e0e10" stroke-width="2"/>
+          <rect x="28" y="22" width="24" height="8" rx="1" fill="none" stroke="#0e0e10" stroke-width="2"/>
+          <circle cx="40" cy="48" r="11" fill="none" stroke="#b8860b" stroke-width="2.2"/>
+          <circle cx="40" cy="48" r="4" fill="#b8860b"/>
+          <circle cx="60" cy="34" r="1.6" fill="#0e0e10"/>
+        </svg>
+        <div class="font-bold" style="font-size:22px;">Site worker / citizen</div>
+        <div style="font-size:14px;line-height:1.45;color:var(--fg-dim);">Snaps photos of the rebar cage before the pour. Uploads via the cockpit, citizen watch, or hotline.</div>
+      </div>
+
+      <!-- arrow 1 -->
+      <div class="flex flex-col items-center justify-center" style="width:90px;flex-shrink:0;gap:8px;">
+        <svg viewBox="0 0 80 12" style="width:80px;height:12px;" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="6" x2="70" y2="6" stroke="#b8860b" stroke-width="1.6"/>
+          <polygon points="70,2 78,6 70,10" fill="#b8860b"/>
+        </svg>
+        <div class="mono text-center" style="font-size:11px;color:var(--fg-faint);letter-spacing:0.05em;">photos + plan</div>
+      </div>
+
+      <!-- NODE 2 — 9 AI agents -->
+      <div class="arch-panel flex flex-col items-center text-center" style="flex:1;padding:24px 18px;gap:14px;border-color:var(--accent);">
+        <svg viewBox="0 0 80 80" style="width:72px;height:72px;" xmlns="http://www.w3.org/2000/svg">
+          <g fill="#b8860b">
+            <circle cx="20" cy="20" r="5"/>
+            <circle cx="40" cy="20" r="5"/>
+            <circle cx="60" cy="20" r="5"/>
+            <circle cx="20" cy="40" r="5"/>
+            <circle cx="40" cy="40" r="6.5"/>
+            <circle cx="60" cy="40" r="5"/>
+            <circle cx="20" cy="60" r="5"/>
+            <circle cx="40" cy="60" r="5"/>
+            <circle cx="60" cy="60" r="5"/>
+          </g>
+        </svg>
+        <div class="font-bold" style="font-size:22px;">9 AI agents</div>
+        <div style="font-size:14px;line-height:1.45;color:var(--fg-dim);">Kimi K2.6 sees, Hermes 4 70B argues. 60-second debate. Composite 0–100 score.</div>
+      </div>
+
+      <!-- arrow 2 -->
+      <div class="flex flex-col items-center justify-center" style="width:90px;flex-shrink:0;gap:8px;">
+        <svg viewBox="0 0 80 12" style="width:80px;height:12px;" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="6" x2="70" y2="6" stroke="#b8860b" stroke-width="1.6"/>
+          <polygon points="70,2 78,6 70,10" fill="#b8860b"/>
+        </svg>
+        <div class="mono text-center" style="font-size:11px;color:var(--fg-faint);letter-spacing:0.05em;">score + verdict</div>
+      </div>
+
+      <!-- NODE 3 — Municipality -->
+      <div class="arch-panel flex flex-col items-center text-center" style="flex:1;padding:24px 18px;gap:14px;">
+        <svg viewBox="0 0 80 80" style="width:72px;height:72px;" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="40,12 14,30 66,30" fill="none" stroke="#0e0e10" stroke-width="2"/>
+          <line x1="14" y1="30" x2="66" y2="30" stroke="#0e0e10" stroke-width="2"/>
+          <rect x="14" y="30" width="52" height="36" fill="none" stroke="#0e0e10" stroke-width="2"/>
+          <line x1="14" y1="66" x2="66" y2="66" stroke="#0e0e10" stroke-width="2"/>
+          <line x1="22" y1="36" x2="22" y2="60" stroke="#0e0e10" stroke-width="1.5"/>
+          <line x1="32" y1="36" x2="32" y2="60" stroke="#0e0e10" stroke-width="1.5"/>
+          <line x1="48" y1="36" x2="48" y2="60" stroke="#0e0e10" stroke-width="1.5"/>
+          <line x1="58" y1="36" x2="58" y2="60" stroke="#0e0e10" stroke-width="1.5"/>
+          <rect x="36" y="46" width="8" height="20" fill="#b8860b"/>
+        </svg>
+        <div class="font-bold" style="font-size:22px;">Municipality</div>
+        <div style="font-size:14px;line-height:1.45;color:var(--fg-dim);">Belediye Agent counter-reviews. Cannot uphold a REJECT — always escalates to a human.</div>
+      </div>
+
+      <!-- arrow 3 -->
+      <div class="flex flex-col items-center justify-center" style="width:90px;flex-shrink:0;gap:8px;">
+        <svg viewBox="0 0 80 12" style="width:80px;height:12px;" xmlns="http://www.w3.org/2000/svg">
+          <line x1="0" y1="6" x2="70" y2="6" stroke="#b8860b" stroke-width="1.6"/>
+          <polygon points="70,2 78,6 70,10" fill="#b8860b"/>
+        </svg>
+        <div class="mono text-center" style="font-size:11px;color:var(--fg-faint);letter-spacing:0.05em;">counter-review</div>
+      </div>
+
+      <!-- NODE 4 — Licensed engineer -->
+      <div class="arch-panel flex flex-col items-center text-center" style="flex:1;padding:24px 18px;gap:14px;">
+        <svg viewBox="0 0 80 80" style="width:72px;height:72px;" xmlns="http://www.w3.org/2000/svg">
+          <path d="M 14 50 Q 14 24 40 24 Q 66 24 66 50 Z" fill="none" stroke="#0e0e10" stroke-width="2"/>
+          <rect x="10" y="50" width="60" height="6" fill="#b8860b"/>
+          <line x1="40" y1="24" x2="40" y2="36" stroke="#b8860b" stroke-width="2"/>
+          <path d="M 22 64 Q 36 72 58 62" fill="none" stroke="#0e0e10" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <div class="font-bold" style="font-size:22px;">Licensed engineer</div>
+        <div style="font-size:14px;line-height:1.45;color:var(--fg-dim);">Final countersignature. Pour authorized or pour blocked.</div>
+      </div>
+
+      <!-- POUR DECISION panel -->
+      <div class="flex flex-col" style="width:230px;flex-shrink:0;gap:10px;">
+        <div class="kicker text-center" style="color:var(--fg-faint);">POUR DECISION</div>
+        <div class="flex flex-col items-start justify-center" style="flex:1;padding:18px 16px;gap:14px;border:1px solid var(--mint);border-radius:8px;background:rgba(5,150,105,0.05);">
+          <div class="flex items-center" style="gap:10px;">
+            <span style="color:var(--mint);font-weight:700;font-size:22px;">✓</span>
+            <div>
+              <div class="mono font-semibold" style="font-size:14px;color:var(--mint);letter-spacing:0.05em;">APPROVED</div>
+              <div class="mono" style="font-size:12px;color:var(--fg-dim);">pour OK</div>
+            </div>
+          </div>
+          <div style="height:1px;background:var(--border);width:100%;"></div>
+          <div class="flex items-center" style="gap:10px;">
+            <span style="color:var(--red);font-weight:700;font-size:22px;">✕</span>
+            <div>
+              <div class="mono font-semibold" style="font-size:14px;color:var(--red);letter-spacing:0.05em;">REJECTED</div>
+              <div class="mono" style="font-size:12px;color:var(--fg-dim);">pour blocked</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mono mt-8" style="font-size:13px;color:var(--fg-faint);letter-spacing:0.04em;">
+      Inspection window closes the moment concrete fills the form.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 7 — DEBATE FLOW                                        -->
+<!-- ============================================================ -->
+<section class="slide" data-screen-label="07 Debate Flow">
+  <div class="h-full w-full flex flex-col">
+    <div class="kicker">HOW IT WORKS</div>
+    <div class="font-bold headline-tight mt-3" style="font-size:56px;">Photo in. Verdict out.</div>
+
+    <!-- 6 step rows -->
+    <div class="flex flex-col mt-8" style="gap:12px;flex:1;min-height:0;">
+      <!-- 01 Ingestion -->
+      <div class="card flex items-center" style="padding:18px 28px;gap:28px;">
+        <div class="mono font-bold" style="font-size:48px;color:var(--accent);line-height:1;width:80px;flex-shrink:0;">01</div>
+        <div style="width:280px;flex-shrink:0;">
+          <div class="font-bold" style="font-size:22px;">Ingestion</div>
+          <div class="flex mt-2" style="gap:6px;">
+            <span class="mono" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">PLAN</span>
+          </div>
+        </div>
+        <div class="flex-1" style="font-size:17px;color:var(--fg-dim);line-height:1.5;">
+          Kimi K2.6 reads the approved PDF drawing. One shot, structured plan JSON out.
+        </div>
+      </div>
+      <!-- 02 Site analysis -->
+      <div class="card flex items-center" style="padding:18px 28px;gap:28px;">
+        <div class="mono font-bold" style="font-size:48px;color:var(--accent);line-height:1;width:80px;flex-shrink:0;">02</div>
+        <div style="width:280px;flex-shrink:0;">
+          <div class="font-bold" style="font-size:22px;">Site analysis</div>
+          <div class="flex mt-2" style="gap:6px;flex-wrap:wrap;">
+            <span class="mono" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">GEOM</span>
+            <span class="mono" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">FRAUD</span>
+            <span class="mono" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">SEISM</span>
+          </div>
+        </div>
+        <div class="flex-1" style="font-size:17px;color:var(--fg-dim);line-height:1.5;">
+          Rule engines compute the diff (counts, EXIF, AFAD lookup). Hermes 4 70B narrates each finding in parallel — verdict math stays auditable, prose stays agentic.
+        </div>
+      </div>
+      <!-- 03 Vision pass -->
+      <div class="card flex items-center" style="padding:18px 28px;gap:28px;">
+        <div class="mono font-bold" style="font-size:48px;color:var(--accent);line-height:1;width:80px;flex-shrink:0;">03</div>
+        <div style="width:280px;flex-shrink:0;">
+          <div class="font-bold" style="font-size:22px;">Vision pass</div>
+          <div class="flex mt-2" style="gap:6px;">
+            <span class="mono" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">MATL</span>
+            <span class="mono" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">COVER</span>
+          </div>
+        </div>
+        <div class="flex-1" style="font-size:17px;color:var(--fg-dim);line-height:1.5;">
+          Kimi K2.6 close-up + cover reads with reference-marker calibration.
+        </div>
+      </div>
+      <!-- 04 Compliance -->
+      <div class="card flex items-center" style="padding:18px 28px;gap:28px;">
+        <div class="mono font-bold" style="font-size:48px;color:var(--accent);line-height:1;width:80px;flex-shrink:0;">04</div>
+        <div style="width:280px;flex-shrink:0;">
+          <div class="font-bold" style="font-size:22px;">Compliance</div>
+          <div class="flex mt-2" style="gap:6px;">
+            <span class="mono" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">CODE</span>
+          </div>
+        </div>
+        <div class="flex-1" style="font-size:17px;color:var(--fg-dim);line-height:1.5;">
+          Rule engine over TBDY 2018 + TS 500 whitelist RAG. Hermes 4 70B writes the violation narrative.
+        </div>
+      </div>
+      <!-- 05 Synthesis -->
+      <div class="card flex items-center" style="padding:18px 28px;gap:28px;">
+        <div class="mono font-bold" style="font-size:48px;color:var(--accent);line-height:1;width:80px;flex-shrink:0;">05</div>
+        <div style="width:280px;flex-shrink:0;">
+          <div class="font-bold" style="font-size:22px;">Synthesis</div>
+          <div class="flex mt-2" style="gap:6px;">
+            <span class="mono" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">MOD</span>
+          </div>
+        </div>
+        <div class="flex-1" style="font-size:17px;color:var(--fg-dim);line-height:1.5;">
+          Hermes 4 70B weighs the 6 specialist reports, emits score + verdict.
+        </div>
+      </div>
+      <!-- 06 Counter-review -->
+      <div class="card flex items-center" style="padding:18px 28px;gap:28px;">
+        <div class="mono font-bold" style="font-size:48px;color:var(--accent);line-height:1;width:80px;flex-shrink:0;">06</div>
+        <div style="width:280px;flex-shrink:0;">
+          <div class="font-bold" style="font-size:22px;">Counter-review</div>
+          <div class="flex mt-2" style="gap:6px;">
+            <span class="mono" style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:3px;background:rgba(37,99,235,0.10);color:var(--blue);border:1px solid rgba(37,99,235,0.25);letter-spacing:0.08em;">BLD</span>
+          </div>
+        </div>
+        <div class="flex-1" style="font-size:17px;color:var(--fg-dim);line-height:1.5;">
+          Independent municipal reviewer. Hard rail: cannot uphold a REJECT — escalates to a licensed engineer.
+        </div>
+      </div>
+    </div>
+
+    <!-- See it live footer -->
+    <div class="arch-panel flex items-center mt-6" style="padding:16px 28px;gap:24px;">
+      <div class="kicker" style="color:var(--accent);">SEE IT LIVE</div>
+      <div class="mono" style="font-size:15px;color:var(--fg-dim);">Replay cockpit · MCP tools · Audit trail</div>
+      <div class="ml-auto flex items-center" style="gap:10px;">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(5,150,105,0.18);"></span>
+        <span class="mono" style="font-size:14px;color:var(--accent);">rebarguard.vercel.app</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 8 — HOW IT'S MADE                                      -->
+<!-- ============================================================ -->
+<section class="slide" data-screen-label="08 How Its Made">
+  <div class="h-full w-full flex flex-col">
+    <div class="kicker">HOW IT'S MADE</div>
+
+    <div class="flex flex-col mt-8" style="gap:20px;">
+      <!-- ROW 1 — Nous Research -->
+      <div class="flex items-center" style="height:340px;gap:32px;background:var(--bg-elev);border:1px solid var(--border);border-radius:8px;padding:24px;">
+        <div style="width:340px;" class="flex flex-col items-start">
+          <div class="logo-tile" style="width:160px;height:160px;padding:14px;"><img src="https://unavatar.io/twitter/NousResearch" style="width:130px;height:130px;" alt="Nous Research"></div>
+          <div class="font-bold mt-4" style="font-size:32px;letter-spacing:-0.01em;">Nous Research</div>
+          <div class="mono mt-1" style="font-size:13px;color:var(--accent);">Main Track · Hermes Agent Framework</div>
+        </div>
+        <div class="flex-1 flex flex-col" style="gap:8px;font-size:19px;">
+          <div class="flex items-start"><span class="check">✓</span><span>4 custom <span class="mono" style="font-size:16px;">SKILL.md</span> (parse-structural-plan, inspect-rebar, moderate-inspection, citizen-chat)</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span><span class="mono" style="font-size:16px;">--resume &lt;session_id&gt;</span> parcel-scoped session memory</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span><span class="mono" style="font-size:16px;">--source rebarguard:&lt;parcel&gt;</span> audit trail filtering</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span>Three lifecycle hooks → JSONL on Fly volume (<span class="mono" style="font-size:16px;">/data/hermes/audit-log.jsonl</span>)</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span>MCP server exposing 5 tools (Claude Desktop callable)</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span><span class="mono" style="font-size:16px;">--provider nous</span> subscription routing · $0/call</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span>Async subprocess fan-out — bounded concurrency via <span class="mono" style="font-size:16px;">asyncio.Semaphore</span> for parallel Kimi vision calls</span></div>
+        </div>
+      </div>
+
+      <!-- ROW 2 — Moonshot / Kimi -->
+      <div class="flex items-center" style="height:300px;gap:32px;border:1px solid var(--border);border-radius:8px;padding:24px;background:transparent;">
+        <div style="width:340px;" class="flex flex-col items-start">
+          <div class="logo-tile" style="width:160px;height:160px;padding:14px;"><img src="https://unavatar.io/twitter/Kimi_Moonshot" style="width:130px;height:130px;" alt="Kimi"></div>
+          <div class="font-bold mt-4" style="font-size:32px;letter-spacing:-0.01em;">Moonshot AI · Kimi</div>
+          <div class="mono mt-1" style="font-size:13px;color:var(--accent);">Kimi Track · Kimi K2.6 Vision</div>
+        </div>
+        <div class="flex-1 flex flex-col" style="gap:8px;font-size:19px;">
+          <div class="flex items-start"><span class="check">✓</span><span>PDF structural plan parsing → structured JSON (PlanParser agent)</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span>Close-up cover thickness + steel class detection (Material + Cover agents)</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span>Single-photo bbox callouts with TBDY/TS 500 references (Quick Scan)</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span>Native video walkthrough — time-stamped findings on 30–90s site walks</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span>Multi-turn citizen chat with photo attachments</span></div>
+          <div class="flex items-start"><span class="check">✓</span><span>Citation whitelist — Kimi citations validated against the 16-article TBDY/TS 500 RAG; hallucinated refs silently dropped</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom badge -->
+    <div class="mt-6 flex justify-end">
+      <div style="display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border:1px solid var(--border);border-radius:999px;background:var(--bg-elev);">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 3px rgba(5,150,105,0.18);"></span>
+        <span class="mono" style="font-size:14px;color:var(--fg-dim);letter-spacing:0.04em;">
+          9 AGENTS · 2 MODELS · 1 VERDICT · MIT LICENSED
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 9 — FUTURE WORK                                        -->
+<!-- ============================================================ -->
+<section class="slide" data-screen-label="09 Future Work">
+  <div class="h-full w-full flex flex-col justify-center">
+    <div class="kicker">FUTURE WORK</div>
+
+    <div class="flex flex-col mt-16" style="gap:60px;max-width:1500px;">
+      <!-- 1 -->
+      <div>
+        <div class="flex items-baseline" style="gap:24px;">
+          <span class="font-bold" style="font-size:64px;color:var(--accent);line-height:1;">1.</span>
+          <span class="font-bold headline-tight" style="font-size:44px;color:var(--fg);">Multi-tenant SaaS gate</span>
+        </div>
+        <div class="mono mt-3" style="font-size:20px;color:var(--fg-dim);padding-left:88px;line-height:1.5;">
+          Per-org auth, rate limiting, billing tier separation. The /quick sandbox becomes a paid surface for inspection firms.
+        </div>
+      </div>
+      <!-- 2 -->
+      <div>
+        <div class="flex items-baseline" style="gap:24px;">
+          <span class="font-bold" style="font-size:64px;color:var(--accent);line-height:1;">2.</span>
+          <span class="font-bold headline-tight" style="font-size:44px;color:var(--fg);">Live AFAD API integration</span>
+        </div>
+        <div class="mono mt-3" style="font-size:20px;color:var(--fg-dim);padding-left:88px;line-height:1.5;">
+          Replace the hardcoded 11-city earthquake-zone table with the official tdth.afad.gov.tr lookup. Real soil-class queries per parcel.
+        </div>
+      </div>
+      <!-- 3 -->
+      <div>
+        <div class="flex items-baseline" style="gap:24px;">
+          <span class="font-bold" style="font-size:64px;color:var(--accent);line-height:1;">3.</span>
+          <span class="font-bold headline-tight" style="font-size:44px;color:var(--fg);">Public Hermes skill registry</span>
+        </div>
+        <div class="mono mt-3" style="font-size:20px;color:var(--fg-dim);padding-left:88px;line-height:1.5;">
+          The 4 SKILL.md files are already agentskills.io-compatible. Publish to a public Hermes skill registry once the marketplace ships — any builder pulls RebarGuard into their own agent stack with one flag.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 10 — THANKS / CTA                                      -->
+<!-- ============================================================ -->
+<section class="slide grid-bg" data-screen-label="10 Thanks">
+  <div class="h-full w-full flex flex-col">
+    <div class="flex-1"></div>
+    <div class="kicker">THANKS FOR WATCHING.</div>
+    <h2 class="font-bold headline-tight mt-6" style="font-size:96px;color:var(--accent);">RebarGuard.</h2>
+
+    <div class="flex flex-col mt-16" style="gap:14px;">
+      <div class="mono" style="font-size:28px;color:var(--accent);">rebarguard.vercel.app</div>
+      <div class="mono" style="font-size:22px;color:var(--accent);">github.com/Himess/rebarguard</div>
+      <div class="mono mt-2" style="font-size:14px;color:var(--fg-dim);">
+        Demo project · 1340 ADA 43 PARSEL · Istanbul
+      </div>
+      <div class="mono" style="font-size:14px;color:var(--fg-dim);">
+        Hermes audit · /data/hermes/audit-log.jsonl
+      </div>
+    </div>
+
+    <div class="flex-1"></div>
+
+    <div>
+      <div class="kicker mb-4">BUILT WITH:</div>
+      <div class="flex items-center" style="gap:36px;">
+        <div class="logo-tile" style="width:96px;height:96px;"><img src="https://unavatar.io/twitter/NousResearch" style="width:72px;height:72px;" alt="Nous Research"></div>
+        <div class="logo-tile" style="width:96px;height:96px;"><img src="https://unavatar.io/twitter/Kimi_Moonshot" style="width:72px;height:72px;" alt="Kimi"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="slide-indicator">1 / 10</div>
+<div id="slide-help">F = Present · ←/→ = Slide · Esc = Exit</div>
+
+<script>
+  (function() {
+    const slides = Array.from(document.querySelectorAll('section.slide'));
+    const indicator = document.getElementById('slide-indicator');
+    const total = slides.length;
+    let current = 0;
+
+    function setCurrent(idx, scrollInto = false) {
+      current = Math.max(0, Math.min(total - 1, idx));
+      slides.forEach((s, i) => s.classList.toggle('is-current', i === current));
+      indicator.textContent = `${current + 1} / ${total}`;
+      if (scrollInto && !document.body.classList.contains('present')) {
+        slides[current].scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function fitScale() {
+      // Slide is 1920×1080. Scale to fit viewport while preserving aspect.
+      const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      document.body.style.setProperty('--present-scale', String(scale));
+    }
+
+    function togglePresent() {
+      const isPresent = document.body.classList.toggle('present');
+      if (isPresent) {
+        fitScale();
+        setCurrent(current);
+        // Try real fullscreen too — best-effort, ignore if blocked
+        document.documentElement.requestFullscreen?.().catch(() => {});
+      } else {
+        if (document.fullscreenElement) document.exitFullscreen?.();
+      }
+    }
+
+    function exitPresent() {
+      if (document.body.classList.contains('present')) {
+        document.body.classList.remove('present');
+        if (document.fullscreenElement) document.exitFullscreen?.();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      // Don't hijack typing inside inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'PageDown':
+        case ' ':
+          e.preventDefault();
+          setCurrent(current + 1, true);
+          break;
+        case 'ArrowLeft':
+        case 'PageUp':
+          e.preventDefault();
+          setCurrent(current - 1, true);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          setCurrent(current + 1, true);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setCurrent(current - 1, true);
+          break;
+        case 'Home':
+          e.preventDefault();
+          setCurrent(0, true);
+          break;
+        case 'End':
+          e.preventDefault();
+          setCurrent(total - 1, true);
+          break;
+        case 'f':
+        case 'F':
+          e.preventDefault();
+          togglePresent();
+          break;
+        case 'Escape':
+          exitPresent();
+          break;
+        default:
+          if (/^[1-9]$/.test(e.key)) {
+            const idx = parseInt(e.key, 10) - 1;
+            if (idx < total) {
+              e.preventDefault();
+              setCurrent(idx, true);
+            }
+          }
+      }
+    });
+
+    // Update current slide while scrolling in the non-present (review) mode
+    if ('IntersectionObserver' in window) {
+      const obs = new IntersectionObserver((entries) => {
+        if (document.body.classList.contains('present')) return;
+        for (const entry of entries) {
+          if (entry.intersectionRatio > 0.5) {
+            const idx = slides.indexOf(entry.target);
+            if (idx >= 0) setCurrent(idx, false);
+          }
+        }
+      }, { threshold: [0.5] });
+      slides.forEach((s) => obs.observe(s));
+    }
+
+    window.addEventListener('resize', () => {
+      if (document.body.classList.contains('present')) fitScale();
+    });
+
+    setCurrent(0);
+  })();
+</script>
+
+</body>
+</html>
