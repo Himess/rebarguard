@@ -17,7 +17,12 @@ class Settings(BaseSettings):
     )
     hermes_cli_via_wsl: bool = Field(default=True, alias="HERMES_CLI_VIA_WSL")
     hermes_wsl_distro: str = Field(default="Ubuntu-22.04", alias="HERMES_WSL_DISTRO")
-    hermes_cli_timeout_s: int = Field(default=120, alias="HERMES_CLI_TIMEOUT_S")
+    # Kimi K2.6 vision turnaround on Nous Portal (subscription tier) measured at
+    # ~230-400 s for a real construction-site photo with the inspection prompt.
+    # 480 s gives the Kimi roundtrip a safe ceiling without leaving the user
+    # hanging forever — combined with the streaming /quick wrapper's 8 s
+    # whitespace heartbeat, the proxy stays alive for the whole window.
+    hermes_cli_timeout_s: int = Field(default=480, alias="HERMES_CLI_TIMEOUT_S")
     hermes_cli_max_turns: int = Field(default=3, alias="HERMES_CLI_MAX_TURNS")
 
     # ---- Nous Portal (used in `direct` mode) ----
